@@ -1,11 +1,9 @@
-#include "core/logger.hpp"
-#include "siir/cfg.hpp"
-#include "siir/type.hpp"
+#include "graph/cfg.hpp"
+#include "graph/Type.hpp"
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
-u32 Type::s_id_iter = 0;
+uint32_t Type::s_id_iter = 0;
 
 const Type* Type::get_i1_type(CFG& cfg) {
     return cfg.m_types_ints[IntegerType::TY_Int1];
@@ -49,7 +47,24 @@ static const IntegerType* get(CFG& cfg, u32 width) {
         return static_cast<const IntegerType*>(Type::get_i64_type(cfg));
     }
 
-    assert(false && "uncompatible integer type bit width");
+    assert(false && "uncompatible integer type bit width!");
+}
+
+bool IntegerType::is_integer_type(uint32_t width) const {
+    switch (width) {
+    case 1:
+        return m_kind == TY_Int1;
+    case 8:
+        return m_kind == TY_Int8;
+    case 16:
+        return m_kind == TY_Int16;
+    case 32:
+        return m_kind == TY_Int32;
+    case 64:
+        return m_kind == TY_Int64;
+    }
+
+    return false;
 }
 
 std::string IntegerType::to_string() const {
@@ -67,7 +82,7 @@ std::string IntegerType::to_string() const {
     }
 }
 
-const FloatType* FloatType::get(CFG& cfg, u32 width) {
+const FloatType* FloatType::get(CFG& cfg, uint32_t width) {
     switch (width) {
     case 32:
         return static_cast<const FloatType*>(Type::get_f32_type(cfg));
@@ -75,7 +90,17 @@ const FloatType* FloatType::get(CFG& cfg, u32 width) {
         return static_cast<const FloatType*>(Type::get_f64_type(cfg));
     }
 
-    assert(false && "uncompatible floating type bit width");
+    assert(false && "uncompatible floating type bit width!");
+}
+
+bool FloatType::is_floating_point_type(uint32_t width) const {
+    if (width == 32) {
+        return m_kind == TY_Float32;
+    } else if (width == 64) {
+        return m_kind == TY_Float64;
+    } else {
+        return false;
+    }
 }
 
 std::string FloatType::to_string() const {
@@ -101,13 +126,8 @@ const ArrayType* ArrayType::get(CFG& cfg, const Type* element, u32 size) {
     return type;
 }
 
-std::string ArrayType::to_string() const {
-    return '[' + std::to_string(m_size) + ']' + m_element->to_string();
-}
-
-const FunctionType* 
-FunctionType::get(CFG& cfg, const std::vector<const Type*>& args, 
-                  const Type* ret) {
+const FunctionType* FunctionType::get(
+        CFG& cfg, const std::vector<const Type*>& args, const Type* ret) {
     FunctionType* type = new FunctionType(args, ret);
     cfg.m_types_fns.push_back(type);
     return type;
@@ -141,10 +161,11 @@ const PointerType* PointerType::get(CFG& cfg, const Type* pointee) {
 std::string PointerType::to_string() const {
     std::string str = "*";
 
-    if (m_pointee)
+    if (m_pointee) {
         str += m_pointee->to_string();
-    else
+    } else {
         str += "void";
+    }
 
     return str;
 }
@@ -157,18 +178,12 @@ StructType* StructType::get(CFG& cfg, const std::string& name) {
     return nullptr;
 }
 
-StructType* 
-StructType::create(CFG& cfg, const std::string& name,
-                   const std::vector<const Type*> &fields) {
-    assert(!get(cfg, name) && 
-        "struct type with name already exists");
+StructType* StructType::create(CFG& cfg, const std::string& name,
+                               const std::vector<const Type*> &fields) {
+    assert(!get(cfg, name) && "struct type with name already exists!");
 
     StructType* type = new StructType(name, fields);
-    assert(type);
+    assert(type && "failed to create struct type!");
     cfg.m_types_structs.emplace(name, type);
     return type;
-}
-
-std::string StructType::to_string() const {
-    return m_name;
 }

@@ -1,24 +1,23 @@
-#ifndef STATIM_SIIR_TYPE_HPP_
-#define STATIM_SIIR_TYPE_HPP_
-
-#include "types/types.hpp"
+#ifndef SPBE_TYPE_H_
+#define SPBE_TYPE_H_
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 #include <vector>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class CFG;
 
-/// Base class for all types in the intermediate context.
+/// Base class for all types in the agnostic intermediate representation.
 class Type {
     friend class Context;
 
 public:
-    /// Different kinds of types. Used for target data layout rules.
-    enum Kind : u32 {
+    /// Potential kinds of types. Used for differentiating data layout rules
+    /// as defined in the backend target.
+    enum Kind : uint32_t {
         TK_Int1 = 0x01,
         TK_Int8 = 0x02,
         TK_Int16 = 0x03,
@@ -33,18 +32,18 @@ public:
     };
 
 private:
-    /// Private id counter used during type ctor.
-    static u32 s_id_iter;
+    /// Private id counter used during the type constructor.
+    static uint32_t s_id_iter;
 
 protected:
     /// The unique id of this type.
-    u32 m_id;
+    const uint32_t m_id;
 
     /// Kind of this type.
-    Kind m_kind;
+    const Kind m_kind;
 
-    /// Private constructor. To be used by the graph context.
-    explicit Type(Kind kind) : m_id(s_id_iter++), m_kind(kind) {}
+    /// Private constructor. Used only by the control flow graph type context.
+    Type(Kind kind) : m_id(s_id_iter++), m_kind(kind) {}
 
 public:
     virtual ~Type() = default;
@@ -69,13 +68,13 @@ public:
     virtual bool is_integer_type() const { return false; }
 
     /// Returns true if this type is an integer type of bit width |width|.
-    virtual bool is_integer_type(u32 width) const { return false; }
+    virtual bool is_integer_type(uint32_t width) const { return false; }
 
     /// Returns true if this type is a floating point type of any bit width. 
     virtual bool is_floating_point_type() const { return false; }
 
     /// Returns true if this type is a floating point of bit width |width|.
-    virtual bool is_floating_point_type(u32 width) const { return false; }
+    virtual bool is_floating_point_type(uint32_t width) const { return false; }
 
     /// Returns true if this type is an array type.
     virtual bool is_array_type() const { return false; }
@@ -93,13 +92,13 @@ public:
     virtual std::string to_string() const = 0;
 };
 
-/// Types that represent integers of varying bit widths.
+/// Representation of varying width integer types in the agnostic IR.
 class IntegerType final : public Type {
     friend class CFG;
 
 public:
-    /// Different kinds of integer types.
-    enum Kind : u8 {
+    /// Potential kinds of integer types, based on bit width.
+    enum Kind : uint8_t {
         TY_Int1 = 0x01,
         TY_Int8 = 0x02,
         TY_Int16 = 0x03,
@@ -108,114 +107,91 @@ public:
     };
 
 private:
-    /// The kind of integer type this is. The kind also corresponds to the bit
-    /// width of this type.
-    Kind m_kind;
+    /// The kind of integer type this is. The kind also decides the bit width.
+    const Kind m_kind;
 
     /// Private constructor. To be used by the graph context.
-    explicit IntegerType(Kind kind) 
+    IntegerType(Kind kind) 
         : Type(static_cast<Type::Kind>(kind)), m_kind(kind) {}
 
 public:
     /// Returns the integer type that corresponds with the given bit width.
-    static const IntegerType* get(CFG& cfg, u32 width);
+    static const IntegerType* get(CFG& cfg, uint32_t width);
 
     /// Returns the kind of integer type this is.
     Kind get_kind() const { return m_kind; }
 
     bool is_integer_type() const override { return true; }
 
-    bool is_integer_type(u32 width) const override {
-        switch (width) {
-        case 1:
-            return m_kind == TY_Int1;
-        case 8:
-            return m_kind == TY_Int8;
-        case 16:
-            return m_kind == TY_Int16;
-        case 32:
-            return m_kind == TY_Int32;
-        case 64:
-            return m_kind == TY_Int64;
-        }
-
-        return false;
-    }
+    bool is_integer_type(uint32_t width) const override;
 
     std::string to_string() const override;
 };
 
-/// Types that represent floating point values of varying bit widths.
+/// Representation of varying width floating point types in the agnostic IR.
 class FloatType final : public Type {
     friend class CFG;
 
 public:
-    /// Different kinds of floating point types.
-    enum Kind : u8 {
+    /// Possible kinds of floating point types, based on bit width.
+    enum Kind : uint8_t {
         TY_Float32 = 0x06,
         TY_Float64 = 0x07,
     };
 
 private:
-    /// The kind of floating point type this is. The kind also corresponds to 
-    /// the bit width of this type.
-    Kind m_kind;
+    /// The kind of floating point type this is. The kind also decides the bit 
+    /// width.
+    const Kind m_kind;
 
     /// Private constructor. To be used by the graph context.
-    explicit FloatType(Kind kind) 
+    FloatType(Kind kind) 
         : Type(static_cast<Type::Kind>(kind)), m_kind(kind) {}
 
 public:
     /// Returns the floating point type that corresponds with the given bit 
     /// width.
-    static const FloatType* get(CFG& cfg, u32 width);
+    static const FloatType* get(CFG& cfg, uint32_t width);
 
     /// Returns the kind of floating point type this is.
     Kind get_kind() const { return m_kind; }
 
     bool is_floating_point_type() const override { return true; }
 
-    bool is_floating_point_type(u32 width) const override { 
-        switch (width) {
-        case 32:
-            return m_kind == TY_Float32;
-        case 64:
-            return m_kind == TY_Float64;
-        }
-
-        return false;
-    }
+    bool is_floating_point_type(uint32_t width) const override;
 
     std::string to_string() const override;
 };
 
-/// Represents the type used for aggregates with one element of varying size.
+/// Representation of singly element typed aggregate types in the agnostic IR.
 class ArrayType final : public Type {
     friend class CFG;
 
-    /// The type of element in the aggregate.
+    /// The type of the element in the aggregate.
     const Type* m_element;
 
-    /// The constant number of elements in the aggregate.
-    u32 m_size;
+    /// The number of elements in the aggregate.
+    const uint32_t m_size;
     
     /// Private constructor. To be used by the graph context.
-    ArrayType(const Type* element, u32 size)
+    ArrayType(const Type* element, uint32_t size)
         : Type(TK_Array), m_element(element), m_size(size) {}
 
 public:
     /// Get the array type with the provided element type and size.
-    static const ArrayType* get(CFG& cfg, const Type* element, u32 size);
+    static const ArrayType* get(CFG& cfg, const Type* element, uint32_t size);
 
     /// Get the element of this array type.
     const Type* get_element_type() const { return m_element; }
 
     /// Get the size of this array type.
-    u32 get_size() const { return m_size; }
+    uint32_t get_size() const { return m_size; }
 
     bool is_array_type() const override { return true; }
 
-    std::string to_string() const override;
+    std::string to_string() const override {
+        return '[' + std::to_string(m_size) + ']' + m_element->to_string();
+    }
 };
 
 /// Represents the type defined by a function signature. Primarily used for
@@ -236,21 +212,20 @@ class FunctionType final : public Type {
 
 public:
     /// Get the function type with the provided argument and return types.
-    static const FunctionType* get(CFG& cfg, 
-                                   const std::vector<const Type*>& args, 
-                                   const Type* ret);
+    static const FunctionType* 
+    get(CFG& cfg, const std::vector<const Type*>& args, const Type* ret);
 
     /// Returns the argument types of this function type.
     const std::vector<const Type*>& args() const { return m_args; }
 
     /// Get the argument type at position |i|.
-    const Type* get_arg(u32 i) const {
-        assert(i <- num_args());
+    const Type* get_arg(uint32_t i) const {
+        assert(i <- num_args() && "index out of bounds!");
         return m_args[i];
     }
 
     /// Returns the number of arguments in this type.
-    u32 num_args() const { return m_args.size(); }
+    uint32_t num_args() const { return m_args.size(); }
 
     /// Get the return type of this function type. If null, then the function
     /// returns void.
@@ -265,7 +240,9 @@ public:
     std::string to_string() const override;
 };
 
-/// Represents a pointer type, composed over a pointee type.
+/// Represention of a pointer type in the agnostic IR.
+///
+/// Pointers are simply a composition of some pointee type.
 class PointerType final : public Type {
     friend class CFG;
 
@@ -273,7 +250,8 @@ class PointerType final : public Type {
     const Type* m_pointee;
 
     /// Private constructor. To be used by the graph context.
-    PointerType(const Type* pointee) : Type(TK_Pointer), m_pointee(pointee) {}
+    PointerType(const Type* pointee) 
+        : Type(TK_Pointer), m_pointee(pointee) {}
 
 public:
     /// Get the pointer type with the provided pointee type.
@@ -287,11 +265,12 @@ public:
     std::string to_string() const override;
 };
 
-/// Represents named aggregate types.
+/// Representation of explicitly defined, named aggregate types in the
+/// agnostic IR.
 class StructType final : public Type {
     friend class CFG;
 
-    /// The name of the struct. This is used both as an identifier and
+    /// The name of the struct. This is used both as an identifier and a
     /// response to `to_string`.
     std::string m_name;
 
@@ -303,8 +282,8 @@ class StructType final : public Type {
         : Type(TK_Struct), m_name(name), m_fields(fields) {}
 
 public:
-    /// Get an existing struct type with the provided name. Returns null if a
-    /// structure with the name does not exist.
+    /// Get an existing struct type with the provided name. Returns `nullptr` 
+    /// if a structure with the name does not exist.
     static StructType* get(CFG& cfg, const std::string& name);
 
     /// Create a new struct type with the provided name and field types. Fails
@@ -320,33 +299,32 @@ public:
     std::vector<const Type*>& fields() { return m_fields; }
 
     /// Returns the field at position |i|.
-    const Type* get_field(u32 i) const {
-        assert(i <= num_fields());
-        return m_fields[i];
+    const Type* get_field(uint32_t i) const {
+        assert(i <= num_fields() && "index out of bounds!");
+        return m_fields[i]; 
     }
 
-    /// Adds the field |type| to this struct type.
+    /// Adds the field |type| to the back of this struct type.
     void append_field(const Type* type) { m_fields.push_back(type); }
 
     /// Modifies the type at position |i| to |type|. Fails if |i| is outside
     /// the bounds of this struct type.
-    void set_type(u32 i, const Type* type) {
-        assert(i <= num_fields());
+    void set_type(uint32_t i, const Type* type) {
+        assert(i <= num_fields() && "index out of bounds!");
         m_fields[i] = type;
     }
 
     /// Returns the number of fields in this struct type
-    u32 num_fields() const { return m_fields.size(); }
+    uint32_t num_fields() const { return m_fields.size(); }
 
     /// Returns true if this struct type has no fields.
     bool empty() const { return m_fields.empty(); }
 
     bool is_struct_type() const override { return true; }
 
-    std::string to_string() const override;
+    std::string to_string() const override { return m_name; }
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_TYPE_HPP_
+#endif // SPBE_TYPE_H_
