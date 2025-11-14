@@ -10,6 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(spbe SHARED
+    source/graph/Constant.cpp
+    source/graph/Global.cpp
+    source/graph/Local.cpp
     source/graph/Type.cpp
     source/graph/Use.cpp
     source/graph/Value.cpp

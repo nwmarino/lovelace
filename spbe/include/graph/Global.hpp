@@ -1,10 +1,11 @@
-#ifndef STATIM_SIIR_GLOBAL_HPP_
-#define STATIM_SIIR_GLOBAL_HPP_
+#ifndef SPBE_GLOBAL_H_
+#define SPBE_GLOBAL_H_
 
-#include "siir/constant.hpp"
+#include "graph/Constant.hpp"
 
-namespace stm {
-namespace siir {
+#include <cstdint>
+
+namespace spbe {
 
 class CFG;
 
@@ -12,9 +13,8 @@ class CFG;
 class Global final : public Constant {
 public:
     /// Recognized linkage types for global data.
-    enum LinkageType : u8 {
-        LINKAGE_INTERNAL, 
-        LINKAGE_EXTERNAL,
+    enum class LinkageType : uint8_t {
+        Internal, External,
     };
 
 private:
@@ -86,7 +86,6 @@ public:
     void print(std::ostream& os) const override;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_GLOBAL_HPP_
+#endif // SPBE_GLOBAL_H_

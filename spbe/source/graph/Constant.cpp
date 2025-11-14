@@ -1,9 +1,10 @@
-#include "siir/cfg.hpp"
-#include "siir/type.hpp"
-#include "siir/constant.hpp"
+#include "graph/cfg.hpp"
+#include "graph/Constant.hpp"
+#include "graph/Type.hpp"
 
-using namespace stm;
-using namespace stm::siir;
+#include <cstdint>
+
+using namespace spbe;
 
 Constant* ConstantInt::get_true(CFG& cfg) {
     return cfg.m_int1_one;
@@ -21,9 +22,9 @@ Constant* ConstantInt::get_one(CFG& cfg, const Type* type) {
     return get(cfg, type, 1);
 }
 
-Constant* ConstantInt::get(CFG& cfg, const Type* type, i64 value) {
+Constant* ConstantInt::get(CFG& cfg, const Type* type, int64_t value) {
     assert(type->is_integer_type() && 
-        "integer constant type must be an integer");
+        "integer constant type must be an integer!");
 
     switch (static_cast<const IntegerType*>(type)->get_kind()) {
         case IntegerType::TY_Int1:
@@ -81,7 +82,7 @@ Constant* ConstantFP::get_one(CFG& cfg, const Type* type) {
 
 Constant* ConstantFP::get(CFG& cfg, const Type* type, f64 value) {
     assert(type->is_floating_point_type() && 
-        "floating point constant type must be a float");
+        "floating point constant type must be a float!");
 
     switch (static_cast<const FloatType*>(type)->get_kind()) {
         case FloatType::TY_Float32: {
@@ -107,7 +108,7 @@ Constant* ConstantFP::get(CFG& cfg, const Type* type, f64 value) {
 }
 
 Constant* ConstantNull::get(CFG& cfg, const Type* type) {
-    assert(type);
+    assert(type != nullptr && "null constant must have a type!");
 
     auto it = cfg.m_pool_null.find(type);
     if (it != cfg.m_pool_null.end())
@@ -119,7 +120,7 @@ Constant* ConstantNull::get(CFG& cfg, const Type* type) {
 }
 
 Constant* BlockAddress::get(CFG& cfg, BasicBlock* blk) {
-    assert(blk);
+    assert(blk && "block address must have a target block!");
 
     auto it = cfg.m_pool_baddr.find(blk);
     if (it != cfg.m_pool_baddr.end())

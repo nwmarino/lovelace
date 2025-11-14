@@ -1,18 +1,19 @@
-#ifndef STATIM_SIIR_CONSTANT_HPP_
-#define STATIM_SIIR_CONSTANT_HPP_
+#ifndef SPBE_CONSTANT_H_
+#define SPBE_CONSTANT_H_
 
-#include "siir/user.hpp"
+#include "graph/Type.hpp"
+#include "graph/User.hpp"
 
+#include <cstdint>
 #include <initializer_list>
 #include <string>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class BasicBlock;
 class CFG;
 
-/// A constant value in the IR.
+/// A constant value in the agnostic IR.
 ///
 /// Constants are considered users for the sake of constant expressions that
 /// are comprised of constant operands.
@@ -28,6 +29,7 @@ public:
 
     bool is_constant() const override { return true; }
 
+    /// Returns true if this constant value is an aggregate of other constants.
     virtual bool is_aggregate() const { return false; }
 };
 
@@ -36,10 +38,10 @@ class ConstantInt final : public Constant {
     friend class CFG;
 
     /// The value of this literal.
-    i64 m_value;
+    int64_t m_value;
 
     /// Private constructor. To be used by the graph context for pooling.
-    ConstantInt(i64 value, const Type* type)
+    ConstantInt(int64_t value, const Type* type)
         : Constant({}, type), m_value(value) {}
 
 public:
@@ -59,10 +61,10 @@ public:
     static Constant* get_one(CFG& cfg, const Type* type);
 
     /// Get a constant integer with the given value and type.
-    static Constant* get(CFG& cfg, const Type* type, i64 value);
+    static Constant* get(CFG& cfg, const Type* type, int64_t value);
 
     /// Returns the value of this integer literal.
-    i64 get_value() const { return m_value; }
+    int64_t get_value() const { return m_value; }
 
     void print(std::ostream& os) const override;
 };
@@ -72,10 +74,10 @@ class ConstantFP final : public Constant {
     friend class CFG;
 
     /// The value of this literal.
-    f64 m_value;
+    double m_value;
 
     /// Private constructor. To be used by the graph context for pooling.
-    ConstantFP(f64 value, const Type* type) 
+    ConstantFP(double value, const Type* type) 
         : Constant({}, type), m_value(value) {}
 
 public:
@@ -89,15 +91,15 @@ public:
     static Constant* get_one(CFG& cfg, const Type* type);
 
     /// Get a constant floating point with the given value and type.
-    static Constant* get(CFG& cfg, const Type* type, f64 value);
+    static Constant* get(CFG& cfg, const Type* type, double value);
 
     /// Returns the value of this floating point literal.
-    f64 get_value() const { return m_value; }
+    double get_value() const { return m_value; }
 
     void print(std::ostream& os) const override;
 };
 
-/// A constant null pointer literal.
+/// A constant, typed null pointer literal.
 class ConstantNull final : public Constant {
     friend class CFG;
     
@@ -135,6 +137,7 @@ public:
     void print(std::ostream& os) const override;
 };
 
+/// A constant aggregate value, such as an array or struct.
 class ConstantAggregate : public Constant {
 public:
     ConstantAggregate(std::initializer_list<Value*> ops, const Type* type)
@@ -146,6 +149,8 @@ public:
     bool is_aggregate() const override { return true; }
 };
 
+/// A constant aggregate of ASCII characters, recognized specially as a
+/// string literal.
 class ConstantString final : public ConstantAggregate {
     friend class CFG;
 
@@ -169,7 +174,6 @@ public:
     void print(std::ostream& os) const override;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_CONSTANT_HPP_
+#endif // SPBE_CONSTANT_H_
