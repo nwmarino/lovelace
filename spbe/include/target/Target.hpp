@@ -1,57 +1,57 @@
-#ifndef STATIM_SIIR_TARGET_HPP_
-#define STATIM_SIIR_TARGET_HPP_
+#ifndef SPBE_TARGET_H_
+#define SPBE_TARGET_H_
 
-#include "siir/type.hpp"
-#include "types/types.hpp"
+#include "graph/Type.hpp"
 
+#include <cstdint>
 #include <unordered_map>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 /// A backend target, used for various code generation and type information.
 class Target final {
 public:
     /// Recognized CPU architectures.
-    enum Arch : u8 {
+    enum class Arch : uint8_t {
         x64,
     };
 
     /// Recognized application binary interfaces.
-    enum ABI : u8 {
-        SystemV,
+    enum class ABI : uint8_t {
+        SystemV, Win32,
     };
 
     /// Recognized operating systems.
-    enum OS : u8 {
-        Linux,
+    enum class OS : uint8_t {
+        Linux, Windows,
     };
 
 private:
     /// The architecture of this target.
-    Arch m_arch;
+    const Arch m_arch;
 
     /// The ABI of this target.
-    ABI m_abi;
+    const ABI m_abi;
 
     /// The operating system of this target.
-    OS m_os;
+    const OS m_os;
 
     /// If true, this target architecture is little endian (LSB is at lowest
     /// address), and if false, this target is big endian.
-    bool m_little_endian;
+    bool m_little_endian = true;
 
     /// The pointer size and alignment of this target in bits.
-    u32 m_ptr_size;
-    u32 m_ptr_align;
-
-    /// A layout rule for a type.
+    uint32_t m_ptr_size = 64;
+    uint32_t m_ptr_align = 64;
+    
+    /// A layout rule for a type. 
     struct LayoutRule final {
-        u32 size_in_bits;
-        u32 abi_align;
+        uint32_t size_in_bits;
+        uint32_t abi_align;
     };
 
-    /// Default type layout rules.
+    /// Default type layout rules for types that always get created, i.e.
+    /// integer and floating point types.
     std::unordered_map<Type::Kind, LayoutRule> m_rules = {};
     
 public:
@@ -68,28 +68,28 @@ public:
     OS os() const { return m_os; }
 
     /// Returns the size of |ty| in bytes.
-    u32 get_type_size(const Type* ty) const;
+    uint32_t get_type_size(const Type* ty) const;
 
     /// Returns the size of |ty| in bits.
-    u32 get_type_size_in_bits(const Type* ty) const;
+    uint32_t get_type_size_in_bits(const Type* ty) const;
 
     /// Returns the natural alignment in bytes for |ty|.
-    u32 get_type_align(const Type* ty) const;
+    uint32_t get_type_align(const Type* ty) const;
 
     /// Returns the natural alignment in bits for |ty|.
-    u32 get_type_align_in_bits(const Type* ty) const;
+    uint32_t get_type_align_in_bits(const Type* ty) const;
 
     /// Returns the target pointer size in bytes.
-    u32 get_pointer_size() const { return m_ptr_size / 8; }
+    uint32_t get_pointer_size() const { return m_ptr_size / 8; }
 
     /// Returns the target pointer size in bits.
-    u32 get_pointer_size_in_bits() const { return m_ptr_size; }
+    uint32_t get_pointer_size_in_bits() const { return m_ptr_size; }
 
     /// Returns the target natural pointer alignment in bytes.
-    u32 get_pointer_align() const { return m_ptr_align / 8; }
+    uint32_t get_pointer_align() const { return m_ptr_align / 8; }
 
     /// Returns the target natural pointer alignment in bits.
-    u32 get_pointer_align_in_bits() const { return m_ptr_align; }
+    uint32_t get_pointer_align_in_bits() const { return m_ptr_align; }
 
     /// Returns true if this target is little-endian.
     bool is_little_endian() const { return m_little_endian; }
@@ -102,16 +102,15 @@ public:
     bool is_scalar_type(const Type* type) const;
 
     /// Returns the array element offset for |type| at the index |idx|.
-    u32 get_element_offset(const ArrayType* type, u32 idx) const;
+    uint32_t get_element_offset(const ArrayType* type, uint32_t idx) const;
 
     /// Returns the pointer pointee offset for |type| at the index |idx|.
-    u32 get_pointee_offset(const PointerType* type, u32 idx) const;
+    uint32_t get_pointee_offset(const PointerType* type, uint32_t idx) const;
 
     /// Returns the offset of a structure field of |type| at the index |idx|.
-    u32 get_field_offset(const StructType* type, u32 idx) const;
+    uint32_t get_field_offset(const StructType* type, uint32_t idx) const;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_TARGET_HPP_
+#endif // SPBE_TARGET_H_

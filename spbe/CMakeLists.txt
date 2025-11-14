@@ -16,6 +16,7 @@ add_library(spbe SHARED
     source/graph/Type.cpp
     source/graph/Use.cpp
     source/graph/Value.cpp
+    source/target/Target.cpp
 )
 
 add_library(spbe::spbe ALIAS spbe)
