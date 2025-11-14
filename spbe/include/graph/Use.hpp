@@ -1,10 +1,9 @@
-#ifndef STATIM_SIIR_USE_HPP_
-#define STATIM_SIIR_USE_HPP_
+#ifndef SPBE_USE_H_
+#define SPBE_USE_H_
 
-#include "value.hpp"
+#include "Value.hpp"
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class User;
 
@@ -20,22 +19,27 @@ public:
     /// Create a new use edge between a value and a user.
     Use(Value* value, User* user);
 
-    ~Use();
+    Use(const Use&) = delete;
+    Use& operator = (const Use&) = delete;
+
+    ~Use() {
+        m_value->del_use(this);
+        m_value = nullptr;
+        m_user = nullptr;
+    }
 
     operator Value*() { return m_value; }
-    operator const Value*() { return m_value; }
 
     operator User*() { return m_user; }
-    operator const User*() const { return m_user; }
 
-    /// Get the value of this use.
+    /// Returns the value of this use edge.
     const Value* get_value() const { return m_value; }
     Value* get_value() { return m_value; }
 
     /// Set the value of this use to |value|.
     void set_value(Value* value) {
-        assert(m_value);
-        assert(value);
+        assert(m_value && "current use value is null!");
+        assert(value && "new use value cannot be null!");
 
         if (m_value == value) 
             return;
@@ -45,12 +49,11 @@ public:
         m_value->add_use(this);
     }
 
-    /// Get the user of this use.
+    /// Returns the user of this use edge.
     const User* get_user() const { return m_user; }
     User* get_user() { return m_user; }
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_USE_HPP_
+#endif // SPBE_USE_H_

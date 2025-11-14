@@ -1,24 +1,28 @@
-#ifndef STATIM_SIIR_VALUE_HPP_
-#define STATIM_SIIR_VALUE_HPP_
+#ifndef SPBE_VALUE_H_
+#define SPBE_VALUE_H_
 
-#include "siir/type.hpp"
+#include "graph/Type.hpp"
 
+#include <cstdint>
 #include <ostream>
 #include <vector>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class Use;
 class User;
 
-/// A value in the intermediate representation.
+/// A typed value in the intermediate representation.
 class Value {
 protected:
-    const Type* m_type;
+    /// The type of this value.
+    const Type* m_type = nullptr;
+
+    /// The borrowed uses of this value. 
     std::vector<Use*> m_uses = {};
 
     Value() = default;
+    
     Value(const Type* type) : m_type(type) {}
 
 public:
@@ -46,7 +50,7 @@ public:
     Use* use_back() { return m_uses.back(); }
 
     /// Returns the number of times this value is used.
-    u32 num_uses() const { return m_uses.size(); }
+    uint32_t num_uses() const { return m_uses.size(); }
 
     /// Returns true if this value has atleast one use.
     bool used() const { return !m_uses.empty(); }
@@ -55,7 +59,7 @@ public:
     bool has_one_use() const { return m_uses.size() == 1; }
 
     /// Add |use| to the uses of this value.
-    void add_use(Use* use);
+    void add_use(Use* use) { m_uses.push_back(use); }
 
     /// Removes the edge |use| from this value, if it exists.
     void del_use(Use* use);
@@ -71,7 +75,6 @@ public:
     virtual void print(std::ostream& os) const = 0;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_VALUE_HPP_
+#endif // SPBE_VALUE_H_
