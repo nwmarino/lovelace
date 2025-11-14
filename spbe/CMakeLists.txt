@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(spbe SHARED
     source/graph/Constant.cpp
     source/graph/Global.cpp
+    source/graph/Instruction.cpp
     source/graph/Local.cpp
     source/graph/Type.cpp
     source/graph/Use.cpp

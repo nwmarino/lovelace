@@ -1,18 +1,18 @@
-#ifndef STATIM_SIIR_FUNCTION_HPP_
-#define STATIM_SIIR_FUNCTION_HPP_
+#ifndef SPBE_FUNCTION_H_
+#define SPBE_FUNCTION_H_
 
-#include "siir/basicblock.hpp"
-#include "siir/local.hpp"
-#include "siir/type.hpp"
-#include "siir/value.hpp"
+#include "graph/Basicblock.hpp"
+#include "graph/Local.hpp"
+#include "graph/Type.hpp"
+#include "graph/Value.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class CFG;
 
@@ -25,11 +25,11 @@ class Argument final : public Value {
     std::string m_name;
 
     /// The position of this argument in its parent function.
-    u32 m_number;
+    uint32_t m_number;
 
 public:
     /// Create a new argument for position |number| in function |parent|. 
-    Argument(const Type* type, const std::string& name, u32 number, 
+    Argument(const Type* type, const std::string& name, uint32_t number, 
              Function* parent = nullptr);
 
     Argument(const Argument&) = delete;
@@ -52,10 +52,10 @@ public:
     void rename(const std::string& name) { m_name = name; }
 
     /// Returns the number of this argument in its parent function.
-    u32 get_number() const { return m_number; }
+    uint32_t get_number() const { return m_number; }
 
     /// Mutate the number of this argument to |number|.
-    void set_number(u32 number) { m_number = number; }
+    void set_number(uint32_t number) { m_number = number; }
 
     void print(std::ostream& os) const override;
 };
@@ -64,20 +64,19 @@ public:
 class Function final : public Value {
 public:
     /// Recognized linkage types for global functions.
-    enum LinkageType : u8 {
-        LINKAGE_INTERNAL,
-        LINKAGE_EXTERNAL,
+    enum class LinkageType : uint8_t {
+        Internal = 0, External,
     };
 
 private:
     /// The parent graph of this function.
-    CFG* m_parent;
+    CFG* m_parent = nullptr;
 
     /// The name of this function.
     std::string m_name;
 
     /// The list of arguments that this function uses.
-    std::vector<Argument*> m_args;
+    std::vector<Argument*> m_args = {};
 
     /// The stack-based locals of this function.
     std::map<std::string, Local*> m_locals = {};
@@ -143,20 +142,20 @@ public:
     std::vector<Argument*>& args() { return m_args; }
 
     /// Returns the number of arguments in this function.
-    u32 num_args() const { return m_args.size(); }
+    uint32_t num_args() const { return m_args.size(); }
 
     /// Returns true if this function has atleast one argument.
     bool has_args() const { return !m_args.empty(); }
 
     /// Returns the argument at index |i| if it exists.
-    const Argument* get_arg(u32 i) const;
-    Argument* get_arg(u32 i) {
+    const Argument* get_arg(uint32_t i) const;
+    Argument* get_arg(uint32_t i) {
         return const_cast<Argument*>(
             static_cast<const Function*>(this)->get_arg(i));
     }
 
     /// Mutate the argument at position |i| with |arg|.
-    void set_arg(u32 i, Argument* arg);
+    void set_arg(uint32_t i, Argument* arg);
 
     /// Append |arg| to this functions' argument list.
     void append_arg(Argument* arg) { m_args.push_back(arg); }
@@ -194,7 +193,7 @@ public:
     void push_back(BasicBlock* blk);
 
     /// Insert |blk| into this function at position |i|.
-    void insert(BasicBlock* blk, u32 i);
+    void insert(BasicBlock* blk, uint32_t i);
 
     /// Insert |blk| into this function immediately after |insert_after|. 
     /// Fails if |insert_after| does not already belong to this function.
@@ -207,7 +206,7 @@ public:
     bool empty() const { return m_front == nullptr; }
 
     /// Returns the size of this function by the number of basic blocks in it.
-    u32 size() const { return std::distance(begin(), end()); }
+    uint32_t size() const { return std::distance(begin(), end()); }
 
     void print(std::ostream& os) const override;
 
@@ -323,7 +322,6 @@ public:
     auto crend() const { return rend(); }
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_FUNCTION_HPP_
+#endif // SPBE_FUNCTION_H_

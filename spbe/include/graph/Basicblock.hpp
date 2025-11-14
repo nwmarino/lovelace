@@ -1,25 +1,22 @@
-#ifndef STATIM_SIIR_BASIC_BLOCK_HPP_
-#define STATIM_SIIR_BASIC_BLOCK_HPP_
+#ifndef SPBE_BASICBLOCK_H_
+#define SPBE_BASICBLOCK_H_
 
-#include "siir/instruction.hpp"
+#include "graph/Instruction.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <vector>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class Function;
 
 /// The BasicBlock type is implemented as a node in a linked list, managed by
 /// the Function class. Each block manages a similar doubly linked list of
 /// instructions, expecting one and only one terminating instruction at a time.
-
-/// A basic block consisting of instructions.
 class BasicBlock final {
-    Function* m_parent;
+    Function* m_parent = nullptr;
     BasicBlock* m_prev = nullptr;
     BasicBlock* m_next = nullptr;
     Instruction* m_front = nullptr;
@@ -110,7 +107,7 @@ public:
     void push_back(Instruction* inst);
 
     /// Insert |inst| into this basic block at position |i|.
-    void insert(Instruction* inst, u32 i);
+    void insert(Instruction* inst, uint32_t i);
 
     /// Insert |inst| into this basic block immediately after |insert_after|. 
     /// Fails if |insert_after| is not already inside this block.
@@ -120,18 +117,18 @@ public:
     bool empty() const { return m_front == nullptr; }
 
     /// Returns the size of this basic block by its instruction count.
-    u32 size() const { return std::distance(begin(), end()); }
+    uint32_t size() const { return std::distance(begin(), end()); }
 
     /// Returns the numeric position of this basic block relative to other
     /// blocks in the parent function.
-    u32 get_number() const;
+    uint32_t get_number() const;
 
     /// Returns the predecessors of this basic block.
     const std::vector<BasicBlock*>& preds() const { return m_preds; }
     std::vector<BasicBlock*>& preds() { return m_preds; }
 
     /// Returns the number of predecessors to this basic block.
-    u32 num_preds() const { return m_preds.size(); }
+    uint32_t num_preds() const { return m_preds.size(); }
 
     /// Returns true if this basic block has atleast one predecessor.
     bool has_preds() const { return !m_preds.empty(); }
@@ -141,7 +138,7 @@ public:
     std::vector<BasicBlock*>& succs() { return m_succs; }
 
     /// Returns the number of successors to this basic block.
-    u32 num_succs() const { return m_succs.size(); }
+    uint32_t num_succs() const { return m_succs.size(); }
     
     /// Returns true if this basic block has atleast one successor.
     bool has_succs() const { return !m_succs.empty(); }
@@ -151,7 +148,7 @@ public:
     bool terminates() const;
 
     /// Returns the number of terminating instructions in this basic block.
-    u32 terminators() const;
+    uint32_t terminators() const;
     
     /// The earliest terminating instruction in this basic block if one exists.
     const Instruction* terminator() const;
@@ -184,7 +181,7 @@ public:
             return *this; 
         }
 
-        iterator operator ++ (i32) { 
+        iterator operator ++ (int32_t) { 
             iterator tmp = *this; 
             ++(*this); 
             return tmp; 
@@ -195,7 +192,7 @@ public:
             return *this; 
         }
 
-        iterator operator -- (i32) { 
+        iterator operator -- (int32_t) { 
             iterator tmp = *this; 
             --(*this); 
             return tmp; 
@@ -231,7 +228,7 @@ public:
             return *this; 
         }
 
-        const_iterator operator ++ (i32) { 
+        const_iterator operator ++ (int32_t) { 
             auto tmp = *this; 
             ++(*this); 
             return tmp; 
@@ -242,7 +239,7 @@ public:
             return *this; 
         }
 
-        const_iterator operator -- (i32) { 
+        const_iterator operator -- (int32_t) { 
             auto tmp = *this; 
             --(*this); 
             return tmp; 
@@ -276,7 +273,6 @@ public:
     auto crend() const { return rend(); }
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_BASIC_BLOCK_HPP_
+#endif // SPBE_BASICBLOCK_H_

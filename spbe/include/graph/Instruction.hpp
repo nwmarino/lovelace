@@ -1,12 +1,13 @@
-#ifndef STATIM_SIIR_INSTRUCTION_HPP_
-#define STATIM_SIIR_INSTRUCTION_HPP_
+#ifndef SPBE_INSTRUCTION_H_
+#define SPBE_INSTRUCTION_H_
 
-#include "siir/constant.hpp"
-#include "siir/user.hpp"
-#include "siir/value.hpp"
+#include "graph/Constant.hpp"
+#include "graph/User.hpp"
+#include "graph/Value.hpp"
 
-namespace stm {
-namespace siir {
+#include <cstdint>
+
+namespace spbe {
 
 class BasicBlock;
 
@@ -40,7 +41,7 @@ public:
 };
 
 /// Potential opcodes for an IR instruction.
-enum Opcode : u16 {
+enum Opcode : u_int16_t {
     INST_OP_NOP,
     INST_OP_CONSTANT,
     INST_OP_STRING,
@@ -127,7 +128,7 @@ class Instruction final : public User {
     /// hand side of a dump, i.e. `v2` in `v2 = IADD ...`. A sentinel value of 
     /// 0 here reserves that the instruction does not define a value, i.e. a
     /// store or return instruction.
-    u32 m_result;
+    uint32_t m_result;
 
     /// The opcode of this instruction. Changing this after instruction
     /// creation may invalidate the instruction due to how operands are
@@ -136,8 +137,8 @@ class Instruction final : public User {
 
     /// Optional data field used for some instructions. For example, load/store
     /// instructions use this field for value alignment details.
-    u16 m_data = 0;
-
+    uint16_t m_data = 0;
+    
     /// The basic block that this instruction is contained in.
     BasicBlock* m_parent;
 
@@ -156,8 +157,8 @@ class Instruction final : public User {
     /// Create a new defining instruction.
     ///
     /// Private construtor to be used by the InstBuilder class.
-    Instruction(u32 result, const Type* type, Opcode opcode, BasicBlock* parent,
-                const std::vector<Value*>& operands = {});
+    Instruction(uint32_t result, const Type* type, Opcode opcode, 
+                BasicBlock* parent, const std::vector<Value*>& operands = {});
 
 public:
     Instruction(const Instruction&) = delete;
@@ -170,24 +171,24 @@ public:
 
     /// Returns the id defined by this instruction, and 0 if it does not define
     /// a value.
-    u32 result_id() const { return m_result; }
+    uint32_t result_id() const { return m_result; }
 
     /// Returns true if this instruction defines a value.
     bool is_def() const { return m_result != 0; }
 
     /// Returns the value operand at position |i|. Fails if the provided index
     /// is out of bounds of the operand list.
-    const Value* get_operand(u32 i) const;
-    Value* get_operand(u32 i) {
+    const Value* get_operand(uint32_t i) const;
+    Value* get_operand(uint32_t i) {
         return const_cast<Value*>(
             static_cast<const Instruction*>(this)->get_operand(i));
     }
 
     /// Returns any data associated with this instruction.
-    u16 get_data() const { return m_data; }
+    uint16_t get_data() const { return m_data; }
 
     /// Returns a reference to the data field of this instruction.
-    u16& data() { return m_data; }
+    uint16_t& data() { return m_data; }
 
     /// Returns the parent block of this instruction.
     const BasicBlock* get_parent() const { return m_parent; }
@@ -298,7 +299,6 @@ public:
     void print(std::ostream& os) const override;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_INSTRUCTION_HPP_
+#endif // SPBE_INSTRUCTION_H_

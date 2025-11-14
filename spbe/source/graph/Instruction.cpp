@@ -1,16 +1,16 @@
-#include "siir/basicblock.hpp"
-#include "siir/cfg.hpp"
-#include "siir/user.hpp"
-#include <string>
-#include "siir/instruction.hpp"
+#include "graph/Basicblock.hpp"
+#include "graph/CFG.hpp"
+#include "graph/instruction.hpp"
+#include "graph/User.hpp"\
 
-using namespace stm;
-using namespace stm::siir;
+#include <string>
+
+using namespace spbe;
 
 PhiOperand::PhiOperand(Value* value, BasicBlock* pred) 
     : Value(value->get_type()), m_value(value), m_pred(pred) {}
 
-std::string stm::siir::opcode_to_string(Opcode op) {
+std::string spbe::opcode_to_string(Opcode op) {
     switch (op) {
     case INST_OP_NOP:
         return "Nop";
@@ -155,18 +155,18 @@ std::string stm::siir::opcode_to_string(Opcode op) {
     }
 }
 
-Instruction::Instruction(Opcode opcode, BasicBlock* parent,
-                         const std::vector<Value*>& operands)
+Instruction::Instruction(
+        Opcode opcode, BasicBlock* parent, const std::vector<Value*>& operands)
     : User(operands, nullptr), m_result(0), m_opcode(opcode), 
       m_parent(parent) {}
 
-Instruction::Instruction(u32 result, const Type* type, Opcode opcode, 
-                         BasicBlock* parent, 
-                         const std::vector<Value*>& operands)
+Instruction::Instruction(
+        uint32_t result, const Type* type, Opcode opcode, BasicBlock* parent, 
+        const std::vector<Value*>& operands)
     : User(operands, type), m_result(result), m_opcode(opcode), 
       m_parent(parent) {}
 
-const Value* Instruction::get_operand(u32 i) const {
+const Value* Instruction::get_operand(uint32_t i) const {
     assert(i <= num_operands());
     return m_operands[i]->get_value();
 }
@@ -182,7 +182,7 @@ void Instruction::append_to(BasicBlock* blk) {
 }
 
 void Instruction::insert_before(Instruction* inst) {
-    assert(inst && "inst cannot be null");
+    assert(inst && "inst cannot be null!");
 
     if (inst->prev())
         inst->prev()->set_next(this);
@@ -194,7 +194,7 @@ void Instruction::insert_before(Instruction* inst) {
 }
 
 void Instruction::insert_after(Instruction* inst) {
-    assert(inst && "inst cannot be null");
+    assert(inst && "inst cannot be null!");
 
     if (inst->next())
         inst->next()->set_prev(this);
@@ -206,7 +206,7 @@ void Instruction::insert_after(Instruction* inst) {
 }
 
 void Instruction::detach_from_parent() {
-    assert(m_parent && "cannot detach a free-floating instruction");
+    assert(m_parent && "cannot detach a free-floating instruction!");
 
     if (m_prev) {
         m_prev->m_next = m_next;

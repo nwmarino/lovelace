@@ -1,12 +1,11 @@
-#include "siir/basicblock.hpp"
-#include "siir/function.hpp"
-#include "siir/instruction.hpp"
+#include "graph/Basicblock.hpp"
+#include "graph/Function.hpp"
+#include "graph/Instruction.hpp"
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
 BasicBlock::BasicBlock(Function* parent) : m_parent(parent) {
-    if (parent)
+    if (parent != nullptr)
         parent->push_back(this);
 }
 
@@ -25,21 +24,21 @@ BasicBlock::~BasicBlock() {
 }
 
 void BasicBlock::append_to_function(Function* parent) {
-    assert(parent && "parent cannot be null");
-    assert(!m_parent && "basic block already belongs to a function");
+    assert(parent && "new parent function cannot be null!");
+    assert(!m_parent && "basic block already belongs to a function!");
 
     parent->push_back(this);
     m_parent = parent;
 }
 
 void BasicBlock::insert_before(BasicBlock* blk) {
-    assert(blk && "blk cannot be null");
-    assert(!m_parent && "basic block already belongs to a function");
+    assert(blk && "blk cannot be null!");
+    assert(!m_parent && "basic block already belongs to a function!");
 
     m_prev = blk->m_prev;
     m_next = blk;
 
-    if (blk->m_prev)
+    if (blk->m_prev != nullptr)
         blk->m_prev->m_next = this;
 
     blk->m_prev = this;
@@ -47,13 +46,13 @@ void BasicBlock::insert_before(BasicBlock* blk) {
 }
 
 void BasicBlock::insert_after(BasicBlock* blk) {
-    assert(blk && "blk cannot be null");
-    assert(!m_parent && "basic block already belongs to a function");
+    assert(blk && "blk cannot be null!");
+    assert(!m_parent && "basic block already belongs to a function!");
 
     m_prev = blk;
     m_next = blk->m_next;
 
-    if (blk->m_next)
+    if (blk->m_next != nullptr)
         blk->m_next->m_prev = this;
 
     blk->m_next = this;
@@ -61,7 +60,7 @@ void BasicBlock::insert_after(BasicBlock* blk) {
 }
 
 void BasicBlock::remove_inst(Instruction* inst) {
-    for (auto curr = m_front; curr; curr = curr->next()) {
+    for (auto& curr = m_front; curr; curr = curr->next()) {
         if (curr != inst)
             continue;
 
@@ -78,7 +77,7 @@ void BasicBlock::remove_inst(Instruction* inst) {
 }
 
 void BasicBlock::detach_from_parent() {
-    if (m_parent)
+    if (m_parent != nullptr)
         m_parent->remove(this);
     
     m_prev = m_next = nullptr;
@@ -86,9 +85,9 @@ void BasicBlock::detach_from_parent() {
 }
 
 void BasicBlock::push_front(Instruction* inst) {
-    assert(inst && "inst cannot be null");
+    assert(inst && "inst cannot be null!");
 
-    if (m_front) {
+    if (m_front != nullptr) {
         inst->set_next(m_front);
         m_front->set_prev(inst);
         m_front = inst;
@@ -100,9 +99,9 @@ void BasicBlock::push_front(Instruction* inst) {
 }
 
 void BasicBlock::push_back(Instruction* inst) {
-    assert(inst && "inst cannot be null");
+    assert(inst && "inst cannot be null!");
 
-    if (m_back) {
+    if (m_back != nullptr) {
         inst->set_prev(m_back);
         m_back->set_next(inst);
         m_back = inst;
@@ -113,13 +112,12 @@ void BasicBlock::push_back(Instruction* inst) {
     inst->set_parent(this);
 }
 
-void BasicBlock::insert(Instruction* inst, u32 i) {
-    assert(inst && "inst cannot be null");
+void BasicBlock::insert(Instruction* inst, uint32_t i) {
+    assert(inst && "inst cannot be null!");
     
-    u32 position = 0;
-    for (auto curr = m_front; curr; curr = curr->next())
-        if (position++ == i)
-            return inst->insert_before(curr);
+    uint32_t position = 0;
+    for (auto& curr = m_front; curr != nullptr; curr = curr->next())
+        if (position++ == i) return inst->insert_before(curr);
 
     push_back(inst);
 }
@@ -128,10 +126,10 @@ void BasicBlock::insert(Instruction* inst, Instruction* insert_after) {
     inst->insert_after(insert_after);
 }
 
-u32 BasicBlock::get_number() const {
-    u32 num = 0;
+uint32_t BasicBlock::get_number() const {
+    uint32_t num = 0;
     const BasicBlock* curr = m_prev;
-    while (curr) {
+    while (curr != nullptr) {
         curr = curr->prev();
         num++;
     }
@@ -140,26 +138,23 @@ u32 BasicBlock::get_number() const {
 }
 
 bool BasicBlock::terminates() const {
-    for (auto curr = m_back; curr; curr = curr->prev())
-        if (curr->is_terminator()) 
-            return true;
+    for (auto curr = m_back; curr != nullptr; curr = curr->prev())
+        if (curr->is_terminator()) return true;
 
     return false;
 }
 
-u32 BasicBlock::terminators() const {
-    u32 num = 0;
-    for (auto curr = m_front; curr; curr = curr->next())
-        if (curr->is_terminator()) 
-            num++;
+uint32_t BasicBlock::terminators() const {
+    uint32_t num = 0;
+    for (auto curr = m_front; curr != nullptr; curr = curr->next())
+        if (curr->is_terminator()) ++num;
 
     return num;
 }
 
 const Instruction* BasicBlock::terminator() const {
-    for (auto curr = m_front; curr; curr = curr->next())
-        if (curr->is_terminator()) 
-            return curr;
+    for (auto curr = m_front; curr != nullptr; curr = curr->next())
+        if (curr->is_terminator()) return curr;
 
     return nullptr;
 }

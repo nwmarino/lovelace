@@ -14,7 +14,7 @@ class Global final : public Constant {
 public:
     /// Recognized linkage types for global data.
     enum class LinkageType : uint8_t {
-        Internal, External,
+        Internal = 0, External,
     };
 
 private:
