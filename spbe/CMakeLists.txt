@@ -23,14 +23,16 @@ add_library(spbe SHARED
     source/graph/Type.cpp
     source/graph/Use.cpp
     source/graph/Value.cpp
-    source/machine/MachAnalysis.cpp
     source/machine/MachBasicBlock.cpp
     source/machine/MachFunction.cpp
     source/machine/MachInstruction.cpp
     source/machine/MachObject.cpp
     source/machine/MachOperand.cpp
     source/machine/Rega.cpp
+    source/machine/RegisterAnalysis.cpp
     source/target/Target.cpp
+    source/x64/x64.cpp
+    source/x64/x64AsmWriter.cpp
 )
 
 add_library(spbe::spbe ALIAS spbe)

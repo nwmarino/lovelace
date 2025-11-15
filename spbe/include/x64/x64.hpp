@@ -1,11 +1,11 @@
 #ifndef SPBE_X64_H_
 #define SPBE_X64_H_
 
-#include "../machine/Rega.hpp"
 #include "../graph/Instruction.hpp"
 #include "../graph/Local.hpp"
 #include "../machine/MachRegister.hpp"
 #include "../machine/MachObject.hpp"
+#include "../machine/Rega.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -210,36 +210,6 @@ public:
     X64InstSelection& operator = (const X64InstSelection&) = delete;
 
     void run();
-};
-
-/// Machine code pass to pretty-print x64 machine objects.
-///
-/// This pass is not the same as AsmWriter, which emits actually assembly
-/// language fit for assembler calls. This pass should instead be used to
-/// dump machine IR, exposing certain details.
-class X64Printer final {
-    const MachObject& m_obj;
-
-public:
-    X64Printer(MachObject& obj) : m_obj(obj) {}
-
-    X64Printer(const X64Printer&) = delete;
-    X64Printer& operator = (const X64Printer&) = delete;
-
-    void run(std::ostream& os) const;
-};
-
-/// Machine code pass to emit raw assembly for x64 machine objects.
-class X64AsmWriter final {
-    const MachObject& m_obj;
-
-public:
-    X64AsmWriter(MachObject& obj) : m_obj(obj) {}
-
-    X64AsmWriter(const X64AsmWriter&) = delete;
-    X64AsmWriter& operator = (const X64AsmWriter&) = delete;
-
-    void run(std::ostream& os) const;
 };
 
 /// Returns true if the opcode |opc| is considered a call instruction.

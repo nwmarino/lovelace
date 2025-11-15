@@ -1,12 +1,12 @@
 #include "../../include/graph/CFG.hpp"
-#include "../../include/machine/MachAnalysis.hpp"
 #include "../../include/machine/MachBasicBlock.hpp"
 #include "../../include/machine/MachFunction.hpp"
 #include "../../include/machine/MachInstruction.hpp"
 #include "../../include/machine/MachObject.hpp"
+#include "../../include/machine/MachRegister.hpp"
 #include "../../include/machine/Rega.hpp"
-#include "../../include/target/x64.hpp"
-#include "machine/MachRegister.hpp"
+#include "../../include/machine/RegisterAnalysis.hpp"
+#include "../../include/x64/x64.hpp"
 
 #ifdef SPBE_MACHINE_DEBUGGING
 #include <iostream>
@@ -152,7 +152,7 @@ public:
     }
 };
 
-void FunctionRegisterAnalysis::run() {
+void RegisterAnalysis::run() {
     for (const auto& [name, function] : m_obj.functions()) {
         std::vector<LiveRange> ranges;
         
@@ -197,31 +197,5 @@ void FunctionRegisterAnalysis::run() {
 
         CallsiteAnalysis CAN { *function, ranges };
         CAN.run();
-    }
-}
-
-void PrettyPrinter::run(std::ostream& os) {
-    switch (m_obj.get_target()->arch()) {
-    case Target::Arch::x64: {
-        x64::X64Printer printer { m_obj };
-        printer.run(os);
-        break;
-    }
-
-    default:
-        assert(false && "unsupported architecture!");
-    }
-}
-
-void AsmWriter::run(std::ostream& os) {
-    switch (m_obj.get_target()->arch()) {
-    case Target::Arch::x64: {
-        x64::X64AsmWriter writer { m_obj };
-        writer.run(os);
-        break;
-    }
-
-    default:
-        assert(false && "unsupported architecture!");
     }
 }

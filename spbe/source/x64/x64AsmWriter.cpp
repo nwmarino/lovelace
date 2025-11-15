@@ -1,21 +1,22 @@
-#include "siir/cfg.hpp"
-#include "siir/constant.hpp"
-#include "siir/global.hpp"
-#include "siir/machine_function.hpp"
-#include "siir/machine_operand.hpp"
-#include "siir/machine_register.hpp"
-#include "x64/x64.hpp"
+#include "../../include/graph/BasicBlock.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Constant.hpp"
+#include "../../include/graph/Function.hpp"
+#include "../../include/machine/MachOperand.hpp"
+#include "../../include/machine/MachFunction.hpp"
+#include "../../include/machine/MachRegister.hpp"
+#include "../../include/x64/x64.hpp"
+#include "../../include/x64/x64AsmWriter.hpp"
 
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 
-using namespace stm;
-using namespace stm::siir;
-using namespace stm::siir::x64;
+using namespace spbe;
+using namespace spbe::x64;
 
-static u32 g_function_id = 0;
-
-static const char* opc_as_string(x64::Opcode opc) {
-    switch (opc) {
+const char* x64AsmWriter::opcode_to_string(x64::Opcode op) const {
+    switch (op) {
     case NOP:         return "nop";
     case JMP:         return "jmp";
     case UD2:         return "ud2";
@@ -156,172 +157,213 @@ static const char* opc_as_string(x64::Opcode opc) {
     }
 }
 
-/// Returns the mapped, physical register for |reg|. If |reg| is already a
-/// physical register, this function does nothing.
-static x64::Register map_register(MachineRegister reg, 
-                                  const MachineFunction& MF) {
+x64::Register x64AsmWriter::map_register(
+        MachRegister reg, const MachFunction& MF) {
     if (reg.is_virtual())
         reg = MF.get_register_info().vregs.at(reg.id()).alloc;
 
     return static_cast<x64::Register>(reg.id());
 }
 
-/// Returns true if |MI| is a redundant `movx` instruction.
-///
-/// A move is considered redundant if both operands are identical physical 
-/// registers.
-static bool is_redundant_move(const MachineInst& MI, 
-                              const MachineFunction& MF) {
+bool x64AsmWriter::is_redundant_move(
+        const MachFunction &MF, const MachInstruction& MI) {
     if (!is_move_opcode(static_cast<x64::Opcode>(MI.opcode())))
         return false;
 
     if (MI.num_operands() != 2)
         return false;
 
-    const MachineOperand& oper1 = MI.get_operand(0);
-    const MachineOperand& oper2 = MI.get_operand(1);
+    const MachOperand& MOL = MI.get_operand(0);
+    const MachOperand& MOR = MI.get_operand(1);
 
-    if (!oper1.is_reg() || !oper2.is_reg())
+    if (!MOL.is_reg() || !MOR.is_reg())
         return false;
 
-    x64::Register reg1 = map_register(oper1.get_reg(), MF);
-    x64::Register reg2 = map_register(oper2.get_reg(), MF);
-    return reg1 == reg2 && oper1.get_subreg() == oper2.get_subreg();
+    x64::Register regl = map_register(MOL.get_reg(), MF);
+    x64::Register regr = map_register(MOR.get_reg(), MF);
+    return regl == regr && MOL.get_subreg() == MOR.get_subreg();
 }
 
-/// Emits the operand |MO| to output stream |os|.
-static void emit_operand(std::ostream& os, const MachineFunction& MF,
-                         const MachineOperand& MO) {
+void x64AsmWriter::write_operand(
+        std::ostream& os, const MachFunction& MF, const MachOperand& MO) {
     switch (MO.kind()) {
-    case MachineOperand::MO_Register: {
-        MachineRegister reg = MO.get_reg();
-        if (reg.is_virtual())
-            reg = MF.get_register_info().vregs.at(reg.id()).alloc;
-
+    case MachOperand::MO_Register: {
         os << '%' << to_string(map_register(MO.get_reg(), MF), MO.get_subreg());
         break;
     }
 
-    case MachineOperand::MO_Memory: {
-        if (MO.get_mem_disp() != 0)
+    case MachOperand::MO_Memory: {
+        if (MO.get_mem_disp() != 0) 
             os << MO.get_mem_disp();
 
         os << "(%" << to_string(map_register(MO.get_mem_base(), MF), 8) << ')';
         break;
     }
 
-    case MachineOperand::MO_Immediate:
+    case MachOperand::MO_StackIdx: {
+        const auto& stack = MF.get_stack_info();
+        const auto& slot = stack.entries.at(MO.get_stack_index());
+
+        os << (-slot.offset - static_cast<int32_t>(slot.size)) << "(%rbp)";
+        break;
+    }
+
+    case MachOperand::MO_Immediate: {
         os << '$' << MO.get_imm();
         break;
-
-    case MachineOperand::MO_StackIdx: {
-        const FunctionStackInfo& stack = MF.get_stack_info();
-        const FunctionStackEntry& slot = stack.entries.at(MO.get_stack_index());
-
-        os << (-slot.offset - static_cast<i32>(slot.size)) << "(%rbp)";
-        break;
     }
 
-    case MachineOperand::MO_BasicBlock: {
-        os << ".LBB" << g_function_id << '_' << MO.get_mmb()->position();
+    case MachOperand::MO_BasicBlock: {
+        os << ".LBB" << m_function << '_' << MO.get_mmb()->position();
         break;
     }
+    
+    case MachOperand::MO_ConstantIdx: {
+        const auto& cpool = MF.get_constant_pool();
+        const auto& constant = cpool.entries.at(MO.get_constant_index());
 
-    case MachineOperand::MO_ConstantIdx: {
-        const FunctionConstantPool& cpool = MF.get_constant_pool();
-        const FunctionConstantPoolEntry& constant = 
-            cpool.entries.at(MO.get_constant_index());
-
-        os << ".LCPI" << g_function_id << '_' << MO.get_constant_index() << 
-            "(%rip)";
+        os << ".LCPI" << m_function << '_' << MO.get_constant_index() 
+           << "(%rip)";
         break;
     }
-
-    case MachineOperand::MO_Symbol: {
+    
+    case MachOperand::MO_Symbol: {
         os << MO.get_symbol();
         break;
     }
-
+      
     default:
-        assert(false && "unrecognized machine operand kind for x64!");
+        assert(false && "unrecognized machine operand kind!");
     }
 }
 
-static void emit_instruction(std::ostream& os, const MachineFunction& MF,
-                             const MachineInst& MI) {
-    // Skip the emission of redundant moves.
-    if (is_redundant_move(MI, MF))
+void x64AsmWriter::write_instruction(
+        std::ostream& os, const MachFunction& MF, const MachInstruction& MI) {
+    if (is_redundant_move(MF, MI))
         return;
 
-    // If this is a return instruction, inject the necessary epilogue steps.
+    // If this is a return instruction, inject necessary epilogue parts.
+    // TODO: Make this optional along with prologue injection.
     if (is_ret_opcode(static_cast<x64::Opcode>(MI.opcode()))) {
-        os << "\taddq\t$" << MF.get_stack_info().alignment() << ", %rsp\n"
+        os << "\taddq\t$" << MF.get_stack_info().alignment() << ",%rsp\n"
            << "\tpopq\t%rbp\n"
-           << "\t.cfi_def_cfa %rsp, 8\n"
+           << "\t.cfi_def_cfa %rsp,8\n"
            << "\tretq\n";
         return;
     }
 
-    os << '\t' << opc_as_string(static_cast<x64::Opcode>(MI.opcode())) << '\t';
+    os << '\t' << opcode_to_string(static_cast<x64::Opcode>(MI.opcode())) 
+       << '\t';
 
-    // Emit all explicit operands of the instruction.
-    for (u32 idx = 0, e = MI.num_explicit_operands(); idx != e; ++idx) {    
-        emit_operand(os, MF, MI.get_operand(idx));
-
-        if (idx + 1 != e)
-            os << ", ";
+    // Write out all instruction operands.
+    for (uint32_t idx = 0, e = MI.num_explicit_operands(); idx != e;) {
+        write_operand(os, MF, MI.get_operand(idx));
+        if (++idx != e) os << ',';
     }
 
+    // Allow opt-out based on target.
     if (x64::is_call_opcode(static_cast<x64::Opcode>(MI.opcode())))
         os << "@PLT";
 
     os << '\n';
 }
 
-static void emit_basic_block(std::ostream& os, const MachineFunction& MF, 
-                              const MachineBasicBlock& MBB) {
+void x64AsmWriter::write_block(
+        std::ostream& os, const MachFunction& MF, const MachBasicBlock& MBB) {
     if (!MBB.get_basic_block()->has_preds()) {
-        // For basic blocks without predecessors (usually only the entry block),
-        // only emit a comment instead of the redundant label.
-        os << "#bb" << MBB.position() << ":\n";
+        // Basic blocks without predecessors (typically only the entry block)
+        // can be emitted as just a comment.
+        os << "#bb" << MBB.position();
     } else {
-        os << ".LBB" << g_function_id << '_' << MBB.position() << ":\n";
+        os << ".LBB" << m_function << '_' << MBB.position();
     }
 
-    for (auto& MI : MBB.insts())
-        emit_instruction(os, MF, MI);
+    os << ":\n";
+
+    for (const auto& MI : MBB.insts()) write_instruction(os, MF, MI);
 }
 
-static void emit_constant(std::ostream& os, const Target& target,
-                          const Constant* constant) {
-    u32 size = target.get_type_size(constant->get_type());
+void x64AsmWriter::write_function(std::ostream& os, const MachFunction& MF) {
+    const std::string& name = MF.get_name();
+
+    os << "# begin function " << name << '\n';
+
+    const auto& cpool = MF.get_constant_pool();
+    int32_t last_size = -1;
+    for (uint32_t idx = 0, e = cpool.num_entries(); idx != e; ++idx) {
+        const auto& entry = cpool.entries.at(idx);
+        const auto& constant = entry.constant;
+
+        uint32_t size = MF.get_target().get_type_size(constant->get_type());
+        if (size != last_size) {
+            os << "\t.section\t.rodata.cst" << size << ",\"aM\",@progbits,8\n"
+               << "\t.p2align\t" << std::log2(size) << ",0x0\n";
+
+            last_size = size;
+        }
+
+        os << ".LCPI" << m_function << '_' << idx << ":\n";
+        write_constant(os, *entry.constant);
+    }
+
+    os << "\t.text\n";
+
+    if (MF.get_function()->get_linkage() == Function::LinkageType::External)
+        os << "\t.global\t" << name << '\n';
+
+    os << "\t.p2align 4\n"
+       << "\t.type\t" << name << ",@function\n"
+       << name << ":\n"
+       << "\t.cfi_startproc\n"
+       << "\tpushq\t%rbp\n"
+       << "\t.cfi_def_cfa_offset 16\n"
+       << "\t.cfi_offset %rbp,-16\n"
+       << "\tmovq\t%rsp,%rbp\n"
+       << "\t.cfi_def_cfa_register %rbp\n"
+       << "\tsubq\t$" << MF.get_stack_info().alignment() << ",%rsp\n";
+
+    for (const auto* MBB = MF.front(); MBB != nullptr; MBB = MBB->next())
+        write_block(os, MF, *MBB);
+
+    os << ".LFE" << m_function << ":\n"
+       << "\t.size\t" << name << ", .LFE" << m_function << '-' << name << '\n'
+       << "\t.cfi_endproc\n"
+       << "# end function " << name << "\n\n";
+}
+
+void x64AsmWriter::write_constant(std::ostream& os, const Constant& constant) {
+    const auto& target = m_object.get_target();
+    const uint32_t size = target->get_type_size(constant.get_type());
 
     os << "\t.";
 
-    if (auto CI = dynamic_cast<const ConstantInt*>(constant)) {
+    if (auto integer = dynamic_cast<const ConstantInt*>(&constant)) {
         switch (size) {
         case 1:
-            os << "byte ";
+            os << "byte";
             break;
+        
         case 2:
-            os << "word ";
+            os << "word";
             break;
+
         case 4:
-            os << "long ";
+            os << "long";
             break;
+
         case 8:
-            os << "quad ";
+            os << "quad";
             break;
         }
 
-        os << CI->get_value();
-    } else if (auto CFP = dynamic_cast<const ConstantFP*>(constant)) {
+        os << ' ' << integer->get_value();
+    } else if (auto fp = dynamic_cast<const ConstantFP*>(&constant)) {
         switch (size) {
         case 4: {
             os << "long 0x";
 
-            u32 bits;
-            f32 value = CFP->get_value();
+            uint32_t bits = 0;
+            float value = fp->get_value();
             std::memcpy(&bits, &value, sizeof(bits));
             os << std::hex << bits << std::dec;
             break;
@@ -330,8 +372,8 @@ static void emit_constant(std::ostream& os, const Target& target,
         case 8: {
             os << "quad 0x";
 
-            u64 bits;
-            f64 value = CFP->get_value();
+            uint64_t bits = 0;
+            double value = fp->get_value();
             std::memcpy(&bits, &value, sizeof(bits));
             os << std::hex << bits << std::dec;
             break;
@@ -340,13 +382,14 @@ static void emit_constant(std::ostream& os, const Target& target,
         default:
             assert(false && "unsupported SSE floating point size!");
         }
-    } else if (auto CN = dynamic_cast<const ConstantNull*>(constant)) {
+
+    } else if (auto null = dynamic_cast<const ConstantNull*>(&constant)) {
         os << "quad 0x0";
-    } else if (auto CS = dynamic_cast<const ConstantString*>(constant)) {
+    } else if (auto string = dynamic_cast<const ConstantString*>(&constant)) {
         os << "string \"";
-        
-        for (u32 idx = 0, e = CS->get_value().size(); idx != e; ++idx) {
-            switch (CS->get_value()[idx]) {
+
+        for (uint32_t idx = 0, e = string->get_value().size(); idx != e; ++idx) {
+            switch (string->get_value()[idx]) {
             case '\\':
                 os << "\\\\";
                 break;
@@ -372,7 +415,7 @@ static void emit_constant(std::ostream& os, const Target& target,
                 os << "\\0";
                 break;
             default:
-                os << CS->get_value()[idx];
+                os << string->get_value()[idx];
                 break;
             }
         }
@@ -383,87 +426,42 @@ static void emit_constant(std::ostream& os, const Target& target,
     os << '\n';
 }
 
-static void emit_function(std::ostream& os, const MachineFunction& MF) {
-    const std::string& name = MF.get_name();
-
-    os << "# begin function " << name << '\n';
-
-    const FunctionConstantPool& cpool = MF.get_constant_pool();
-    i32 last_size = -1;
-    for (u32 idx = 0, e = cpool.num_entries(); idx != e; ++idx) {
-        const FunctionConstantPoolEntry& entry = cpool.entries.at(idx);
-        const Constant* constant = entry.constant;
-
-        u32 size = MF.get_target().get_type_size(constant->get_type());
-        if (size != last_size) {
-            os << "\t.section\t.rodata.cst" << size << ",\"aM\",@progbits,8\n"
-               << "\t.p2align\t" << std::log2(size) << ", 0x0\n";
-
-            last_size = size;
-        }
-
-        os << ".LCPI" << g_function_id << '_' << idx << ":\n";
-        emit_constant(os, MF.get_target(), entry.constant);
-    }
-
-    os << "\t.text\n";
-
-    if (MF.get_function()->get_linkage() == Function::LINKAGE_EXTERNAL)
-        os << "\t.global\t" << name << '\n';
-
-    os << "\t.p2align 4\n"
-       << "\t.type\t" << name << ", @function\n"
-       << name << ":\n"
-       << "\t.cfi_startproc\n"
-       << "\tpushq\t%rbp\n"
-       << "\t.cfi_def_cfa_offset 16\n"
-       << "\t.cfi_offset %rbp, -16\n"
-       << "\tmovq\t%rsp, %rbp\n"
-       << "\t.cfi_def_cfa_register %rbp\n"
-       << "\tsubq\t$" << MF.get_stack_info().alignment() << ", %rsp\n";
-
-    for (const auto* MBB = MF.front(); MBB; MBB = MBB->next())
-        emit_basic_block(os, MF, *MBB);
-
-    os << ".LFE" << g_function_id << ":\n"
-       << "\t.size\t" << name << ", .LFE" << g_function_id << '-' << name << '\n'
-       << "\t.cfi_endproc\n"
-       << "# end function " << name << "\n\n";
-}
-
-static void emit_global(std::ostream& os, const Target& target, 
-                        const Global* global) {
-    if (global->is_read_only()) {
+void x64AsmWriter::write_global(std::ostream& os, const Global& global) {
+    // TODO: If global is uninitialized, use bss section.
+    
+    if (global.is_read_only()) {
         os << "\t.section\t.rodata\n";
     } else {
         os << "\t.data\n";
     }
 
-    if (global->get_linkage() == Global::LINKAGE_EXTERNAL)
-        os << "\t.global " << global->get_name() << '\n';
+    if (global.get_linkage() == Global::LinkageType::External)
+        os << "\t.global" << global.get_name() << '\n';
 
-    os << "\t.align\t" << target.get_type_align(global->get_initializer()->get_type()) << '\n'
-       << "\t.type\t" << global->get_name() << ", @object\n"
-       << "\t.size\t" << global->get_name() << ", " << target.get_type_size(global->get_initializer()->get_type()) << '\n'
-       << global->get_name() << ":\n";
+    const auto& target = m_object.get_target();
+    const auto& initializer = global.get_initializer();
+    const uint32_t align = target->get_type_align(initializer->get_type()),
+                   size = target->get_type_size(initializer->get_type());
 
-    emit_constant(os, target, global->get_initializer());
+    os << "\t.align\t" << align << '\n'
+       << "\t.type\t" << global.get_name() << ",@object\n"
+       << "\t.size\t" << global.get_name() << ',' << size << '\n'
+       << global.get_name() << ":\n";
+
+    write_constant(os, *initializer);
 }
 
-void X64AsmWriter::run(std::ostream& os) const {
-    g_function_id = 0;
+void x64AsmWriter::run(std::ostream& os) {
+    os << "\t.file\t\"" << m_object.get_graph()->get_file() << "\"\n";
 
-    os << "\t.file\t\"" << m_obj.get_graph()->get_file().filename() << "\"\n";
+    for (const auto& global : m_object.get_graph()->globals())
+        write_global(os, *global);
 
-    for (const auto& global : m_obj.get_graph()->globals()) {
-        emit_global(os, *m_obj.get_target(), global);
+    for (const auto& [name, function] : m_object.functions()) {
+        write_function(os, *function);
+        ++m_function;
     }
 
-    for (const auto& [name, function] : m_obj.functions()) {
-        emit_function(os, *function);
-        g_function_id++;
-    }
-
-    os << "\t.ident\t\t\"stmc: 1.0.0, nwmarino\"\n" 
+    os << "\t.ident\t\t\"spbe: 0.1.0, nwm\"\n" 
        << "\t.section\t.note.GNU-stack,\"\",@progbits\n";
 }
