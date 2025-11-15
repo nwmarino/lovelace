@@ -1,18 +1,18 @@
-#ifndef STATIM_SIIR_MACHINE_FUNCTION_H_
-#define STATIM_SIIR_MACHINE_FUNCTION_H_
+#ifndef SPBE_MACH_FUNCTION_H_
+#define SPBE_MACH_FUNCTION_H_
 
-#include "siir/constant.hpp"
-#include "siir/local.hpp"
-#include "siir/target.hpp"
-#include "siir/machine_basicblock.hpp"
-#include "siir/machine_register.hpp"
-#include "types/types.hpp"
+#include "MachBasicBlock.hpp"
+#include "MachRegister.hpp"
+#include "../graph/Constant.hpp"
+#include "../graph/Local.hpp"
+#include "../target/Target.hpp"
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace stm::siir {
+namespace spbe {
 
 class Function;
 class MachineInst;
@@ -23,13 +23,13 @@ class MachineInst;
 /// local in the SIIR equivelant function.
 struct FunctionStackEntry final {
     /// The offset of this entry in the stack.
-    i32 offset;
+    int32_t offset;
 
     /// The number of bytes this entry reserves.
-    u32 size;
+    uint32_t size;
 
     /// The desired alignment of this entry.
-    u32 align;
+    uint32_t align;
 
     /// The local that defines this entry, if there is one.
     ///
@@ -43,23 +43,23 @@ struct FunctionStackInfo final {
     std::vector<FunctionStackEntry> entries;
 
     /// Returns the number of entries in this stack.
-    u32 num_entries() const { return entries.size(); }
+    uint32_t num_entries() const { return entries.size(); }
 
     /// Returns the size of the stack in bytes, without any alignment.
-    u32 size() const {
+    uint32_t size() const {
         if (entries.empty())
             return 0;
 
         return entries.back().offset + entries.back().size;
     }
 
-    u32 alignment() const {
-        u32 max_align = 1;
+    uint32_t alignment() const {
+        uint32_t max_align = 1;
         for (const auto& entry : entries)
             if (entry.align > max_align)
                 max_align = entry.align;
         
-        u32 size = this->size();
+        uint32_t size = this->size();
         while (max_align < size)
             max_align += 16;
 
@@ -76,18 +76,18 @@ struct VRegInfo final {
     RegisterClass cls = GeneralPurpose;
 
     /// The resulting allocation of a virtual register.
-    MachineRegister alloc = MachineRegister::NoRegister;
+    MachRegister alloc = MachRegister::NoRegister;
 };
 
 /// Information about the registers used by a machine function.
 struct FunctionRegisterInfo final {
-    std::unordered_map<u32, VRegInfo> vregs;
+    std::unordered_map<uint32_t, VRegInfo> vregs;
 };
 
 /// An entry in the constant pool of a function.
 struct FunctionConstantPoolEntry final {
     const Constant* constant;
-    u32 align;
+    uint32_t align;
 };
 
 /// Constants referenced by a function that should be emitted to read-only
@@ -96,15 +96,15 @@ struct FunctionConstantPool final {
     std::vector<FunctionConstantPoolEntry> entries;
 
     /// Returns the number of entries in this pool.
-    u32 num_entries() const { return entries.size(); }
+    uint32_t num_entries() const { return entries.size(); }
 
-    u32 get_or_create_constant(const Constant* constant, u32 align) {
-        u32 idx = 0;
-        for (u32 e = entries.size(); idx != e; ++idx) {
+    uint32_t get_or_create_constant(const Constant* constant, uint32_t align) {
+        uint32_t idx = 0;
+        for (uint32_t e = entries.size(); idx != e; ++idx) {
             FunctionConstantPoolEntry& entry = entries[idx];
-            /// TODO: Optimize comparisons to reduce duplicate constants.
+            // TODO: Optimize comparisons to reduce duplicate constants.
             if (entry.constant == constant && entry.align == align)
-                return idx; 
+                return idx;
         }
 
         entries.push_back({ constant, align });
@@ -113,7 +113,7 @@ struct FunctionConstantPool final {
 };
 
 /// Represents a machine function, derived from a bytecode function.
-class MachineFunction final {
+class MachFunction final {
     friend class FunctionRegisterAnalysis;
 
     /// Internal information about this function.
@@ -123,25 +123,25 @@ class MachineFunction final {
 
     /// The bytecode function this derives from.
     const Function* m_fn;
-    const siir::Target& m_target;
+    const Target& m_target;
 
     /// Links to the first and last basic blocks in this function. 
-    MachineBasicBlock* m_front = nullptr;
-    MachineBasicBlock* m_back = nullptr;
+    MachBasicBlock* m_front = nullptr;
+    MachBasicBlock* m_back = nullptr;
 
 public:
-    MachineFunction(const Function* fn, const siir::Target& target);
+    MachFunction(const Function* fn, const Target& target);
 
-    MachineFunction(const MachineFunction&) = delete;
-    MachineFunction& operator = (const MachineFunction&) = delete;
+    MachFunction(const MachFunction&) = delete;
+    MachFunction& operator = (const MachFunction&) = delete;
 
-    ~MachineFunction();
+    ~MachFunction();
 
     /// Returns the SIIR function that this function derives from.
     const Function* get_function() const { return m_fn; }
     
     /// Returns the target that this function was compiled for.
-    const siir::Target& get_target() const { return m_target; }
+    const Target& get_target() const { return m_target; }
 
     /// Returns the name of this function, as it was defined in the SIIR.
     const std::string& get_name() const;
@@ -155,29 +155,29 @@ public:
     const FunctionConstantPool& get_constant_pool() const { return m_pool; }
     FunctionConstantPool& get_constant_pool() { return m_pool; }
 
-    const MachineBasicBlock* front() const { return m_front; }
-    MachineBasicBlock* front() { return m_front; }
+    const MachBasicBlock* front() const { return m_front; }
+    MachBasicBlock* front() { return m_front; }
 
-    const MachineBasicBlock* back() const { return m_back; }
-    MachineBasicBlock* back() { return m_back; }
+    const MachBasicBlock* back() const { return m_back; }
+    MachBasicBlock* back() { return m_back; }
 
     /// Return the basic block at position |idx| in this function.
-    const MachineBasicBlock* at(u32 idx) const;
-    MachineBasicBlock* at(u32 idx);
+    const MachBasicBlock* at(uint32_t idx) const;
+    MachBasicBlock* at(uint32_t idx);
 
     /// Returns the number of basic blocks in this function.
-    u32 size() const;
+    uint32_t size() const;
 
     /// Returns true if this function has no basic blocks.
     bool empty() const { return !m_front; }
 
     /// Prepend |mbb| to the front of this function.
-    void prepend(MachineBasicBlock* mbb);
+    void prepend(MachBasicBlock* mbb);
 
     /// Append |mbb| to the back of this function.
-    void append(MachineBasicBlock* mbb);
+    void append(MachBasicBlock* mbb);
 };
 
-} // namespace stm::siir
+} // namespace spbe
 
-#endif // STATIM_SIIR_MACHINE_FUNCTION_H_
+#endif // SPBE_MACH_FUNCTION_H_

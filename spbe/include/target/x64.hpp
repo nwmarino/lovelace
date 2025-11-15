@@ -1,29 +1,29 @@
-#ifndef STATIM_SIIR_X64_H_
-#define STATIM_SIIR_X64_H_
+#ifndef SPBE_X64_H_
+#define SPBE_X64_H_
 
-#include "siir/allocator.hpp"
-#include "siir/instruction.hpp"
-#include "siir/local.hpp"
-#include "siir/machine_register.hpp"
-#include "siir/machine_object.hpp"
-#include "types/types.hpp"
+#include "../machine/Rega.hpp"
+#include "../graph/Instruction.hpp"
+#include "../graph/Local.hpp"
+#include "../machine/MachRegister.hpp"
+#include "../machine/MachObject.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
-namespace stm::siir {
+namespace spbe {
 
-class MachineOperand;
-class MachineInst;
-class MachineBasicBlock;
-class MachineFunction;
+class MachOperand;
+class MachInstruction;
+class MachBasicBlock;
+class MachFunction;
 
 namespace x64 {
 
 /// Recognized x64 opcodes. These are really mnemonics since they don't signify
 /// any operand information.
-enum Opcode : u32 {
+enum Opcode : uint32_t {
     NO_OPC = 0x0,
 
     NOP, JMP, UD2, CQO, MOV,
@@ -79,7 +79,7 @@ enum Opcode : u32 {
 };
 
 /// Recognized x64 physical registers.
-enum Register : u32 {
+enum Register : uint32_t {
     NO_REG = 0x0,
 
     RAX, RBX, RCX, RDX,
@@ -96,16 +96,16 @@ enum Register : u32 {
 
 /// x64 Instruction selection pass over a SIIR function.
 class X64InstSelection final {
-    MachineFunction* m_function;
-    MachineBasicBlock* m_insert = nullptr;
+    MachFunction* m_function;
+    MachBasicBlock* m_insert = nullptr;
     const Target& m_target;
 
     /// Temporary mapping between bytecode virtual registers and machine 
     /// register ids.
-    std::unordered_map<u32, MachineRegister> m_vregs = {};
+    std::unordered_map<uint32_t, MachRegister> m_vregs = {};
 
     /// Mapping between function locals and stack offsets.
-    std::unordered_map<const Local*, u32> m_stack_indices = {};
+    std::unordered_map<const Local*, uint32_t> m_stack_indices = {};
 
     /// Comparison instructions which have been "deferred" until later. This
     /// is mainly used for comparisons whose only user is a conditional branch.
@@ -128,13 +128,13 @@ class X64InstSelection final {
 
     /// Returns or creates a virtual machine register equivelant for the 
     /// defining SIIR instruction |inst|. 
-    MachineRegister as_machine_reg(const Instruction* inst);
+    MachRegister as_machine_reg(const Instruction* inst);
 
-    MachineRegister scratch(RegisterClass cls);
+    MachRegister scratch(RegisterClass cls);
 
     /// Returns the expected x64 general-purpose subregister for a given type. 
     /// This function will always return 1, 2, 4, or 8.
-    u16 get_subreg(const Type* ty) const;
+    uint16_t get_subreg(const Type* ty) const;
 
     x64::Opcode get_move_op(const Type* ty) const;
     x64::Opcode get_cmp_op(const Type* ty) const;
@@ -153,24 +153,24 @@ class X64InstSelection final {
     x64::Opcode get_not_op(const Type* ty) const;
     x64::Opcode get_neg_op(const Type* ty) const;
 
-    x64::Opcode get_jcc_op(siir::Opcode opc) const;
-    x64::Opcode get_setcc_op(siir::Opcode opc) const;
+    x64::Opcode get_jcc_op(spbe::Opcode opc) const;
+    x64::Opcode get_setcc_op(spbe::Opcode opc) const;
     
     /// Returns a machine operand equivelant of treating |value| as a use.
-    MachineOperand as_operand(const Value* value);
+    MachOperand as_operand(const Value* value);
 
     /// Returns a machine operand representing the location of a function call
     /// argument as per the SystemV ABI for x64.
     ///
     /// TODO: Split out depending on target ABI.
-    MachineOperand as_call_argument(const Value* value, u32 arg_idx) const;
+    MachOperand as_call_argument(const Value* value, uint32_t arg_idx) const;
 
     /// Emit a new machine instruction with opcode |op| and operand list |ops|.
     MachineInst& emit(x64::Opcode opc, 
-                      const std::vector<MachineOperand>& ops = {});
+                      const std::vector<MachOperand>& ops = {});
 
     MachineInst& emit_before_terms(x64::Opcode opc,
-                                   const std::vector<MachineOperand>& ops = {});
+                                   const std::vector<MachOperand>& ops = {});
 
     /// Perform instruction selection on a single SIIR instruction.
     void select(const Instruction* inst);
@@ -203,7 +203,7 @@ class X64InstSelection final {
     void select_comparison(const Instruction* inst);
 
 public:
-    X64InstSelection(MachineFunction* function) 
+    X64InstSelection(MachFunction* function) 
         : m_function(function), m_target(function->get_target()) {}
 
     X64InstSelection(const X64InstSelection&) = delete;
@@ -218,10 +218,10 @@ public:
 /// language fit for assembler calls. This pass should instead be used to
 /// dump machine IR, exposing certain details.
 class X64Printer final {
-    const MachineObject& m_obj;
+    const MachObject& m_obj;
 
 public:
-    X64Printer(MachineObject& obj) : m_obj(obj) {}
+    X64Printer(MachObject& obj) : m_obj(obj) {}
 
     X64Printer(const X64Printer&) = delete;
     X64Printer& operator = (const X64Printer&) = delete;
@@ -231,10 +231,10 @@ public:
 
 /// Machine code pass to emit raw assembly for x64 machine objects.
 class X64AsmWriter final {
-    const MachineObject& m_obj;
+    const MachObject& m_obj;
 
 public:
-    X64AsmWriter(MachineObject& obj) : m_obj(obj) {}
+    X64AsmWriter(MachObject& obj) : m_obj(obj) {}
 
     X64AsmWriter(const X64AsmWriter&) = delete;
     X64AsmWriter& operator = (const X64AsmWriter&) = delete;
@@ -276,10 +276,10 @@ std::string to_string(x64::Opcode op);
 /// Returns the string representation of the physical register |reg|, with
 /// optional x64 subregister |subreg|. This is used for dumping purposes,
 /// and does not represent the recognized x64 assembly equivelant.
-std::string to_string(Register reg, u16 subreg = 8);
+std::string to_string(Register reg, uint16_t subreg = 8);
 
 } // namespace x64
 
-} // namespace stm::siir
+} // namespace spbe
 
-#endif // STATIM_SIIR_X64_H_
+#endif // SPBE_X64_H_

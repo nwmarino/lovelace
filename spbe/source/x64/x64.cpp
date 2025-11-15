@@ -1,11 +1,11 @@
-#include "x64/x64.hpp"
-#include "siir/machine_register.hpp"
+#include "../../include/machine/MachRegister.hpp"
+#include "../../include/target/x64.hpp"
 
 #include <cassert>
+#include <cstdint>
 
-using namespace stm;
-using namespace stm::siir;
-using namespace stm::siir::x64;
+using namespace spbe;
+using namespace spbe::x64;
 
 bool x64::is_call_opcode(x64::Opcode opc) {
     return opc == x64::CALL64;
@@ -440,7 +440,7 @@ std::string x64::to_string(Opcode op) {
     }
 }
 
-std::string x64::to_string(Register reg, u16 subreg) {
+std::string x64::to_string(Register reg, uint16_t subreg) {
     switch (reg) {
     case RAX:  
         return subreg == 8 ? "rax" : (subreg == 4 ? "eax" : 

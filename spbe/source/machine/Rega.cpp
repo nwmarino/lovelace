@@ -1,37 +1,35 @@
-#include "siir/allocator.hpp"
+#include "../../include/machine/Rega.hpp"
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
-bool RegisterAllocator::is_available(MachineRegister reg, u32 start, 
-                                     u32 end) const {
-    /// TODO: This ends up being very slow, since it covers all ranges in a
-    /// function. Should be optimized, i.e. keeping a set of non-active but
-    /// overlapping ranges, which active is a subset of.
-    for (auto& range : m_ranges) {
+bool RegisterAllocator::is_available(MachRegister reg, uint32_t start, 
+                                     uint32_t end) const {
+    // TODO: This ends up being very slow, since it covers all ranges in a
+    // function. Should be optimized, i.e. keeping a set of non-active but
+    // overlapping ranges, which active is a subset of.
+    for (const auto& range : m_ranges)
         // For each range within the function, if it allocates |reg| and 
         // overlaps with [start, end], then |reg| is considered unavailable.
-
         if (range.alloc == reg && range.overlaps(start, end))
             return false;
-    }
 
     return true;
 }
 
 void RegisterAllocator::expire_intervals(LiveRange& curr) {
-    for (auto it = m_active.begin(); it != m_active.end(); ) {
-        if (it->end < curr.start)
+    for (auto it = m_active.begin(); it != m_active.end();) {
+        if (it->end < curr.start) {
             m_active.erase(it);
-        else
+        } else {
             ++it;
+        }
     }
 }
 
 void RegisterAllocator::assign_register(LiveRange& range) {
     const auto& set = m_pool.regs.at(range.cls);
     for (const auto& reg : set.regs) {
-        assert(MachineRegister(reg).is_physical() && 
+        assert(MachRegister(reg).is_physical() && 
             "expected physical register!");
 
         if (is_available(reg, range.start, range.end)) {
@@ -40,11 +38,11 @@ void RegisterAllocator::assign_register(LiveRange& range) {
         }
     }
 
-    assert(range.alloc != MachineRegister::NoRegister &&
-        "failed to allocate register, spilling not implemented!");
+    assert(range.alloc != MachRegister::NoRegister &&
+        "failed to allocate a machine register, spilling not supported yet!");
 }
 
-RegisterAllocator::RegisterAllocator(MachineFunction& function, 
+RegisterAllocator::RegisterAllocator(MachFunction& function, 
                                      const TargetRegisters& pool,
                                      std::vector<LiveRange>& ranges)
     : m_function(function), m_pool(pool), m_ranges(ranges) {}
@@ -53,7 +51,7 @@ void RegisterAllocator::run() {
     for (auto& range : m_ranges) {
         expire_intervals(range);
 
-        if (range.alloc == MachineRegister::NoRegister)
+        if (range.alloc == MachRegister::NoRegister)
             assign_register(range);
         
         m_active.push_back(range);

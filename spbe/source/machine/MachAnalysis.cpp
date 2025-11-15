@@ -1,23 +1,26 @@
-#include "siir/allocator.hpp"
-#include "siir/cfg.hpp"
-#include "siir/function.hpp"
-#include "siir/machine_analysis.hpp"
-#include "siir/machine_basicblock.hpp"
-#include "siir/machine_function.hpp"
-#include "siir/machine_object.hpp"
-#include "x64/x64.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/machine/MachAnalysis.hpp"
+#include "../../include/machine/MachBasicBlock.hpp"
+#include "../../include/machine/MachFunction.hpp"
+#include "../../include/machine/MachInstruction.hpp"
+#include "../../include/machine/MachObject.hpp"
+#include "../../include/machine/Rega.hpp"
+#include "../../include/target/x64.hpp"
+#include "machine/MachRegister.hpp"
+
+#ifdef SPBE_MACHINE_DEBUGGING
 #include <iostream>
+#endif // SPBE_MACHINE_DEBUGGING
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
-//#define DEBUG_PRINT_RANGES
-
+/// Implementation of a linear scan over the intermediate representation to
+/// identify live ranges of named producers.
 class LinearScan final {
-    const MachineFunction& m_function;
+    const MachFunction& m_function;
     std::vector<LiveRange>& m_ranges;
 
-    LiveRange& update_range(MachineRegister reg, RegisterClass cls, u32 pos) {
+    LiveRange& update_range(MachRegister reg, RegisterClass cls, uint32_t pos) {
         // Attempt to find an existing range for |reg|.
         for (auto& range : m_ranges) {
             // The range has been killed, so we never update it.
@@ -31,46 +34,45 @@ class LinearScan final {
         }
 
         // No existing range could be found, so we begin a new one.
-        LiveRange range;
+        LiveRange range = {};
         range.reg = reg;
         range.start = range.end = pos;
         range.cls = cls;
         range.killed = false;
+        range.alloc = MachRegister::NoRegister;
 
-        if (reg.is_physical()) {
+        if (reg.is_physical())
             range.alloc = reg;
-        } else {
-            range.alloc = MachineRegister::NoRegister;
-        }
 
         m_ranges.push_back(range);
         return m_ranges.back();
     }
 
 public:
-    LinearScan(const MachineFunction& function, std::vector<LiveRange>& ranges)
+    LinearScan(const MachFunction& function, std::vector<LiveRange>& ranges)
         : m_function(function), m_ranges(ranges) {}
 
     LinearScan(const LinearScan&) = delete;
     LinearScan& operator = (const LinearScan&) = delete;
 
-    ~LinearScan() = default;
-
     void run() {
-        u32 position = 0;
+        uint32_t position = 0;
 
+        // TODO: Triple loop here should get factored away.
         for (const auto* mbb = m_function.front(); mbb; mbb = mbb->next()) {
             for (const auto& mi : mbb->insts()) {
                 for (const auto& mo : mi.operands()) {
                     if (!mo.is_reg() && !mo.is_mem())
                         continue;
 
-                    MachineRegister reg;
+                    MachRegister reg;
                     RegisterClass cls;
-                    if (mo.is_reg())
+
+                    if (mo.is_reg()) {
                         reg = mo.get_reg();
-                    else if (mo.is_mem())
+                    } else if (mo.is_mem()) {
                         reg = mo.get_mem_base();
+                    }
 
                     if (reg.is_physical()) {
                         cls = x64::get_class(
@@ -96,52 +98,48 @@ public:
     }
 };
 
+/// Implementation of a per-function pass that identifies the need for spills
+/// around call instructions due to ABI conventions.
 class CallsiteAnalysis final {
-    MachineFunction& m_function;
+    MachFunction& m_function;
     const std::vector<LiveRange>& m_ranges;
 
 public:
-    CallsiteAnalysis(MachineFunction& function, 
-                     const std::vector<LiveRange>& ranges)
+    CallsiteAnalysis(
+            MachFunction& function, const std::vector<LiveRange>& ranges)
         : m_function(function), m_ranges(ranges) {}
 
     CallsiteAnalysis(const CallsiteAnalysis&) = delete;
     CallsiteAnalysis& operator = (const CallsiteAnalysis&) = delete;
-
-    ~CallsiteAnalysis() = default;
     
     void run() {
-        u32 position = 0;
-        for (auto* mbb = m_function.front(); mbb; mbb = mbb->next()) {
-            std::vector<MachineInst> insts;
+        uint32_t position = 0;
+        for (auto* mbb = m_function.front(); mbb != nullptr; mbb = mbb->next()) {
+            std::vector<MachInstruction> insts;
             insts.reserve(mbb->size());
 
-            for (u32 i = 0; i < mbb->size(); ++position, ++i) {
+            for (uint32_t i = 0; i < mbb->size(); ++position, ++i) {
                 // TODO: Generalize for other targets.
                 if (x64::is_call_opcode(static_cast<x64::Opcode>(mbb->insts().at(i).opcode()))) {
-                    std::vector<MachineRegister> save = {};
+                    std::vector<MachRegister> save = {};
 
                     for (auto& range : m_ranges) {
                         if (range.overlaps(position)) {
-                            MachineRegister range_alloc = range.alloc;
+                            MachRegister range_alloc = range.alloc;
                             if (x64::is_caller_saved(static_cast<x64::Register>(range.alloc.id())))
                                 save.push_back(range.alloc);
                         }
                     }
 
-                    for (auto& reg : save) {
-                        MachineOperand op = MachineOperand::create_reg(
-                            reg, 8, false);
-
+                    for (const auto& reg : save) {
+                        MachOperand op = MachOperand::create_reg(reg, 8, false);
                         insts.push_back({ x64::PUSH64, { op } });   
                     }
 
                     insts.push_back(mbb->insts().at(i));
                     
-                    for (auto& reg : save) {
-                        MachineOperand op = MachineOperand::create_reg(
-                            reg, 8, true);
-
+                    for (const auto& reg : save) {
+                        MachOperand op = MachOperand::create_reg(reg, 8, true);
                         insts.push_back({ x64::POP64, { op } });
                     }
                 } else {
@@ -154,37 +152,6 @@ public:
     }
 };
 
-CFGMachineAnalysis::CFGMachineAnalysis(CFG& cfg) : m_cfg(cfg) {}
-
-void CFGMachineAnalysis::run(MachineObject& obj) {
-    for (const auto& function : m_cfg.functions()) {
-        // Empty functions should not be lowered, they should either be
-        // resolved at link time or with some library.
-        if (function->empty())
-            continue;
-
-        MachineFunction* mf = new MachineFunction(function, *obj.get_target());
-        obj.functions().emplace(mf->get_name(), mf);
-
-        for (auto curr = function->front(); curr; curr = curr->next())
-            new MachineBasicBlock(curr, mf);
-
-        switch (obj.get_target()->arch()) {
-        case Target::x64: {
-            x64::X64InstSelection isel { mf };
-            isel.run();
-            break;
-        }
-
-        default:
-            assert(false && "unsupported architecture!");
-        }
-    }
-}
-
-FunctionRegisterAnalysis::FunctionRegisterAnalysis(MachineObject& obj)
-    : m_obj(obj) {}
-
 void FunctionRegisterAnalysis::run() {
     for (const auto& [name, function] : m_obj.functions()) {
         std::vector<LiveRange> ranges;
@@ -194,7 +161,7 @@ void FunctionRegisterAnalysis::run() {
 
         TargetRegisters tregs;
         switch (m_obj.get_target()->arch()) {
-        case Target::x64:
+        case Target::Arch::x64:
             tregs = x64::get_registers();
             break;
 
@@ -202,11 +169,11 @@ void FunctionRegisterAnalysis::run() {
             assert(false && "unsupported architecture!");
         }
 
-#ifdef DEBUG_PRINT_RANGES
+#ifdef SPBE_MACHINE_DEBUGGING
         std::cerr << "Function '" << name << "' ranges:\n";
-        for (auto& range : ranges) {
+        for (const auto& range : ranges) {
             if (range.reg.is_virtual()) {
-                std::cerr << 'v' << range.reg.id() - MachineRegister::VirtualBarrier;
+                std::cerr << 'v' << range.reg.id() - MachRegister::VirtualBarrier;
             } else {
                 std::cerr << '%' << x64::to_string(static_cast<x64::Register>(
                     range.reg.id()), 8);
@@ -214,34 +181,28 @@ void FunctionRegisterAnalysis::run() {
 
             std::cerr << " [" << range.start << ", " << range.end << "]\n";
         }
-#endif // DEBUG_PRINT_RANGES
+#endif // SPBE_MACHINE_DEBUGGING
 
         RegisterAllocator allocator { *function, tregs, ranges };
         allocator.run();
 
         FunctionRegisterInfo& regi = function->get_register_info();
-        for (auto& range : ranges) {
-            MachineRegister reg = range.reg;
+        for (const auto& range : ranges) {
+            MachRegister reg = range.reg;
             if (reg.is_physical())
                 continue;
 
             regi.vregs[reg.id()].alloc = range.alloc;
         }
 
-        /// TODO: Implement callsite analysis at this point, saving caller-
-        /// saved registers that are live around callsites, and managing the
-        /// spills that come with it.
-
         CallsiteAnalysis CAN { *function, ranges };
         CAN.run();
     }
 }
 
-MachineObjectPrinter::MachineObjectPrinter(MachineObject& obj) : m_obj(obj) {}
-
-void MachineObjectPrinter::run(std::ostream& os) {
+void PrettyPrinter::run(std::ostream& os) {
     switch (m_obj.get_target()->arch()) {
-    case Target::x64: {
+    case Target::Arch::x64: {
         x64::X64Printer printer { m_obj };
         printer.run(os);
         break;
@@ -252,12 +213,9 @@ void MachineObjectPrinter::run(std::ostream& os) {
     }
 }
 
-MachineObjectAsmWriter::MachineObjectAsmWriter(MachineObject& obj) 
-    : m_obj(obj) {}
-
-void MachineObjectAsmWriter::run(std::ostream& os) {
+void AsmWriter::run(std::ostream& os) {
     switch (m_obj.get_target()->arch()) {
-    case Target::x64: {
+    case Target::Arch::x64: {
         x64::X64AsmWriter writer { m_obj };
         writer.run(os);
         break;

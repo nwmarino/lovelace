@@ -1,18 +1,18 @@
-#ifndef STATIM_SIIR_ALLOCATOR_H_
-#define STATIM_SIIR_ALLOCATOR_H_
+#ifndef SPBE_REGA_H_
+#define SPBE_REGA_H_
 
-#include "siir/machine_function.hpp"
-#include "siir/machine_register.hpp"
-#include "siir/target.hpp"
+#include "MachFunction.hpp"
+#include "MachRegister.hpp"
 
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
-namespace stm::siir {
+namespace spbe {
 
 struct RegisterSet final {
     RegisterClass cls;
-    std::vector<u32> regs;
+    std::vector<uint32_t> regs;
 };
 
 struct TargetRegisters final {
@@ -21,17 +21,16 @@ struct TargetRegisters final {
 
 /// Represents the positional range in which a register is live.
 struct LiveRange final {
-
     /// The register that this range represents, pre-allocations. For ranges
     /// made for physical registers, this still represents the physical
     /// register.
-    MachineRegister reg;
+    MachRegister reg;
 
     /// The physical register that was allocated over this range.
-    MachineRegister alloc;
+    MachRegister alloc;
 
     /// The start and end positions of this range.
-    u32 start, end;
+    uint32_t start, end;
 
     /// The desired register class for this range.
     RegisterClass cls;
@@ -41,32 +40,32 @@ struct LiveRange final {
     bool killed;
 
     /// Returns true if this range in any way overlaps with the given position.
-    bool overlaps(u32 pos) const {
+    bool overlaps(uint32_t pos) const {
         return this->start < pos && pos < this->end;
     }
 
     /// Returns true if this range in any way overlaps with the bounds 
     /// [start, end].
-    bool overlaps(u32 start, u32 end) const {
+    bool overlaps(uint32_t start, uint32_t end) const {
         return this->start < end && this->end > start;
     }
 };
 
 class RegisterAllocator {
     const TargetRegisters& m_pool;
-    MachineFunction& m_function;
+    MachFunction& m_function;
     
     std::vector<LiveRange>& m_ranges;
     std::vector<LiveRange> m_active = {};
     
-    bool active_contains(MachineRegister reg) const;
-    bool is_available(MachineRegister reg, u32 start, u32 end) const;
+    bool active_contains(MachRegister reg) const;
+    bool is_available(MachRegister reg, uint32_t start, uint32_t end) const;
 
     void expire_intervals(LiveRange& curr);
     void assign_register(LiveRange& range);
 
 public:
-    RegisterAllocator(MachineFunction& function, const TargetRegisters& pool,
+    RegisterAllocator(MachFunction& function, const TargetRegisters& pool,
                       std::vector<LiveRange>& ranges);
 
     RegisterAllocator(const RegisterAllocator&) = delete;
@@ -77,6 +76,6 @@ public:
     void run();
 };
 
-} // namespace stm::siir
+} // namespace spbe
 
-#endif // STATIM_SIIR_ALLOCATOR_H_
+#endif // SPBE_REGA_H_
