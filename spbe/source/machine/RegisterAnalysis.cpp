@@ -4,9 +4,10 @@
 #include "../../include/machine/MachInstruction.hpp"
 #include "../../include/machine/MachObject.hpp"
 #include "../../include/machine/MachRegister.hpp"
-#include "../../include/machine/Rega.hpp"
+#include "../../include/machine/RegisterAllocator.hpp"
 #include "../../include/machine/RegisterAnalysis.hpp"
-#include "../../include/x64/x64.hpp"
+
+#include "../../include/X64/X64.hpp"
 
 #ifdef SPBE_MACHINE_DEBUGGING
 #include <iostream>

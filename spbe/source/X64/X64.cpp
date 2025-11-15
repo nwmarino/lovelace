@@ -1,5 +1,5 @@
 #include "../../include/machine/MachRegister.hpp"
-#include "../../include/x64/x64.hpp"
+#include "../../include/X64/X64.hpp"
 
 #include <cassert>
 #include <cstdint>

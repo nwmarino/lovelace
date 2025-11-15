@@ -1,7 +1,7 @@
 #ifndef SPBE_X64_ASM_WRITER_H_
 #define SPBE_X64_ASM_WRITER_H_
 
-#include "x64.hpp"
+#include "X64.hpp"
 #include "../machine/AsmWriter.hpp"
 #include "../machine/MachFunction.hpp"
 #include "../machine/MachObject.hpp"
@@ -9,7 +9,7 @@
 
 namespace spbe::x64 {
 
-class x64AsmWriter final : public spbe::AsmWriter {
+class X64AsmWriter final : public spbe::AsmWriter {
     /// Global object iterator for unique function ids.
     uint32_t m_function = 0;
 
@@ -41,12 +41,12 @@ class x64AsmWriter final : public spbe::AsmWriter {
     void write_global(std::ostream& os, const Global& global) override;
 
 public:
-    x64AsmWriter(const MachObject& object) : spbe::AsmWriter(object) {}
+    X64AsmWriter(const MachObject& object) : spbe::AsmWriter(object) {}
 
-    x64AsmWriter(const x64AsmWriter&) = delete;
-    x64AsmWriter& operator = (const x64AsmWriter&) = delete;
+    X64AsmWriter(const X64AsmWriter&) = delete;
+    X64AsmWriter& operator = (const X64AsmWriter&) = delete;
     
-    ~x64AsmWriter() = default;
+    ~X64AsmWriter() = default;
 
     void run(std::ostream& os) override;
 };

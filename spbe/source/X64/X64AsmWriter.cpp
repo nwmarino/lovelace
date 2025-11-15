@@ -5,8 +5,8 @@
 #include "../../include/machine/MachOperand.hpp"
 #include "../../include/machine/MachFunction.hpp"
 #include "../../include/machine/MachRegister.hpp"
-#include "../../include/x64/x64.hpp"
-#include "../../include/x64/x64AsmWriter.hpp"
+#include "../../include/X64/X64.hpp"
+#include "../../include/X64/X64AsmWriter.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -15,7 +15,7 @@
 using namespace spbe;
 using namespace spbe::x64;
 
-const char* x64AsmWriter::opcode_to_string(x64::Opcode op) const {
+const char* X64AsmWriter::opcode_to_string(x64::Opcode op) const {
     switch (op) {
     case NOP:         return "nop";
     case JMP:         return "jmp";
@@ -157,7 +157,7 @@ const char* x64AsmWriter::opcode_to_string(x64::Opcode op) const {
     }
 }
 
-x64::Register x64AsmWriter::map_register(
+x64::Register X64AsmWriter::map_register(
         MachRegister reg, const MachFunction& MF) {
     if (reg.is_virtual())
         reg = MF.get_register_info().vregs.at(reg.id()).alloc;
@@ -165,7 +165,7 @@ x64::Register x64AsmWriter::map_register(
     return static_cast<x64::Register>(reg.id());
 }
 
-bool x64AsmWriter::is_redundant_move(
+bool X64AsmWriter::is_redundant_move(
         const MachFunction &MF, const MachInstruction& MI) {
     if (!is_move_opcode(static_cast<x64::Opcode>(MI.opcode())))
         return false;
@@ -184,7 +184,7 @@ bool x64AsmWriter::is_redundant_move(
     return regl == regr && MOL.get_subreg() == MOR.get_subreg();
 }
 
-void x64AsmWriter::write_operand(
+void X64AsmWriter::write_operand(
         std::ostream& os, const MachFunction& MF, const MachOperand& MO) {
     switch (MO.kind()) {
     case MachOperand::MO_Register: {
@@ -237,7 +237,7 @@ void x64AsmWriter::write_operand(
     }
 }
 
-void x64AsmWriter::write_instruction(
+void X64AsmWriter::write_instruction(
         std::ostream& os, const MachFunction& MF, const MachInstruction& MI) {
     if (is_redundant_move(MF, MI))
         return;
@@ -268,7 +268,7 @@ void x64AsmWriter::write_instruction(
     os << '\n';
 }
 
-void x64AsmWriter::write_block(
+void X64AsmWriter::write_block(
         std::ostream& os, const MachFunction& MF, const MachBasicBlock& MBB) {
     if (!MBB.get_basic_block()->has_preds()) {
         // Basic blocks without predecessors (typically only the entry block)
@@ -283,7 +283,7 @@ void x64AsmWriter::write_block(
     for (const auto& MI : MBB.insts()) write_instruction(os, MF, MI);
 }
 
-void x64AsmWriter::write_function(std::ostream& os, const MachFunction& MF) {
+void X64AsmWriter::write_function(std::ostream& os, const MachFunction& MF) {
     const std::string& name = MF.get_name();
 
     os << "# begin function " << name << '\n';
@@ -331,7 +331,7 @@ void x64AsmWriter::write_function(std::ostream& os, const MachFunction& MF) {
        << "# end function " << name << "\n\n";
 }
 
-void x64AsmWriter::write_constant(std::ostream& os, const Constant& constant) {
+void X64AsmWriter::write_constant(std::ostream& os, const Constant& constant) {
     const auto& target = m_object.get_target();
     const uint32_t size = target->get_type_size(constant.get_type());
 
@@ -426,7 +426,7 @@ void x64AsmWriter::write_constant(std::ostream& os, const Constant& constant) {
     os << '\n';
 }
 
-void x64AsmWriter::write_global(std::ostream& os, const Global& global) {
+void X64AsmWriter::write_global(std::ostream& os, const Global& global) {
     // TODO: If global is uninitialized, use bss section.
     
     if (global.is_read_only()) {
@@ -451,7 +451,7 @@ void x64AsmWriter::write_global(std::ostream& os, const Global& global) {
     write_constant(os, *initializer);
 }
 
-void x64AsmWriter::run(std::ostream& os) {
+void X64AsmWriter::run(std::ostream& os) {
     os << "\t.file\t\"" << m_object.get_graph()->get_file() << "\"\n";
 
     for (const auto& global : m_object.get_graph()->globals())

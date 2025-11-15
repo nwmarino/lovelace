@@ -1,4 +1,4 @@
-#include "../../include/machine/Rega.hpp"
+#include "../../include/machine/RegisterAllocator.hpp"
 
 using namespace spbe;
 

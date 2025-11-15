@@ -4,8 +4,7 @@
 #include "../graph/Instruction.hpp"
 #include "../graph/Local.hpp"
 #include "../machine/MachRegister.hpp"
-#include "../machine/MachObject.hpp"
-#include "../machine/Rega.hpp"
+#include "../machine/RegisterAllocator.hpp"
 
 #include <algorithm>
 #include <cstdint>

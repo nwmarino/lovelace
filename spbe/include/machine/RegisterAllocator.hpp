@@ -1,5 +1,5 @@
-#ifndef SPBE_REGA_H_
-#define SPBE_REGA_H_
+#ifndef SPBE_REGISTER_ALLOCATOR_H_
+#define SPBE_REGISTER_ALLOCATOR_H_
 
 #include "MachFunction.hpp"
 #include "MachRegister.hpp"
@@ -78,4 +78,4 @@ public:
 
 } // namespace spbe
 
-#endif // SPBE_REGA_H_
+#endif // SPBE_REGISTER_ALLOCATOR_H_

@@ -28,11 +28,12 @@ add_library(spbe SHARED
     source/machine/MachInstruction.cpp
     source/machine/MachObject.cpp
     source/machine/MachOperand.cpp
-    source/machine/Rega.cpp
+    source/machine/RegisterAllocator.cpp
     source/machine/RegisterAnalysis.cpp
     source/target/Target.cpp
-    source/x64/x64.cpp
-    source/x64/x64AsmWriter.cpp
+    source/X64/X64.cpp
+    source/X64/X64AsmWriter.cpp
+    source/X64/X64InstrSelector.cpp
 )
 
 add_library(spbe::spbe ALIAS spbe)
@@ -47,4 +48,3 @@ target_compile_features(spbe PUBLIC cxx_std_20)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-

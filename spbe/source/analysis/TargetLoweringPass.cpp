@@ -1,6 +1,7 @@
 #include "../../include/analysis/TargetLoweringPass.hpp"
 #include "../../include/target/Target.hpp"
-#include "../../include/x64/x64.hpp"
+
+#include "../../include/X64/X64.hpp"
 
 using namespace spbe;
 
