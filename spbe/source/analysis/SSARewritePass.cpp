@@ -1,22 +1,24 @@
-#include "siir/basicblock.hpp"
-#include "siir/cfg.hpp"
-#include "siir/ssa_rewrite_pass.hpp"
-#include "siir/constant.hpp"
-#include "siir/instbuilder.hpp"
-#include "siir/instruction.hpp"
-#include "siir/value.hpp"
+#include "../../include/analysis/SSARewritePass.hpp"
+#include "../../include/graph/BasicBlock.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Constant.hpp"
+#include "../../include/graph/InstrBuilder.hpp"
+#include "../../include/graph/Instruction.hpp"
+#include "../../include/graph/Value.hpp"
 
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <set>
 #include <unordered_map>
 #include <vector>
 
-using namespace stm;
-using namespace stm::siir;
+#ifdef SPBE_SSA_DEBUGGING
+#include <iostream>
+#endif // SPBE_SSA_DEBUGGING
 
-//#define SSAR_DEBUGGING
+using namespace spbe;
+
+using InsertMode = InstrBuilder::InsertMode;
 
 static void compute_rpo(Function* fn, std::vector<BasicBlock*>& rpo) {
     std::set<BasicBlock*> visited;
@@ -36,28 +38,25 @@ static void compute_rpo(Function* fn, std::vector<BasicBlock*>& rpo) {
     rpo.assign(order.rbegin(), order.rend());
 }
 
-SSARewritePass::SSARewritePass(CFG& cfg) : Pass(cfg), m_builder(cfg) {}
-
 void SSARewritePass::run() {
-    m_builder.set_insert_mode(InstBuilder::Prepend);
+    m_builder.set_insert_mode(InsertMode::Prepend);
 
-    for (auto& fn : m_cfg.functions())
+    for (const auto& fn : m_cfg.functions())
         process(fn);
 }
 
 void SSARewritePass::process(Function* fn) {
-    auto locals_copy = fn->locals();
-    for (auto& [name, local] : locals_copy) {
+    std::map<std::string, Local*> locals_copy = fn->locals();
+    for (const auto& [name, local] : locals_copy)
         promote_local(fn, local);
-    }
 }
 
 void SSARewritePass::promote_local(Function* fn, Local* local) {
-#ifdef SSAR_DEBUGGING
+#ifdef SPBE_SSA_DEBUGGING
     std::cerr << "Promoting local: ";
     local->print(std::cerr);
     std::cerr << '\n';
-#endif // SSAR_DEBUGGING
+#endif // SPBE_SSA_DEBUGGING
 
     m_local = local;
 
@@ -73,12 +72,12 @@ void SSARewritePass::promote_local(Function* fn, Local* local) {
                 inst->replace_all_uses_with(v);
                 assert(!inst->used());
 
-#ifdef SSAR_DEBUGGING
+#ifdef SPBE_SSA_DEBUGGING
                 std::cerr << "[LOAD] replaced v" << inst->result_id() << 
                     " with ";
                 v->print(std::cerr);
                 std::cerr << std::endl;
-#endif // SSAR_DEBUGGING
+#endif // SPBE_SSA_DEBUGGING
 
                 m_to_remove.push_back(inst);
             } else if (inst->is_store() && inst->get_operand(1) == local) {
@@ -91,14 +90,13 @@ void SSARewritePass::promote_local(Function* fn, Local* local) {
 
         m_visited.push_back(blk);
 
-        for (auto& blk : rpo) {
+        for (const auto& blk : rpo) {
             if (is_sealed(blk))
                 continue;
 
             bool all_preds_visited = true;
-            for (auto& pred : blk->preds())
-                if (!visited(pred))
-                    all_preds_visited = false;
+            for (const auto& pred : blk->preds())
+                if (!visited(pred)) all_preds_visited = false;
 
             if (all_preds_visited && !is_sealed(blk))
                 seal_block(blk);
@@ -143,12 +141,12 @@ Value* SSARewritePass::add_phi_operands(Instruction* phi) {
     for (auto& pred : phi->get_parent()->preds()) {
         Value* value = read_variable(pred);
 
-#ifdef SSAR_DEBUGGING
+#ifdef SPBE_SSA_DEBUGGING
         std::cerr << "[PHI bb" << phi->get_parent()->get_number() << "] v" << 
             phi->result_id() << " new operand: ";
         value->print(std::cerr);
         std::cerr << '\n';
-#endif // SSAR_DEBUGGING
+#endif // SPBE_SSA_DEBUGGING
 
         phi->add_incoming(m_cfg, value, pred);
     }
@@ -205,7 +203,7 @@ Value* SSARewritePass::try_remove_trivial_phi(Instruction* phi) {
             continue;
         }
 
-        if (same) {
+        if (same != nullptr) {
             // This phi merges at least unique two values, so it is not trivial.
             return phi;
         }
@@ -227,10 +225,9 @@ Value* SSARewritePass::try_remove_trivial_phi(Instruction* phi) {
             m_current_def[blk] = same;
 
     phi->detach_from_parent();
-    //assert(!phi->used());
     delete phi;
 
-    for (auto& user : phi_users)
+    for (const auto& user : phi_users)
         if (auto* instr = dynamic_cast<Instruction*>(user))
             if (instr->is_phi())
                 try_remove_trivial_phi(instr);
@@ -239,11 +236,13 @@ Value* SSARewritePass::try_remove_trivial_phi(Instruction* phi) {
 }
 
 bool SSARewritePass::visited(BasicBlock* blk) {
-    return std::find(m_visited.begin(), m_visited.end(), blk) != m_visited.end();
+    return std::find(
+        m_visited.begin(), m_visited.end(), blk) != m_visited.end();
 }
 
 bool SSARewritePass::is_sealed(BasicBlock* blk) {
-    return std::find(m_sealed.begin(), m_sealed.end(), blk) != m_sealed.end();
+    return std::find(
+        m_sealed.begin(), m_sealed.end(), blk) != m_sealed.end();
 }
 
 void SSARewritePass::seal_block(BasicBlock* blk) {
@@ -258,7 +257,7 @@ void SSARewritePass::seal_block(BasicBlock* blk) {
 
     m_sealed.push_back(blk);
     
-#ifdef SSAR_DEBUGGING
+#ifdef SPBE_SSA_DEBUGGING
     std::cerr << "Sealed block: bb" << blk->get_number() << "\n";
-#endif // SSAR_DEBUGGING
+#endif // SPBE_SSA_DEBUGGING
 }

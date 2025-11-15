@@ -1,17 +1,16 @@
-#ifndef STATIM_SIIR_SSA_REWRITE_PASS_HPP_
-#define STATIM_SIIR_SSA_REWRITE_PASS_HPP_
+#ifndef SPBE_SSA_REWRITE_PASS_H_
+#define SPBE_SSA_REWRITE_PASS_H_
 
-#include "siir/basicblock.hpp"
-#include "siir/instbuilder.hpp"
-#include "siir/instruction.hpp"
-#include "siir/local.hpp"
-#include "siir/pass.hpp"
+#include "Pass.hpp"
+#include "../graph/BasicBlock.hpp"
+#include "../graph/InstrBuilder.hpp"
+#include "../graph/Instruction.hpp"
+#include "../graph/Local.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class Instruction;
 class Local;
@@ -25,7 +24,7 @@ class SSARewritePass final : public Pass {
     using BlockDefs = std::unordered_map<Local*,
         std::unordered_map<BasicBlock*, Value*>>;
 
-    InstBuilder m_builder;
+    InstrBuilder m_builder;
 
     Local* m_local = nullptr;
 
@@ -67,13 +66,14 @@ class SSARewritePass final : public Pass {
     void seal_block(BasicBlock* blk);
 
 public:
-    SSARewritePass(CFG& cfg);
+    SSARewritePass(CFG& cfg) : Pass(cfg), m_builder(cfg) {}
+
+    SSARewritePass(const SSARewritePass&) = delete;
+    SSARewritePass& operator = (const SSARewritePass&) = delete;
 
     void run() override;
 };
 
-} // namespace siir
+} // namespace spbe
 
-} // namespace stm
-
-#endif // STATIM_SIIR_SSA_REWRITE_PASS_HPP_
+#endif // SPBE_SSA_REWRITE_PASS_H_

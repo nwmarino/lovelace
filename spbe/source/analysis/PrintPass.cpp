@@ -1,27 +1,27 @@
-#include "siir/basicblock.hpp"
-#include "siir/cfg.hpp"
-#include "siir/constant.hpp"
-#include "siir/function.hpp"
-#include "siir/global.hpp"
-#include "siir/instruction.hpp"
-#include "siir/local.hpp"
-#include "siir/type.hpp"
-#include "siir/inlineasm.hpp"
+#include "../../include/graph/BasicBlock.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Constant.hpp"
+#include "../../include/graph/Function.hpp"
+#include "../../include/graph/Global.hpp"
+#include "../../include/graph/InlineAsm.hpp"
+#include "../../include/graph/Instruction.hpp"
+#include "../../include/graph/Local.hpp"
+#include "../../include/graph/Type.hpp"
 
 #include <iomanip>
 #include <iostream>
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
 static void print_global(std::ostream& os, Global* global) {
     os << global->get_name() << " :: ";
 
     switch (global->get_linkage()) {
-    case Global::LINKAGE_INTERNAL:
+    case Global::LinkageType::Internal:
         os << "$internal ";
         break;
-    case Global::LINKAGE_EXTERNAL:
+
+    case Global::LinkageType::External:
         os << "$external ";
         break;
     }
@@ -49,7 +49,7 @@ static void print_inst(std::ostream& os, Instruction* inst) {
         os << inst->get_type()->to_string() << (inst->is_call() ? " " : ", ");
     }
 
-    for (u32 idx = 0, e = inst->num_operands(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = inst->num_operands(); idx != e; ++idx) {
         Value* operand = inst->get_operand(idx);
 
         if (operand->has_type()) {
@@ -98,7 +98,7 @@ static void print_block(std::ostream& os, BasicBlock* blk) {
     if (blk->has_preds()) {
         os << "        ... preds: ";
 
-        for (u32 idx = 0, e = blk->num_preds(); idx != e; ++idx) {
+        for (uint32_t idx = 0, e = blk->num_preds(); idx != e; ++idx) {
             os << "bb" << blk->preds()[idx]->get_number();
             if (idx + 1 != e)
                 os << ", ";
@@ -114,7 +114,7 @@ static void print_block(std::ostream& os, BasicBlock* blk) {
         else
             os << "        ... succs: ";
 
-        for (u32 idx = 0, e = blk->num_succs(); idx != e; ++idx) {
+        for (uint32_t idx = 0, e = blk->num_succs(); idx != e; ++idx) {
             os << "bb" << blk->succs()[idx]->get_number();
             if (idx + 1 != e)
                 os << ", ";
@@ -141,7 +141,7 @@ static void print_arg(std::ostream& os, Argument* arg) {
 static void print_function(std::ostream& os, Function* function) {
     os << function->get_name() << " :: (";
     
-    for (u32 idx = 0, e = function->num_args(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = function->num_args(); idx != e; ++idx) {
         print_arg(os, function->get_arg(idx));
         if (idx + 1 != e) 
             os << ", ";
@@ -184,7 +184,7 @@ void CFG::print(std::ostream& os) const {
         for (auto [ name, type ] : m_types_structs) {
             os << name << " :: {\n";
 
-            for (u32 idx = 0, e = type->fields().size(); idx != e; ++idx) {
+            for (uint32_t idx = 0, e = type->fields().size(); idx != e; ++idx) {
                 os << "    " << type->get_field(idx)->to_string();
                 if (idx + 1 != e)
                     os << ','; 
@@ -204,7 +204,7 @@ void CFG::print(std::ostream& os) const {
     }
 
     if (!m_functions.empty()) {
-        u32 idx = 0, e = m_functions.size();
+        uint32_t idx = 0, e = m_functions.size();
         for (auto& [ name, function ] : m_functions) {
             print_function(os, function);
             if (++idx != e)
@@ -254,7 +254,7 @@ void BlockAddress::print(std::ostream& os) const {
 void ConstantString::print(std::ostream& os) const {
     os << '"';
 
-    for (u32 idx = 0, e = m_value.size(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = m_value.size(); idx != e; ++idx) {
         switch (m_value[idx]) {
         case '\\':
             os << "\\\\";
@@ -300,7 +300,7 @@ void Instruction::print(std::ostream& os) const {
 void InlineAsm::print(std::ostream& os) const {
     os << "asm \"";
     
-    for (u32 idx = 0, e = m_iasm.size(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = m_iasm.size(); idx != e; ++idx) {
         switch (m_iasm[idx]) {
         case '\\':
             os << "\\\\";
@@ -336,7 +336,7 @@ void InlineAsm::print(std::ostream& os) const {
 
     os << "\" : ";
 
-    for (u32 idx = 0, e = constraints().size(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = constraints().size(); idx != e; ++idx) {
         os << '"' << constraints().at(idx) << '"';
         if (idx + 1 != e)
             os << ", ";

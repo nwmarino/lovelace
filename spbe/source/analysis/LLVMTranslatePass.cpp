@@ -1,14 +1,11 @@
-#include "core/stmc.hpp"
+#ifdef SPBE_LLVM_SUPPORT
+#include "../../include/analysis/LLVMTranslatePass.hpp"
+#include "../../include/graph/Constant.hpp"
+#include "../../include/graph/Function.hpp"
+#include "../../include/graph/InlineAsm.hpp"
+#include "../../include/graph/Instruction.hpp"
+#include "../../include/graph/Type.hpp"
 
-#ifdef STMC_LLVM_SUPPORT
-#include "siir/llvm_translate_pass.hpp"
-#include "siir/constant.hpp"
-#include "siir/function.hpp"
-#include "siir/inlineasm.hpp"
-#include "siir/instruction.hpp"
-#include "siir/type.hpp"
-
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
@@ -27,28 +24,34 @@
 #include "llvm/Target/TargetMachine.h"
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 
-using namespace stm;
-using namespace stm::siir;
+using namespace spbe;
 
 void LLVMTranslatePass::run() {
     m_builder = std::make_unique<llvm::IRBuilder<>>(*m_context);
 
-    std::vector<StructType*> structs = m_cfg.structs();
-    for (auto& type : structs)
+    const std::vector<StructType*>& structs = m_cfg.structs();
+
+    // Forward declare each SPBE struct type as an LLVM type.
+    for (const auto& type : structs)
         llvm::StructType::create(*m_context, type->get_name());
 
-    for (auto& type : structs) 
+    // Fill in the field types for each SPBE struct type.
+    for (const auto& type : structs) 
         convert(type);
 
-    for (auto& global : m_cfg.globals()) {
+    // For each SPBE global, translate it to a new LLVM global variable.
+    for (const auto& global : m_cfg.globals()) {
+        // Determine the LLVM global variable linkage.
         llvm::GlobalVariable::LinkageTypes linkage;
         switch (global->get_linkage()) {
-        case Global::LINKAGE_INTERNAL:
+        case Global::LinkageType::Internal:
             linkage = llvm::GlobalVariable::InternalLinkage;
             break;
-        case Global::LINKAGE_EXTERNAL:
+
+        case Global::LinkageType::External:
             linkage = llvm::GlobalVariable::ExternalLinkage;
             break;
         }
@@ -65,16 +68,19 @@ void LLVMTranslatePass::run() {
         m_globals.emplace(global, GV);
     }
 
-    for (auto& fn : m_cfg.functions()) {
-        llvm::FunctionType* type = 
-        llvm::dyn_cast<llvm::FunctionType>(translate(fn->get_type()));
+    // For each SPBE function, translate it to a new LLVM function.
+    for (const auto& fn : m_cfg.functions()) {
+        llvm::FunctionType* type = llvm::dyn_cast<llvm::FunctionType>(
+            translate(fn->get_type()));
 
+        // Determine the LLVM function linkage.
         llvm::Function::LinkageTypes linkage;
         switch (fn->get_linkage()) {
-        case Function::LINKAGE_INTERNAL:
+        case Function::LinkageType::Internal:
             linkage = llvm::Function::InternalLinkage;
             break;
-        case Function::LINKAGE_EXTERNAL:
+
+        case Function::LinkageType::External:
             linkage = llvm::Function::ExternalLinkage;
             break;
         }
@@ -84,13 +90,11 @@ void LLVMTranslatePass::run() {
         m_functions.emplace(fn, F);
     }
 
-    for (auto& global : m_cfg.globals()) {
+    for (const auto& global : m_cfg.globals())
         convert(global);
-    }
 
-    for (auto& fn : m_cfg.functions()) {
+    for (const auto& fn : m_cfg.functions())
         convert(fn);
-    }
 
     assert(!llvm::verifyModule(m_module, &llvm::outs()));
 }
@@ -123,7 +127,7 @@ llvm::Type* LLVMTranslatePass::translate(const Type* ty) {
     case Type::TK_Function: {
         const auto* FT = static_cast<const FunctionType*>(ty);
         std::vector<llvm::Type*> arg_types(FT->num_args(), nullptr);
-        for (u32 idx = 0, e = FT->num_args(); idx != e; ++idx)
+        for (uint32_t idx = 0, e = FT->num_args(); idx != e; ++idx)
             arg_types[idx] = translate(FT->get_arg(idx));
 
         return llvm::FunctionType::get(
@@ -131,6 +135,7 @@ llvm::Type* LLVMTranslatePass::translate(const Type* ty) {
     }
 
     case Type::TK_Pointer: {
+        // TODO: Update for opaque pointers.
         return llvm::PointerType::getUnqual(
             translate(static_cast<const PointerType*>(ty)->get_pointee()));
     }
@@ -141,39 +146,47 @@ llvm::Type* LLVMTranslatePass::translate(const Type* ty) {
     }
 
     default:
-        assert(false && "no LLVM equivelant for SIIR type!");
+        assert(false && "no LLVM equivelant for SPBE type!");
     }
 }
 
 llvm::GlobalVariable* LLVMTranslatePass::translate(Global* global) {
-    assert(m_globals.count(global) == 1);
+    assert(m_globals.count(global) == 1 && 
+        "LLVM forward declaration has not been made for this global!");
     return m_globals[global];
 }
 
 llvm::Function* LLVMTranslatePass::translate(Function* fn) {
-    assert(m_functions.count(fn) == 1);
+    assert(m_functions.count(fn) == 1 &&
+        "LLVM forward declaration has not been made for this function!");
     return m_functions[fn];
 }
 
 llvm::Argument* LLVMTranslatePass::translate(Argument* arg) {
-    assert(arg->get_parent() && "argument does not have a parent!");
-    auto fn = translate(arg->get_parent());
-    assert(fn);
+    assert(arg->get_parent() && "function argument does not have a parent!");
+    
+    llvm::Function* fn = translate(arg->get_parent());
+    assert(fn && 
+        "function argument parent does not translate to an LLVM function!");
+
     return fn->getArg(arg->get_number());
 }
 
 llvm::AllocaInst* LLVMTranslatePass::translate(Local* local) {
-    assert(m_locals.count(local) == 1);
+    assert(m_locals.count(local) == 1 &&
+        "LLVM alloca has not been made for this local!");
     return m_locals[local];
 }
 
 llvm::BasicBlock* LLVMTranslatePass::translate(BasicBlock* blk) {
-    assert(m_blocks.count(blk) == 1);
+    assert(m_blocks.count(blk) == 1 &&
+        "LLVM basic block has not been made for this SPBE basic block!");
     return m_blocks[blk];
 }
 
 llvm::Value* LLVMTranslatePass::translate(Instruction* inst) {
-    assert(m_insts.count(inst) == 1);
+    assert(m_insts.count(inst) == 1 &&
+        "LLVM instruction has been not been made for this SPBE instruction!");
     return m_insts[inst];
 }
 
@@ -193,7 +206,7 @@ llvm::Constant* LLVMTranslatePass::translate(Constant* constant) {
         return translate(G);
     }
 
-    assert(false && "no LLVM equivelant for SIIR constant!");
+    assert(false && "no LLVM equivelant for SPBE constant!");
 }
 
 llvm::InlineAsm* LLVMTranslatePass::translate(InlineAsm* iasm) {
@@ -216,7 +229,7 @@ llvm::Value* LLVMTranslatePass::translate(Value* value) {
         return translate(L);
     }
 
-    assert(false && "no LLVM equivelant for SIIR value!");
+    assert(false && "no LLVM equivelant for SPBE value!");
 }
 
 void LLVMTranslatePass::convert(StructType* type) {
@@ -227,10 +240,11 @@ void LLVMTranslatePass::convert(StructType* type) {
 
     std::vector<llvm::Type*> fields;
     fields.reserve(type->num_fields());
-    for (auto& field : type->fields()) {
+    for (const auto& field : type->fields()) {
         llvm::Type* field_type = translate(field);
-        assert(field_type && 
-            "could not lower SIIR struct field type to an LLVM equivelant!");
+        assert(field_type != nullptr && 
+            "could not lower SPBE struct field type to an LLVM equivelant!");
+
         fields.push_back(field_type);
     }
 
@@ -257,32 +271,31 @@ void LLVMTranslatePass::convert(Function* fn) {
     F->addFnAttr("frame-pointer", "all");
     F->addFnAttr("target-cpu", "x86-64");
 
-    for (auto& arg : fn->args()) {
-        llvm::Argument* A = new llvm::Argument(
-            translate(arg->get_type()), arg->get_name(), F);
-    }
+    for (const auto& arg : fn->args())
+        llvm::Argument* A = new llvm::Argument(translate(
+            arg->get_type()), arg->get_name(), F);
 
     if (fn->empty())
         return;
 
-    for (auto* curr = fn->front(); curr; curr = curr->next()) {
+    for (auto* curr = fn->front(); curr != nullptr; curr = curr->next()) {
         llvm::BasicBlock* BB = llvm::BasicBlock::Create(
             *m_context, "bb" + std::to_string(curr->get_number()), F);
         m_blocks.emplace(curr, BB);
     }
 
-    for (auto& [name, local] : fn->locals()) {
+    for (const auto& [name, local] : fn->locals()) {
         m_builder->SetInsertPoint(&F->front());
+
         llvm::AllocaInst* alloca = m_builder->CreateAlloca(
             translate(local->get_allocated_type()), nullptr, '_' + name);
         m_locals.emplace(local, alloca);
     }
 
-    for (auto* curr = fn->front(); curr; curr = curr->next()) {
+    for (auto* curr = fn->front(); curr != nullptr; curr = curr->next())
         convert(curr);
-    }
 
-    for (auto& [og, phi] : m_delayed_phis) {
+    for (const auto& [og, phi] : m_delayed_phis) {
         for (auto& incoming : og->get_operand_list()) {
             auto phiop = dynamic_cast<PhiOperand*>(incoming->get_value());
             assert(phiop);
@@ -301,9 +314,8 @@ void LLVMTranslatePass::convert(Function* fn) {
 void LLVMTranslatePass::convert(BasicBlock* bb) {
     m_builder->SetInsertPoint(translate(bb));
 
-    for (auto curr = bb->front(); curr; curr = curr->next()) {
+    for (auto* curr = bb->front(); curr != nullptr; curr = curr->next())
         convert(curr);
-    }
 }
 
 void LLVMTranslatePass::convert(Instruction* inst) {
@@ -344,7 +356,7 @@ void LLVMTranslatePass::convert(Instruction* inst) {
 
     case INST_OP_ACCESS_PTR: {
         llvm::Value* V = m_builder->CreateGEP(
-            translate(static_cast<const siir::PointerType*>(inst->get_type())->get_pointee()), 
+            translate(static_cast<const PointerType*>(inst->get_type())->get_pointee()), 
             translate(inst->get_operand(0)), 
             { translate(inst->get_operand(1)) });
         m_insts.emplace(inst, V);
@@ -404,7 +416,7 @@ void LLVMTranslatePass::convert(Instruction* inst) {
             std::string string = iasm->string();
             std::string constraints = "";
 
-            for (u32 idx = 0, e = iasm->constraints().size(); idx != e; ++idx) {
+            for (uint32_t idx = 0, e = iasm->constraints().size(); idx != e; ++idx) {
                 std::string constraint = iasm->constraints().at(idx);
                 if (constraint.at(0) == '~') {
                     constraints += "~{" + constraint.substr(1) + "}";
@@ -416,20 +428,19 @@ void LLVMTranslatePass::convert(Instruction* inst) {
                     constraints += ",";
             }
 
-            const siir::FunctionType* siir_type = 
-                dynamic_cast<const siir::FunctionType*>(iasm->get_type());
-            assert(siir_type);
+            auto spbe_type = dynamic_cast<const FunctionType*>(iasm->get_type());
+            assert(spbe_type);
 
             llvm::Type* return_type = nullptr;
-            if (siir_type->has_return_type()) {
-                return_type = translate(siir_type->get_return_type());
+            if (spbe_type->has_return_type()) {
+                return_type = translate(spbe_type->get_return_type());
             } else {
                 return_type = llvm::Type::getVoidTy(*m_context);
             }
 
-            std::vector<llvm::Type*> param_types(siir_type->num_args(), nullptr);
-            for (u32 idx = 0, e = siir_type->num_args(); idx != e; ++idx)
-                param_types[idx] = translate(siir_type->args().at(idx));
+            std::vector<llvm::Type*> param_types(spbe_type->num_args(), nullptr);
+            for (uint32_t idx = 0, e = spbe_type->num_args(); idx != e; ++idx)
+                param_types[idx] = translate(spbe_type->args().at(idx));
 
             llvm::FunctionType* type = llvm::FunctionType::get(
                 return_type, param_types, false);
@@ -441,18 +452,18 @@ void LLVMTranslatePass::convert(Instruction* inst) {
             if (inst->num_operands() > 1)
                 args.reserve(inst->num_operands() - 1);
 
-            for (u32 idx = 1, e = inst->num_operands(); idx != e; ++idx) {
+            for (uint32_t idx = 1, e = inst->num_operands(); idx != e; ++idx) {
                 args.push_back(translate(inst->get_operand(idx)));
             }
 
             llvm::CallInst* call = m_builder->CreateCall(type, llvm_iasm, args);
-            for (u32 idx = 0, e = iasm->constraints().size(); idx != e; ++idx) {
+            for (uint32_t idx = 0, e = iasm->constraints().size(); idx != e; ++idx) {
                 std::string constraint = iasm->constraints().at(idx);
                 if (constraint == "=*r" || constraint == "=*m") {
                     call->addParamAttr(idx, llvm::Attribute::get(
                         *m_context, 
                         llvm::Attribute::ElementType, 
-                        translate(static_cast<const PointerType*>(siir_type->get_arg(idx))->get_pointee())));
+                        translate(static_cast<const PointerType*>(spbe_type->get_arg(idx))->get_pointee())));
                 }
             }
 
@@ -466,7 +477,7 @@ void LLVMTranslatePass::convert(Instruction* inst) {
             if (inst->num_operands() > 1)
                 args.reserve(inst->num_operands() - 1);
 
-            for (u32 idx = 1, e = inst->num_operands(); idx != e; ++idx)
+            for (uint32_t idx = 1, e = inst->num_operands(); idx != e; ++idx)
                 args.push_back(translate(inst->get_operand(idx)));
 
             llvm::CallInst* call = m_builder->CreateCall(callee, args);
@@ -853,8 +864,8 @@ void LLVMTranslatePass::convert(Instruction* inst) {
     }
     
     default:
-        assert(false && "no LLVM equivelant for SIIR instruction!");
+        assert(false && "no LLVM equivelant for SPBE instruction!");
     }
 }
 
-#endif // STMC_LLVM_SUPPORT
+#endif // SPBE_LLVM_SUPPORT

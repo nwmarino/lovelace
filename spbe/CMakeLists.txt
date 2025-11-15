@@ -10,6 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(spbe SHARED
+    source/analysis/LLVMTranslatePass.cpp
+    source/analysis/PrintPass.cpp
+    source/analysis/SSARewritePass.cpp
+    source/analysis/TrivialDCEPass.cpp
     source/graph/BasicBlock.cpp
     source/graph/CFG.cpp
     source/graph/Constant.cpp

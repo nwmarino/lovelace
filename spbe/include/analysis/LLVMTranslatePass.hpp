@@ -1,14 +1,11 @@
-#ifndef STATIM_SIIR_LLVM_TRANSLATE_PASS_H_
-#define STATIM_SIIR_LLVM_TRANSLATE_PASS_H_
+#ifndef SPBE_LLVM_TRANSLATION_H_
+#define SPBE_LLVM_TRANSLATION_H_
 
-#include "core/stmc.hpp"
-
-#ifdef STMC_LLVM_SUPPORT
-
-#include "siir/basicblock.hpp"
-#include "siir/instruction.hpp"
-#include "siir/inlineasm.hpp"
-#include "siir/pass.hpp"
+#ifdef SPBE_LLVM_SUPPORT
+#include "Pass.hpp"
+#include "../graph/BasicBlock.hpp"
+#include "../graph/Instruction.hpp"
+#include "../graph/InlineAsm.hpp"
 
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/BasicBlock.h"
@@ -23,12 +20,12 @@
 #include <cassert>
 #include <unordered_map>
 
-namespace stm::siir {
+namespace spbe {
 
-/// Graph-wide pass that translate an SIIR control flow graph object into the
+/// Graph-wide pass that translate a control flow graph into the closest 
 /// equivelant LLVM IR module.
 ///
-/// The LLVM target will be derived from the existing target of the SIIR graph.
+/// The LLVM target will be derived from the existing target of the graph.
 class LLVMTranslatePass final : public Pass {
     llvm::Module& m_module;
     llvm::LLVMContext* m_context;
@@ -62,15 +59,16 @@ class LLVMTranslatePass final : public Pass {
 
 public:
     LLVMTranslatePass(CFG& cfg, llvm::Module& module) 
-            : Pass(cfg), m_module(module) {
-        m_context = &m_module.getContext();
-    }
+            : Pass(cfg), m_module(module), m_context(&module.getContext()) {}
+
+    LLVMTranslatePass(const LLVMTranslatePass&) = delete;
+    LLVMTranslatePass& operator = (const LLVMTranslatePass&) = delete;
 
     void run() override;
 };
 
-} // namespace stm::siir
+} // namespace spbe
 
-#endif // STMC_LLVM_SUPPORT
+#endif // SPBE_LLVM_SUPPORT
 
-#endif // STATIM_SIIR_LLVM_TRANSLATE_PASS_H_
+#endif // SPBE_LLVM_TRANSLATION_H_

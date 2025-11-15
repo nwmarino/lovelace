@@ -1,10 +1,9 @@
-#ifndef STATIM_SIIR_PASS_HPP_
-#define STATIM_SIIR_PASS_HPP_
+#ifndef SPBE_PASS_H_
+#define SPBE_PASS_H_
 
-#include "siir/cfg.hpp"
+#include "../graph/CFG.hpp"
 
-namespace stm {
-namespace siir {
+namespace spbe {
      
 class Pass {
 protected:
@@ -21,7 +20,6 @@ public:
     virtual void run() = 0;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_PASS_HPP_
+#endif // SPBE_PASS_H_
