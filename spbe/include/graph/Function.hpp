@@ -1,10 +1,10 @@
 #ifndef SPBE_FUNCTION_H_
 #define SPBE_FUNCTION_H_
 
-#include "graph/Basicblock.hpp"
-#include "graph/Local.hpp"
-#include "graph/Type.hpp"
-#include "graph/Value.hpp"
+#include "BasicBlock.hpp"
+#include "Local.hpp"
+#include "Type.hpp"
+#include "Value.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -148,7 +148,11 @@ public:
     bool has_args() const { return !m_args.empty(); }
 
     /// Returns the argument at index |i| if it exists.
-    const Argument* get_arg(uint32_t i) const;
+    const Argument* get_arg(uint32_t i) const {
+        assert(i <= num_args() && "index out of bounds!");
+        return m_args[i];
+    }
+
     Argument* get_arg(uint32_t i) {
         return const_cast<Argument*>(
             static_cast<const Function*>(this)->get_arg(i));
@@ -230,7 +234,7 @@ public:
             return *this; 
         }
 
-        iterator operator ++ (i32) { 
+        iterator operator ++ (int32_t) { 
             iterator tmp = *this; 
             ++(*this); 
             return tmp; 
@@ -241,7 +245,7 @@ public:
             return *this; 
         }
 
-        iterator operator -- (i32) { 
+        iterator operator -- (int32_t) { 
             iterator tmp = *this; 
             --(*this); 
             return tmp; 
@@ -277,7 +281,7 @@ public:
             return *this; 
         }
 
-        const_iterator operator ++ (i32) { 
+        const_iterator operator ++ (int32_t) { 
             auto tmp = *this; 
             ++(*this); 
             return tmp; 
@@ -288,7 +292,7 @@ public:
             return *this; 
         }
 
-        const_iterator operator -- (i32) { 
+        const_iterator operator -- (int32_t) { 
             auto tmp = *this; 
             --(*this); 
             return tmp; 

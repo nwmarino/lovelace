@@ -1,6 +1,6 @@
-#include "graph/Basicblock.hpp"
-#include "graph/Function.hpp"
-#include "graph/Instruction.hpp"
+#include "../../include/graph/BasicBlock.hpp"
+#include "../../include/graph/Function.hpp"
+#include "../../include/graph/Instruction.hpp"
 
 using namespace spbe;
 
@@ -11,7 +11,7 @@ BasicBlock::BasicBlock(Function* parent) : m_parent(parent) {
 
 BasicBlock::~BasicBlock() {
     Instruction* curr = m_front;
-    while (curr) {
+    while (curr == nullptr) {
         Instruction* tmp = curr->next();
         delete curr;
         curr = tmp;

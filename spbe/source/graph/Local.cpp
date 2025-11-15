@@ -1,6 +1,6 @@
-#include "graph/Function.hpp"
-#include "graph/Local.hpp"
-#include "graph/Type.hpp"
+#include "../../include/graph/Function.hpp"
+#include "../../include/graph/Local.hpp"
+#include "../../include/graph/Type.hpp"
 
 using namespace spbe;
 

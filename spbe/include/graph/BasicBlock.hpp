@@ -1,7 +1,7 @@
 #ifndef SPBE_BASICBLOCK_H_
 #define SPBE_BASICBLOCK_H_
 
-#include "graph/Instruction.hpp"
+#include "Instruction.hpp"
 
 #include <cassert>
 #include <cstddef>

@@ -1,7 +1,7 @@
 #ifndef SPBE_TARGET_H_
 #define SPBE_TARGET_H_
 
-#include "graph/Type.hpp"
+#include "../graph/Type.hpp"
 
 #include <cstdint>
 #include <unordered_map>

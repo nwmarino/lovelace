@@ -1,7 +1,7 @@
-#include "graph/Basicblock.hpp"
-#include "graph/CFG.hpp"
-#include "graph/instruction.hpp"
-#include "graph/User.hpp"\
+#include "../../include/graph/BasicBlock.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Instruction.hpp"
+#include "../../include/graph/User.hpp"
 
 #include <string>
 

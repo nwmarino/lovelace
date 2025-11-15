@@ -1,10 +1,11 @@
 #ifndef SPBE_USER_H_
 #define SPBE_USER_H_
 
-#include "graph/Use.hpp"
-#include "graph/Value.hpp"
+#include "Use.hpp"
+#include "Value.hpp"
 
 #include <cstdint>
+#include <vector>
 
 namespace spbe {
 

@@ -1,20 +1,18 @@
-#ifndef STATIM_SIIR_INSTBUILDER_HPP_
-#define STATIM_SIIR_INSTBUILDER_HPP_
+#ifndef SPBE_INSTRBUILDER_H_
+#define SPBE_INSTRBUILDER_H_
 
-#include "siir/basicblock.hpp"
-#include "siir/constant.hpp"
-#include "siir/instruction.hpp"
-#include "siir/type.hpp"
+#include "BasicBlock.hpp"
+#include "Constant.hpp"
+#include "Instruction.hpp"
+#include "Type.hpp"
 
 #include <cassert>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
-/// A system of convenience to build instructions.
-class InstBuilder final {
+class InstrBuilder final {
 public:
-    enum InsertMode : u8 {
+    enum class InsertMode : uint8_t {
         Prepend, Append,
     };
 
@@ -25,21 +23,23 @@ private:
     /// The current basic block insertion point.
     BasicBlock* m_insert = nullptr;
 
-    InsertMode m_mode = Append;
+    /// The mode of insertion for new instructions into the insertion block.
+    InsertMode m_mode = InsertMode::Append;
 
 public:
     /// Create a new instruction builder for graph |cfg|.
-    InstBuilder(CFG& cfg) : m_cfg(cfg) {}
+    InstrBuilder(CFG& cfg) : m_cfg(cfg) {}
 
-    ~InstBuilder() = default;
+    InstrBuilder(const InstrBuilder&) = delete;
+    InstrBuilder& operator = (const InstrBuilder&) = delete;
 
     /// Returns the basic block that the builder is currently inserting new 
     /// instructions into.
     const BasicBlock* get_insert() const { return m_insert; }
     BasicBlock* get_insert() { return m_insert; }
 
-    /// Set the builder insertion point to |blk|.
-    void set_insert(BasicBlock* blk) { m_insert = blk; }
+    /// Set the builder insertion point to |block|.
+    void set_insert(BasicBlock* block) { m_insert = block; }
 
     /// Clear the current insertion point of the builder.
     void clear_insert() { m_insert = nullptr; }
@@ -56,7 +56,8 @@ public:
     /// Create and insert a new instruction with opcode |op|, possible result
     /// id |result|, and operand list |operands|. Returns the newly created
     /// instruction.
-    Instruction* insert(Opcode op, u32 result = 0, const Type* type = nullptr,
+    Instruction* insert(Opcode op, uint32_t result = 0, 
+                        const Type* type = nullptr, 
                         const std::vector<Value*>& operands = {});
 
     /// Create a new no operation instruction.
@@ -74,7 +75,8 @@ public:
 
     /// Create a new load instruction that loads a value typed with |type| from
     /// source pointer |src| with the desired alignment |align|.
-    Instruction* build_aligned_load(const Type* type, Value* src, u16 align);
+    Instruction* build_aligned_load(const Type* type, Value* src, 
+                                    uint16_t align);
 
     /// Create a new store instruction that stores |value| to |dst|.
     /// The natural alignment of |value| will be used.
@@ -82,7 +84,7 @@ public:
 
     /// Create a new store instruction that stores |value| to |dst| with the
     /// desired alignment |align|.
-    Instruction* build_aligned_store(Value* value, Value* dst, u16 align);
+    Instruction* build_aligned_store(Value* value, Value* dst, uint16_t align);
 
     /// Create a new pointer access instruction that access |src| at element
     /// offset |idx|. The |type| argument indicates the resulting pointer.
@@ -117,7 +119,7 @@ public:
 
     /// Create a new call instruction to |callee| with argument list |args|.
     Instruction* build_call(const FunctionType* type, Value* callee, 
-                            const std::vector<Value*>& args);
+                            const std::vector<Value*>& args = {});
 
     /// Create a new integer equality comparison.
     Instruction* build_cmp_ieq(Value* lhs, Value* rhs);
@@ -293,7 +295,6 @@ public:
     Instruction* build_reint(const Type* type, Value* value);
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_INSTBUILDER_HPP_
+#endif // SPBE_INSTRBUILDER_H_

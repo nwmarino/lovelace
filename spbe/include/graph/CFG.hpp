@@ -1,26 +1,41 @@
-#ifndef STATIM_SIIR_CFG_HPP_
-#define STATIM_SIIR_CFG_HPP_
+#ifndef SPBE_CFG_H_
+#define SPBE_CFG_H_
 
-#include "siir/basicblock.hpp"
-#include "siir/constant.hpp"
-#include "siir/function.hpp"
-#include "siir/global.hpp"
-#include "siir/type.hpp"
-#include "types/input_file.hpp"
-#include "types/types.hpp"
+#include "BasicBlock.hpp"
+#include "Constant.hpp"
+#include "Function.hpp"
+#include "Global.hpp"
+#include "Type.hpp"
 
 #include <map>
 #include <ostream>
 #include <string>
 #include <unordered_map>
 
-namespace stm {
-namespace siir {
+namespace spbe {
 
 class Target;
 
 /// The top-level SIIR control flow graph.
 class CFG final {
+    using IntegerTypePool = std::unordered_map<IntegerType::Kind, IntegerType*>;
+    using FloatTypePool = std::unordered_map<FloatType::Kind, FloatType*>;
+    using ArrayTypePool = std::unordered_map<const Type*, 
+        std::unordered_map<uint32_t, ArrayType*>>;
+    using PointerTypePool = std::unordered_map<const Type*, PointerType*>;
+    using StructTypePool = std::map<std::string, StructType*>;
+    using FunctionTypePool = std::vector<FunctionType*>;
+
+    using Int8Pool = std::unordered_map<int8_t, ConstantInt*>;
+    using Int16Pool = std::unordered_map<int16_t, ConstantInt*>;
+    using Int32Pool = std::unordered_map<int32_t, ConstantInt*>;
+    using Int64Pool = std::unordered_map<int64_t, ConstantInt*>;
+    using FloatPool = std::unordered_map<float, ConstantFP*>;
+    using DoublePool = std::unordered_map<double, ConstantFP*>;
+    using NullPool = std::unordered_map<const Type*, ConstantNull*>;
+    using BlockAddrPool = std::unordered_map<const BasicBlock*, BlockAddress*>;
+    using StringPool = std::unordered_map<std::string, ConstantString*>;
+
     friend class Type;
     friend class ArrayType;
     friend class FunctionType;
@@ -34,41 +49,39 @@ class CFG final {
     friend class Instruction;
 
     /// Top-level graph items.
-    InputFile& m_file;
+    std::string m_file;
     Target& m_target;
-    u32 m_def_id = 1;
+    uint32_t m_def_id = 1;
     std::map<std::string, Global*> m_globals = {};
     std::map<std::string, Function*> m_functions = {};
 
     /// Type pooling.
-    std::unordered_map<IntegerType::Kind, IntegerType*> m_types_ints = {};
-    std::unordered_map<FloatType::Kind, FloatType*> m_types_floats = {};
-    std::unordered_map<const Type*, 
-        std::unordered_map<u32, ArrayType*>> m_types_arrays = {};
-    std::unordered_map<const Type*, PointerType*> m_types_ptrs = {};
-    std::map<std::string, StructType*> m_types_structs = {};
-    std::vector<FunctionType*> m_types_fns = {}; 
+    IntegerTypePool m_types_ints = {};
+    FloatTypePool m_types_floats = {};
+    ArrayTypePool m_types_arrays = {};
+    PointerTypePool m_types_ptrs = {};
+    StructTypePool m_types_structs = {};
+    FunctionTypePool m_types_fns = {}; 
 
     /// Constant pooling.
     ConstantInt *m_int1_zero, *m_int1_one;
-    std::unordered_map<i8, ConstantInt*> m_pool_int8 = {};
-    std::unordered_map<i16, ConstantInt*> m_pool_int16 = {};
-    std::unordered_map<i32, ConstantInt*> m_pool_int32 = {};
-    std::unordered_map<i64, ConstantInt*> m_pool_int64 = {};
-    std::unordered_map<f32, ConstantFP*> m_pool_fp32 = {};
-    std::unordered_map<f64, ConstantFP*> m_pool_fp64 = {};
-    std::unordered_map<const Type*, ConstantNull*> m_pool_null = {};
-    std::unordered_map<const BasicBlock*, BlockAddress*> m_pool_baddr = {};
-    std::unordered_map<std::string, ConstantString*> m_pool_str = {};
+    Int8Pool m_pool_int8 = {};
+    Int16Pool m_pool_int16 = {};
+    Int32Pool m_pool_int32 = {};
+    Int64Pool m_pool_int64 = {};
+    FloatPool m_pool_fp32 = {};
+    DoublePool m_pool_fp64 = {};
+    NullPool m_pool_null = {};
+    BlockAddrPool m_pool_baddr = {};
+    StringPool m_pool_str = {};
 
     /// PHI operand pooling. This is only here because the memory cannot be 
-    /// appropriately managed by the individual instructions 
+    /// appropriately managed by the individual instructions. TODO: Change.
     std::vector<PhiOperand*> m_pool_incomings = {};
 
 public:
-    /// Create a new control flow graph, representing |file| with the given
-    /// target. Note that the target cannot be mutated later.
-    CFG(InputFile& file, Target& target);
+    /// Create a new control flow graph representing |file|.
+    CFG(const std::string& file, Target& target);
     
     CFG(const CFG&) = delete;
     CFG& operator = (const CFG&) = delete;
@@ -76,17 +89,17 @@ public:
     ~CFG();
 
     /// Returns the input file that this control flow graph represents.
-    const InputFile& get_file() const { return m_file; }
-    InputFile& get_file() { return m_file; }
+    const std::string& get_file() const { return m_file; }
+    std::string& get_file() { return m_file; }
 
     /// Set the file that this graph represents to |file|.
-    void set_file(InputFile& file) { m_file = file; }
+    void set_file(std::string& file) { m_file = file; }
 
     /// Returns the target of this control flow graph.
     const Target& get_target() const { return m_target; }
     Target& get_target() { return m_target; }
 
-    /// Return a list of all the structure types in this graph, in order of
+    /// Returns a list of all the structure types in this graph, in order of
     /// creation.
     std::vector<StructType*> structs() const;
 
@@ -127,14 +140,13 @@ public:
     void remove_function(Function* fn);
 
     /// Return a new unique definition id to create an instruction with.
-    u32 get_def_id() { return m_def_id++; }
+    uint32_t get_def_id() { return m_def_id++; }
 
     /// Print this graph in a reproducible plaintext format to the output
     /// stream |os|.
     void print(std::ostream& os) const;
 };
 
-} // namespace siir
-} // namespace stm
+} // namespace spbe
 
-#endif // STATIM_SIIR_CFG_HPP_
+#endif // SPBE_CFG_H_

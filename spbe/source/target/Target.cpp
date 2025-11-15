@@ -1,5 +1,5 @@
-#include "graph/Type.hpp"
-#include "target/Target.hpp"
+#include "../../include/graph/Type.hpp"
+#include "../../include/target/Target.hpp"
 
 using namespace spbe;
 

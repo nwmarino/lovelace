@@ -1,5 +1,5 @@
-#include "graph/Use.hpp"
-#include "graph/Value.hpp"
+#include "../../include/graph/Use.hpp"
+#include "../../include/graph/Value.hpp"
 
 #include <algorithm>
 

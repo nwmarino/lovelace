@@ -1,9 +1,9 @@
 #ifndef SPBE_INSTRUCTION_H_
 #define SPBE_INSTRUCTION_H_
 
-#include "graph/Constant.hpp"
-#include "graph/User.hpp"
-#include "graph/Value.hpp"
+#include "Constant.hpp"
+#include "User.hpp"
+#include "Value.hpp"
 
 #include <cstdint>
 
@@ -118,7 +118,7 @@ std::string opcode_to_string(Opcode op);
 
 /// An instruction that potentially defines a value.
 class Instruction final : public User {
-    friend class InstBuilder;
+    friend class InstrBuilder;
     
     using OperandList = std::vector<Value*>;
     using iterator = OperandList::iterator;

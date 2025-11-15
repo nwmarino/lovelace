@@ -1,5 +1,5 @@
-#include "graph/cfg.hpp"
-#include "graph/Type.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Type.hpp"
 
 using namespace spbe;
 
@@ -33,7 +33,7 @@ const Type* Type::get_f64_type(CFG& cfg) {
     return cfg.m_types_floats[FloatType::TY_Float64];
 }
 
-static const IntegerType* get(CFG& cfg, u32 width) {
+static const IntegerType* get(CFG& cfg, uint32_t width) {
     switch (width) {
     case 1:
         return static_cast<const IntegerType*>(Type::get_i1_type(cfg));
@@ -112,7 +112,7 @@ std::string FloatType::to_string() const {
     }
 }
 
-const ArrayType* ArrayType::get(CFG& cfg, const Type* element, u32 size) {
+const ArrayType* ArrayType::get(CFG& cfg, const Type* element, uint32_t size) {
     //auto element_it = cfg.m_types_arrays.find(element);
     //if (element_it != cfg.m_types_arrays.end()) {
     //    auto size_it = element_it->second.find(size);
@@ -135,7 +135,7 @@ const FunctionType* FunctionType::get(
 
 std::string FunctionType::to_string() const {
     std::string str = "(";
-    for (u32 idx = 0, e = m_args.size(); idx != e; ++idx) {
+    for (uint32_t idx = 0, e = m_args.size(); idx != e; ++idx) {
         str += m_args[idx]->to_string();
         if (idx + 1 != e)
             str += ", ";

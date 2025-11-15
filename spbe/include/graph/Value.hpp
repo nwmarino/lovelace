@@ -1,7 +1,7 @@
 #ifndef SPBE_VALUE_H_
 #define SPBE_VALUE_H_
 
-#include "graph/Type.hpp"
+#include "Type.hpp"
 
 #include <cstdint>
 #include <ostream>

@@ -1,6 +1,6 @@
-#include "graph/cfg.hpp"
-#include "graph/Constant.hpp"
-#include "graph/Type.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Constant.hpp"
+#include "../../include/graph/Type.hpp"
 
 #include <cstdint>
 
@@ -80,7 +80,7 @@ Constant* ConstantFP::get_one(CFG& cfg, const Type* type) {
     return get(cfg, type, 1);
 }
 
-Constant* ConstantFP::get(CFG& cfg, const Type* type, f64 value) {
+Constant* ConstantFP::get(CFG& cfg, const Type* type, double value) {
     assert(type->is_floating_point_type() && 
         "floating point constant type must be a float!");
 

@@ -1,8 +1,8 @@
 #ifndef SPBE_CONSTANT_H_
 #define SPBE_CONSTANT_H_
 
-#include "graph/Type.hpp"
-#include "graph/User.hpp"
+#include "Type.hpp"
+#include "User.hpp"
 
 #include <cstdint>
 #include <initializer_list>

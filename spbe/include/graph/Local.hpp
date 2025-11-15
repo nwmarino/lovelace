@@ -1,7 +1,8 @@
 #ifndef SPBE_LOCAL_H_
 #define SPBE_LOCAL_H_
 
-#include "graph/Value.hpp"
+#include "Value.hpp"
+
 #include <cstdint>
 
 namespace spbe {

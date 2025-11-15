@@ -1,7 +1,7 @@
 #ifndef SPBE_GLOBAL_H_
 #define SPBE_GLOBAL_H_
 
-#include "graph/Constant.hpp"
+#include "Constant.hpp"
 
 #include <cstdint>
 

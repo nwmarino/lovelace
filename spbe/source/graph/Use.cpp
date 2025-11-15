@@ -1,5 +1,5 @@
-#include "graph/Instruction.hpp"
-#include "graph/Use.hpp"
+#include "../../include/graph/Instruction.hpp"
+#include "../../include/graph/Use.hpp"
 
 using namespace spbe;
 

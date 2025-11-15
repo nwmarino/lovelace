@@ -1,6 +1,6 @@
-#include "graph/cfg.hpp"
-#include "graph/Global.hpp"
-#include "graph/Type.hpp"
+#include "../../include/graph/CFG.hpp"
+#include "../../include/graph/Global.hpp"
+#include "../../include/graph/Type.hpp"
 
 using namespace spbe;
 
