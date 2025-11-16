@@ -1,7 +1,7 @@
 {
   "name": "statim",
   "displayName": "Statim Syntax Highlighting",
-  "description": "Syntax Highlighting for Statim (.stm)",
+  "description": "Syntax highlighting for statim (.stm)",
   "version": "1.0.0",
   "publisher": "nwmarino",
   "engines": {
