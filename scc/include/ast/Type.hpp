@@ -96,6 +96,7 @@ class VoidType final : public Type {
     VoidType() : Type(Kind::Void) {}
 
 public:
+    /// Returns the void type.
     static const VoidType* get(Context& ctx);
 };
 

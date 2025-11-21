@@ -12,8 +12,6 @@
 // abstract syntax tree.
 //
 
-#include "ast/Type.hpp"
-
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -49,7 +47,7 @@ class Context final {
         std::unordered_map<TypeKind, std::unique_ptr<Type>>;
     using PointerTypePool = 
         std::unordered_map<const Type*, std::unique_ptr<PointerType>>;
-    using FunctionTypeList = std::vector<FunctionType>;
+    using FunctionTypeList = std::vector<std::unique_ptr<FunctionType>>;
 
     /// Pool of primitive types which are built-in to the C language.
     PrimitiveTypePool m_prims = {};
