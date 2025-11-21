@@ -1,5 +1,10 @@
-#include "../../include/ast/Decl.hpp"
-#include "../../include/ast/Scope.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "ast/Decl.hpp"
+#include "ast/Scope.hpp"
 
 #include <cassert>
 

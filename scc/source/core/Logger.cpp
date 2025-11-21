@@ -1,4 +1,9 @@
-#include "../../include/core/Logger.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "core/Logger.hpp"
 
 #include <cassert>
 #include <fstream>
@@ -6,6 +11,10 @@
 
 using namespace scc;
 
+std::ostream* Logger::s_output = nullptr;
+bool Logger::s_color = false;
+
+/// Returns the contents from the file at \p path.
 static std::string read_file(const std::string& path) {
     std::ifstream file(path, std::ios::ate);
     if (!file || !file.is_open())
@@ -23,12 +32,16 @@ static std::string read_file(const std::string& path) {
     return contents;
 }
 
+/// Returns the source code designated by \p span line-by-line.
 static std::vector<std::string> source(const Span& span) {
     std::vector<std::string> lines { span.end.line - span.begin.line };
     std::string full = read_file(span.begin.path);
 
     uint64_t line = 1;
     uint64_t start = 0;
+
+    // Move over the source code and break it up line-by-line if it is within
+    // the bounds of |span|.
     for (uint64_t idx = 0; idx <= full.length(); ++idx) {
         if (idx == full.length() || full[idx] == '\n') {
             if (line >= span.begin.line && line <= span.end.line)
@@ -41,9 +54,6 @@ static std::vector<std::string> source(const Span& span) {
 
     return lines;
 }
-
-std::ostream* Logger::s_output = nullptr;
-bool Logger::s_color = false;
 
 void Logger::log_source(const Span& span) {
     uint32_t line_len = std::to_string(span.begin.line).length();
@@ -129,7 +139,7 @@ void Logger::warn(const std::string& msg, const Span &span) {
     log_source(span);
 }
 
-void Logger::error(const std::string& msg) {
+void Logger::error(const std::string& msg) noexcept {
     if (s_output) {
         *s_output << "scc: ";
         
@@ -142,10 +152,10 @@ void Logger::error(const std::string& msg) {
         *s_output << msg << std::endl;
     }
 
-    abort();
+    std::exit(1);
 }
 
-void Logger::error(const std::string& msg, const Span &span) {
+void Logger::error(const std::string& msg, const Span &span) noexcept {
     if (s_output) {
         if (Logger::s_color) {
             *s_output << "\033[1;31m ˣ\033[0m ";
@@ -157,5 +167,5 @@ void Logger::error(const std::string& msg, const Span &span) {
         log_source(span);
     }
 
-    abort();
+    std::exit(1);
 }
