@@ -144,7 +144,7 @@ void Logger::error(const std::string& msg) noexcept {
         *s_output << "scc: ";
         
         if (Logger::s_color) {
-            *s_output << "\033[1;31mfatal:\033[0m ";
+            *s_output << "\033[1;31merror:\033[0m ";
         } else {
             *s_output << "error: ";
         }
