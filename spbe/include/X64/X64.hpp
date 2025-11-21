@@ -1,15 +1,11 @@
 #ifndef SPBE_X64_H_
 #define SPBE_X64_H_
 
-#include "../graph/Instruction.hpp"
-#include "../graph/Local.hpp"
 #include "../machine/MachRegister.hpp"
 #include "../machine/RegisterAllocator.hpp"
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 
 namespace spbe {
 
@@ -91,124 +87,6 @@ enum Register : uint32_t {
     XMM4, XMM5, XMM6, XMM7,
     XMM8, XMM9, XMM10, XMM11,
     XMM12, XMM13, XMM14, XMM15,
-};
-
-/// x64 Instruction selection pass over a SIIR function.
-class X64InstSelection final {
-    MachFunction* m_function;
-    MachBasicBlock* m_insert = nullptr;
-    const Target& m_target;
-
-    /// Temporary mapping between bytecode virtual registers and machine 
-    /// register ids.
-    std::unordered_map<uint32_t, MachRegister> m_vregs = {};
-
-    /// Mapping between function locals and stack offsets.
-    std::unordered_map<const Local*, uint32_t> m_stack_indices = {};
-
-    /// Comparison instructions which have been "deferred" until later. This
-    /// is mainly used for comparisons whose only user is a conditional branch.
-    std::vector<const Instruction*> m_deferred_cmps = {};
-
-    /// Returns true if the comparison instruction |inst| has been deferred.
-    bool is_deferred(const Instruction* inst) const {
-        assert(inst->is_comparison() &&
-            "cannot defer a non-comparison instruction!");
-        return std::find(m_deferred_cmps.begin(), m_deferred_cmps.end(), inst) 
-            != m_deferred_cmps.end();
-    }
-
-    /// Mark the comparison instruction |inst| as deferred.
-    void defer(const Instruction* inst) {
-        assert(!is_deferred(inst) && 
-            "comparison instruction has already been deferred!");
-        m_deferred_cmps.push_back(inst);
-    }
-
-    /// Returns or creates a virtual machine register equivelant for the 
-    /// defining SIIR instruction |inst|. 
-    MachRegister as_machine_reg(const Instruction* inst);
-
-    MachRegister scratch(RegisterClass cls);
-
-    /// Returns the expected x64 general-purpose subregister for a given type. 
-    /// This function will always return 1, 2, 4, or 8.
-    uint16_t get_subreg(const Type* ty) const;
-
-    x64::Opcode get_move_op(const Type* ty) const;
-    x64::Opcode get_cmp_op(const Type* ty) const;
-    x64::Opcode get_add_op(const Type* ty) const;
-    x64::Opcode get_sub_op(const Type* ty) const;
-    x64::Opcode get_imul_op(const Type* ty) const;
-    x64::Opcode get_mul_op(const Type* ty) const;
-    x64::Opcode get_idiv_op(const Type* ty) const;
-    x64::Opcode get_div_op(const Type* ty) const;
-    x64::Opcode get_and_op(const Type* ty) const;
-    x64::Opcode get_or_op(const Type* ty) const;
-    x64::Opcode get_xor_op(const Type* ty) const;
-    x64::Opcode get_shl_op(const Type* ty) const;
-    x64::Opcode get_shr_op(const Type* ty) const;
-    x64::Opcode get_sar_op(const Type* ty) const;
-    x64::Opcode get_not_op(const Type* ty) const;
-    x64::Opcode get_neg_op(const Type* ty) const;
-
-    x64::Opcode get_jcc_op(spbe::Opcode opc) const;
-    x64::Opcode get_setcc_op(spbe::Opcode opc) const;
-    
-    /// Returns a machine operand equivelant of treating |value| as a use.
-    MachOperand as_operand(const Value* value);
-
-    /// Returns a machine operand representing the location of a function call
-    /// argument as per the SystemV ABI for x64.
-    ///
-    /// TODO: Split out depending on target ABI.
-    MachOperand as_call_argument(const Value* value, uint32_t arg_idx) const;
-
-    /// Emit a new machine instruction with opcode |op| and operand list |ops|.
-    MachineInst& emit(x64::Opcode opc, 
-                      const std::vector<MachOperand>& ops = {});
-
-    MachineInst& emit_before_terms(x64::Opcode opc,
-                                   const std::vector<MachOperand>& ops = {});
-
-    /// Perform instruction selection on a single SIIR instruction.
-    void select(const Instruction* inst);
-
-    void select_constant(const Instruction* inst);
-    void select_string_constant(const Instruction* inst);
-    void select_load_store(const Instruction* inst);
-    void select_access_ptr(const Instruction* inst);
-    void select_select(const Instruction* inst);
-    void select_branch_if(const Instruction* inst);
-    void select_phi(const Instruction* inst);
-    void select_return(const Instruction* inst);
-    void select_call(const Instruction* inst);
-    void select_add(const Instruction* inst);
-    void select_sub(const Instruction* inst);
-    void select_imul(const Instruction* inst);
-    void select_idiv_irem(const Instruction* inst);
-    void select_fmul_fdiv(const Instruction* inst);
-    void select_bit_op(const Instruction* inst);
-    void select_shift(const Instruction* inst);
-    void select_not(const Instruction* inst);
-    void select_neg(const Instruction* inst);
-    void select_ext(const Instruction* inst);
-    void select_trunc(const Instruction* inst);
-    void select_int_to_fp_cvt(const Instruction* inst);
-    void select_fp_to_int_cvt(const Instruction* inst);
-    void select_ptr_to_int_cvt(const Instruction* inst);
-    void select_int_to_ptr_cvt(const Instruction* inst);
-    void select_type_reinterpret(const Instruction* inst);
-    void select_comparison(const Instruction* inst);
-
-public:
-    X64InstSelection(MachFunction* function) 
-        : m_function(function), m_target(function->get_target()) {}
-
-    X64InstSelection(const X64InstSelection&) = delete;
-    X64InstSelection& operator = (const X64InstSelection&) = delete;
-
-    void run();
 };
 
 /// Returns true if the opcode |opc| is considered a call instruction.

@@ -1,16 +1,11 @@
-cmake_minimum_required(VERSION 4.0)
-
-project(scc VERSION 0.1.0 LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-add_executable(scc
+set(SCC_SOURCES
     source/scc.cpp
     source/ast/Scope.cpp
-    source/core/Logger.cpp
 )
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(scc ${SCC_SOURCES})
 
 target_include_directories(scc
     PUBLIC

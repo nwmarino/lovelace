@@ -15,7 +15,7 @@
 namespace spbe {
 
 class Function;
-class MachineInst;
+class MachInstruction;
 
 /// An entry in the stack frame of a function.
 ///
