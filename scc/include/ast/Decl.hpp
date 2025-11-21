@@ -1,12 +1,21 @@
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
 #ifndef SCC_DECL_H_
 #define SCC_DECL_H_
 
-#include "Scope.hpp"
-#include "../core/Span.hpp"
+//
+// This header file declares the base Decl class and all other recognized C
+// declarations; both top-level and nested.
+//
+
+#include "ast/Scope.hpp"
+#include "core/Span.hpp"
 
 #include <cassert>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace scc {
@@ -14,6 +23,7 @@ namespace scc {
 class Expr;
 class Stmt;
 class Type;
+class FunctionType;
 
 /// Possible kinds of storage classes in C.
 enum class StorageClass : uint32_t {
@@ -27,66 +37,69 @@ enum class StorageClass : uint32_t {
 /// Base class for all declaration nodes in the abstract syntax tree.
 class Decl {
 public:
+    /// Possible kinds of C declarations.
     enum Kind : uint32_t {
         Variable,
         Parameter,
         Function,
-        Typedef,
-        Struct,
-        Enum,
-        Union,
     };
 
 protected:
+    /// The kind of declaration of this is.
     const Kind m_kind;
-    const StorageClass m_storage;
+
+    /// The storage class of this declaration, if any.
+    const StorageClass m_storage = StorageClass::None;
+
+    /// The span of source code this declaration covers.
     const Span m_span;
-    std::string m_name;
+
+    /// The name of this declaration, if it has one.
+    const std::string m_name;
 
 public:
-    Decl(Kind kind, StorageClass storage, const Span& span, 
-         const std::string& name);
+    explicit Decl(Kind kind, StorageClass storage, const Span& span, 
+                  const std::string& name) 
+        : m_kind(kind), m_storage(storage), m_span(span), m_name(name) {}
 
     Decl(const Decl&) = delete;
     Decl& operator = (const Decl&) = delete;
 
-    virtual ~Decl() = 0;
+    virtual ~Decl() = default;
 
     /// Returns the kind of declaration this is.
-    Kind get_kind() const { return m_kind; }
+    Kind kind() const { return m_kind; }
 
     /// Returns the storage class of this declaration.
-    StorageClass get_storage_class() const { return m_storage; }
+    StorageClass storage_class() const { return m_storage; }
     
     /// Returns the span of source code this declaration covers.
-    const Span& get_span() const { return m_span; }
+    const Span& span() const { return m_span; }
 
     /// Returns the name of this declaration.
-    const std::string& get_name() const { return m_name; }
-    std::string& get_name() { return m_name; }
-
-    /// Rename this declaration to |name|.
-    void set_name(const std::string& name) { m_name = name; }    
+    const std::string& name() const { return m_name; }   
 };
 
 /// Represents a variable declaration, either global or local.
 class VariableDecl final : public Decl {
-    std::shared_ptr<Type> m_type;
-    std::unique_ptr<Expr> m_init;
+    /// The type of this variable.
+    const Type* m_type = nullptr;
+
+    /// The initializing expression of this variable, if there is one.
+    std::unique_ptr<Expr> m_init = nullptr;
 
 public:
-    VariableDecl(StorageClass storage, const Span& span, 
-                 const std::string& name, std::shared_ptr<Type> type, 
-                 std::unique_ptr<Expr> init);
+    explicit VariableDecl(StorageClass storage, const Span& span, 
+                          const std::string& name, const Type* ty, 
+                          std::unique_ptr<Expr> init)
+        : Decl(Kind::Variable, storage, span, name), m_type(ty), 
+          m_init(std::move(init)) {}
 
     VariableDecl(const VariableDecl&) = delete;
     VariableDecl& operator = (const VariableDecl&) = delete;
 
-    ~VariableDecl() override = default;
-
     /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    const Type* get_type() const { return m_type; }
 
     /// Returns the initializing expression of this variable, if there is one.
     const Expr* get_initializer() const { return m_init.get(); }
@@ -98,50 +111,51 @@ public:
 
 /// Represents a parameter declaration within a function parameter list.
 class ParameterDecl final : public Decl {
-    std::shared_ptr<Type> m_type;
+    /// The type of this parameter.
+    const Type* m_type;
 
 public:
-    ParameterDecl(const Span& span, const std::string& name, 
-                  std::shared_ptr<Type> type);
+    ParameterDecl(const Span& span, const std::string& name, const Type* ty)
+        : Decl(Kind::Parameter, StorageClass::None, span, name), m_type(ty) {}
 
     ParameterDecl(const ParameterDecl&) = delete;
     ParameterDecl& operator = (const ParameterDecl&) = delete;
-    
-    ~ParameterDecl() override = default;
 
     /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    const Type* get_type() const { return m_type; }
 };
 
 /// Represents a top-level function declaration.
 class FunctionDecl final : public Decl {
-    std::shared_ptr<Type> m_type;
-    std::vector<std::unique_ptr<ParameterDecl>> m_params;
+public:
+    using ParameterList = std::vector<std::unique_ptr<ParameterDecl>>;
+
+    const FunctionType* m_type;
+    ParameterList m_params;
     std::unique_ptr<Scope> m_scope;
     std::unique_ptr<Stmt> m_body;
 
 public:
-    FunctionDecl(StorageClass storage, const Span& span, 
-                 const std::string& name, std::shared_ptr<Type> type,
-                 const std::vector<std::unique_ptr<ParameterDecl>>& params,
-                 std::unique_ptr<Scope> scope, std::unique_ptr<Stmt> body);
+    explicit FunctionDecl(StorageClass storage, const Span& span, 
+                          const std::string& name, const FunctionType* ty,
+                          ParameterList& params, 
+                          std::unique_ptr<Scope> scope, 
+                          std::unique_ptr<Stmt> body)
+        : Decl(Kind::Function, storage, span, name), m_type(ty), 
+          m_params(std::move(params)), m_scope(std::move(scope)), 
+          m_body(std::move(body)) {}
 
     FunctionDecl(const FunctionDecl&) = delete;
     FunctionDecl& operator = (const FunctionDecl&) = delete;
 
-    ~FunctionDecl() override = default;
+    /// Returns the type of this function.
+    const FunctionType* get_type() const { return m_type; }
 
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
-
-    /// Returns the parameter in this function with the given name if it exists,
-    /// and `nullptr` otherwise.
+    /// Returns the parameter in this function named by \p name if it exists,
+    /// and 'nullptr' otherwise.
     const ParameterDecl* get_field(const std::string& name) const {
         for (const auto& field : m_params)
-            if (field->get_name() == name)
-                return field.get();
+            if (field->name() == name) return field.get();
 
         return nullptr;
     }
@@ -173,6 +187,8 @@ public:
     /// Returns true if this function has a body.
     bool has_body() const { return m_body != nullptr; }
 };
+
+/*
 
 /// Represents a `typedef` type declaration.
 class TypedefDecl final : public Decl {
@@ -335,6 +351,8 @@ public:
             static_cast<const EnumDecl*>(this)->get_variant(index));
     }
 };
+
+*/
 
 } // namespace scc
 

@@ -1,5 +1,15 @@
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
 #ifndef SCC_SCOPE_H_
 #define SCC_SCOPE_H_
+
+//
+// This header file declares the Scope class - a tree representation of scoped
+// declarations in a program.
+//
 
 #include <memory>
 #include <string>
