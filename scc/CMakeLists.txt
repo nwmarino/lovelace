@@ -4,6 +4,8 @@ set(SCC_SOURCES
     source/ast/Scope.cpp
     source/ast/Type.cpp
     source/core/Logger.cpp
+    source/core/Tools.cpp
+    source/lexer/Lexer.cpp
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
