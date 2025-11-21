@@ -1,15 +1,24 @@
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
 #ifndef SCC_EXPR_H_
 #define SCC_EXPR_H_
 
-#include "Decl.hpp"
-#include "../core/Span.hpp"
+//
+// This header file declares all the recogniezd C expression nodes in the
+// abstract syntax tree.
+//
+
+#include "ast/Decl.hpp"
+#include "ast/QualType.hpp"
+#include "core/Span.hpp"
 
 #include <memory>
 #include <vector>
 
 namespace scc {
-
-class Type;
 
 /// Base class for all expression nodes in the abstract syntax tree.
 class Expr {
@@ -30,96 +39,104 @@ public:
     };
 
 protected:
+    /// The kind of expression this is.
     const Kind m_kind;
+
+    /// The span of source code that this expression covers.
     const Span m_span;
-    std::shared_ptr<Type> m_type;
+
+    /// The type of this expression.
+    QualType m_type;
 
 public:
-    Expr(Kind kind, const Span& span, std::shared_ptr<Type> type);
+    Expr(Kind kind, const Span& span, const QualType& ty)
+        : m_kind(kind), m_span(span), m_type(ty) {}
 
     Expr(const Expr&) = delete;
     Expr& operator = (const Expr&) = delete;
 
-    virtual ~Expr() = 0; 
+    virtual ~Expr() = default;
 
     /// Returns the kind of expression this is.
-    Kind get_kind() const { return m_kind; }
+    Kind kind() const { return m_kind; }
 
     /// Returns the span of source code this expression covers.
-    const Span& get_span() const { return m_span; }
+    const Span& span() const { return m_span; }
 
     /// Returns the type of this expression.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    const QualType& get_type() const { return m_type; }
+    QualType& get_type() { return m_type; }
 };
 
-/// Represents integer literal expressions, e.g. `0` and `1`.
+/// Represents integer literal expressions, e.g. '0' and '1'.
 class IntegerLiteral final : public Expr {
+    /// The integer value of this literal.
     int64_t m_value;
 
 public:
-    IntegerLiteral(const Span& span, std::shared_ptr<Type> type, int64_t value);
+    IntegerLiteral(const Span& span, const QualType& type, int64_t value)
+        : Expr(Kind::IntegerLiteral, span, type), m_value(value) {}
 
     IntegerLiteral(const IntegerLiteral&) = delete;
     IntegerLiteral& operator = (const IntegerLiteral&) = delete;
-
-    ~IntegerLiteral() override = default;
 
     /// Returns the value of this literal as an integer.
     int64_t get_value() const { return m_value; }
 };
 
-/// Represents floating point literal expressions, e.g. `0.1` and `3.14`.
+/// Represents floating point literal expressions, e.g. '0.1' and '3.14'.
 class FPLiteral final : public Expr {
+    /// The floating point value of this literal.
     double m_value;
 
 public:
-    FPLiteral(const Span& span, std::shared_ptr<Type> type, double value);
+    FPLiteral(const Span& span, const QualType& ty, double value)
+        : Expr(Kind::FPLiteral, span, ty), m_value(value) {}
 
     FPLiteral(const FPLiteral&) = delete;
     FPLiteral& operator = (const FPLiteral&) = delete;
-
-    ~FPLiteral() override = default;
 
     /// Returns the value of this literal as a floating point.
     double get_value() const { return m_value; }
 };
 
-/// Represents floating point literal expressions, e.g. `a` and `b`.
+/// Represents floating point literal expressions, e.g. 'a' and 'b'.
 class CharLiteral final : public Expr {
+    /// The character value of this literal.
     char m_value;
 
 public:
-    CharLiteral(const Span& span, std::shared_ptr<Type> type, char value);
+    CharLiteral(const Span& span, const QualType& ty, char value)
+        : Expr(Kind::CharLiteral, span, ty), m_value(value) {}
 
     CharLiteral(const CharLiteral&) = delete;
     CharLiteral& operator = (const CharLiteral&) = delete;
-
-    ~CharLiteral() override = default;
 
     /// Returns the value of this literal as a character.
     char get_value() const { return m_value; }
 };
 
-/// Represents floating point literal expressions, e.g. `"Hello"` and `"World!"`.
+/// Represents floating point literal expressions, e.g. "Hello" and "World!".
 class StringLiteral final : public Expr {
+    /// The string value of this literal.
     std::string m_value;
 
 public:
-    StringLiteral(const Span& span, std::shared_ptr<Type> type, 
-                  const std::string& value);
+    StringLiteral(const Span& span, const QualType& ty, 
+                  const std::string& value)
+        : Expr(Kind::StringLiteral, span, ty), m_value(value) {}
 
     StringLiteral(const StringLiteral&) = delete;
     StringLiteral& operator = (const StringLiteral&) = delete;
-
-    ~StringLiteral() override = default;
 
     /// Returns the value of this literal as a string.
     const std::string& get_value() const { return m_value; }
 };
 
+/// Represents binary operations between two nested expressions.
 class BinaryExpr final : public Expr {
 public:
+    /// Possible kinds of binary operations.
     enum Op : uint32_t {
         Assign,
         Add,
@@ -153,22 +170,29 @@ public:
     };
 
 private:
+    /// The operator of this binary expression.
     Op m_operator;
+
+    /// The left hand side expression of this operation.
     std::unique_ptr<Expr> m_left;
+
+    /// The right hand side expression of this operation.
     std::unique_ptr<Expr> m_right;
 
 public:
-    BinaryExpr(const Span& span, std::shared_ptr<Type> type, Op op, 
-               std::unique_ptr<Expr> left, std::unique_ptr<Expr> right);
+    BinaryExpr(const Span& span, const QualType& ty, Op op, 
+               std::unique_ptr<Expr> left, std::unique_ptr<Expr> right)
+        : Expr(Kind::Binary, span, ty), m_operator(op), m_left(std::move(left)), 
+          m_right(std::move(right)) {}
 
     BinaryExpr(const BinaryExpr&) = delete;
     BinaryExpr& operator = (const BinaryExpr&) = delete;
-
-    ~BinaryExpr() override = default;
 };
 
+/// Represents unary operations over a nested expression.
 class UnaryExpr final : public Expr {
 public:
+    /// Possible kinds of unary operators.
     enum Op : uint32_t {
         Not,
         LogicNot,
@@ -180,18 +204,24 @@ public:
     };
 
 private:
+    /// The operator of this unary expression.
     Op m_operator;
+
+    /// If true, then this expression uses a postfix operator instead of a
+    /// prefix one. If false, then it uses a prefix.
     bool m_postfix;
+
+    /// The nested expression this operates on.
     std::unique_ptr<Expr> m_expr;
 
 public:
-    UnaryExpr(const Span& span, std::shared_ptr<Type> type, Op op, 
-              bool postfix, std::unique_ptr<Expr> expr);
+    UnaryExpr(const Span& span, const QualType& ty, Op op, 
+              bool postfix, std::unique_ptr<Expr> expr)
+        : Expr(Kind::Unary, span, ty), m_operator(op), m_postfix(postfix),
+          m_expr(std::move(expr)) {}
 
     UnaryExpr(const UnaryExpr&) = delete;
     UnaryExpr& operator = (const UnaryExpr&) = delete;
-
-    ~UnaryExpr() override = default;
 
     /// Returns the operator of this unary expression.
     Op get_operator() const { return m_operator; }
@@ -231,6 +261,16 @@ class CallExpr final : public Expr {
     std::vector<std::unique_ptr<Expr>> m_args;
 };
 
+class CastExpr final : public Expr {
+    std::unique_ptr<Expr> m_expr;
+};
+
+class SizeofExpr final : public Expr {
+    std::shared_ptr<Type> m_type;
+};
+
+/*
+
 class MemberExpr final : public Expr {
     std::unique_ptr<Expr> m_base;
     std::string m_member;
@@ -241,19 +281,13 @@ class SubscriptExpr final : public Expr {
     std::unique_ptr<Expr> m_index;
 };
 
-class CastExpr final : public Expr {
-    std::unique_ptr<Expr> m_expr;
-};
-
 class TernaryExpr final : public Expr {
     std::unique_ptr<Expr> m_condition;
     std::unique_ptr<Expr> m_true;
     std::unique_ptr<Expr> m_else;
 };
 
-class SizeofExpr final : public Expr {
-    std::shared_ptr<Type> m_type;
-};
+*/
 
 } // namespace scc
 
