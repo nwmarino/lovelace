@@ -15,6 +15,7 @@
 #include "ast/QualType.hpp"
 #include "core/Span.hpp"
 
+#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -30,12 +31,15 @@ public:
         StringLiteral,
         Binary,
         Unary,
+        Ref,
         Call,
+        Cast,
+        Sizeof,
+        /*
         Member,
         Subscript,
-        Cast,
-        Ref,
         Ternary,
+        */
     };
 
 protected:
@@ -187,6 +191,17 @@ public:
 
     BinaryExpr(const BinaryExpr&) = delete;
     BinaryExpr& operator = (const BinaryExpr&) = delete;
+
+    /// Returns the operator of this binary expression.
+    Op get_operator() const { return m_operator; }
+
+    /// Returns the left hand side expression of this operator.
+    const Expr* get_lhs() const { return m_left.get(); }
+    Expr* get_lhs() { return m_left.get(); }
+
+    /// Returns the right hand side expression of this operator.
+    const Expr* get_rhs() const { return m_right.get(); }
+    Expr* get_rhs() { return m_right.get(); }
 };
 
 /// Represents unary operations over a nested expression.
@@ -215,8 +230,8 @@ private:
     std::unique_ptr<Expr> m_expr;
 
 public:
-    UnaryExpr(const Span& span, const QualType& ty, Op op, 
-              bool postfix, std::unique_ptr<Expr> expr)
+    UnaryExpr(const Span& span, const QualType& ty, Op op, bool postfix, 
+              std::unique_ptr<Expr> expr)
         : Expr(Kind::Unary, span, ty), m_operator(op), m_postfix(postfix),
           m_expr(std::move(expr)) {}
 
@@ -237,36 +252,103 @@ public:
     Expr* get_expr() { return m_expr.get(); }
 };
 
+/// Represents a valued reference to some declaration.
 class RefExpr final : public Expr {
     /// The declaration that this expression references.
     const Decl* m_decl;
 
 public:
-    RefExpr(const Span& span, std::shared_ptr<Type> type, const Decl* decl);
+    RefExpr(const Span& span, const QualType& ty, const Decl* decl)
+        : Expr(Kind::Ref, span, ty), m_decl(decl) {}
 
     RefExpr(const RefExpr&) = delete;
     RefExpr& operator = (const RefExpr&) = delete;
 
-    ~RefExpr() override = default;
-
     /// Returns the declaration that this expression references.
     const Decl* get_decl() const { return m_decl; }
 
+    /// Set the declaration this expression references to \p decl.
+    void set_decl(const Decl* decl) { m_decl = decl; }
+
     /// Returns the name of the declaration that this expression references.
-    const std::string& get_name() const { return m_decl->get_name(); }
+    const std::string& get_name() const { 
+        assert(m_decl != nullptr && "declaration not set!");
+        return m_decl->name(); 
+    }
 };
 
+/// Represents a call to some function declaration.
 class CallExpr final : public Expr {
+    /// The base or callee expression of this function call.
     std::unique_ptr<Expr> m_callee;
+    
+    /// The argument expression to this function call.
     std::vector<std::unique_ptr<Expr>> m_args;
+
+public:
+    CallExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> callee, 
+             std::vector<std::unique_ptr<Expr>>& args)
+        : Expr(Kind::Call, span, ty), m_callee(std::move(callee)), 
+          m_args(std::move(args)) {}
+
+    CallExpr(const CallExpr&) = delete;
+    CallExpr& operator = (const CallExpr&) = delete;
+
+    /// Returns the base or callee expression of this function call.
+    const Expr* get_callee() const { return m_callee.get(); }
+    Expr* get_callee() { return m_callee.get(); }
+
+    /// Returns the number of arguments in this function call.
+    uint32_t num_args() const { return m_args.size(); }
+
+    /// Returns true if this function call has any arguments.
+    bool has_args() const { return !m_args.empty(); }
+
+    /// Returns the argument expression at position \p i of this function call.
+    const Expr* get_arg(uint32_t i) const {
+        assert(i < num_args() && "index out of bounds!");
+        return m_args[i].get();
+    }
+
+    Expr* get_arg(uint32_t i) {
+        return const_cast<Expr*>(
+            static_cast<const CallExpr*>(this)->get_arg(i)); 
+    }
 };
 
+/// Represents a C-style type casting expression. This node can represent both
+/// explicit casts defined by source code, and ones implicitly injected by the
+/// compiler.
 class CastExpr final : public Expr {
+    /// The expression to type cast.
     std::unique_ptr<Expr> m_expr;
+
+public:
+    CastExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> expr)
+        : Expr(Kind::Cast, span, ty), m_expr(std::move(expr)) {}
+
+    CastExpr(const CastExpr&) = delete;
+    CastExpr& operator = (const CastExpr&) = delete;
+
+    /// Returns the expression that this type cast works on.
+    const Expr* get_expr() const { return m_expr.get(); }
+    Expr* get_expr() { return m_expr.get(); }
 };
 
+/// Represents a 'sizeof' compile-time expression over some type.
 class SizeofExpr final : public Expr {
-    std::shared_ptr<Type> m_type;
+    /// The type to evaluate the size of.
+    const Type* m_target;
+
+public:
+    SizeofExpr(const Span& span, const QualType& ty, const Type* target)
+        : Expr(Kind::Sizeof, span, ty), m_target(target) {}
+
+    SizeofExpr(const SizeofExpr&) = delete;
+    SizeofExpr& operator = (const SizeofExpr&) = delete;
+
+    /// Returns the type that this sizeof operator works on.
+    const Type* get_target() const { return m_target; }
 };
 
 /*

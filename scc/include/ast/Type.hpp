@@ -31,6 +31,7 @@ class Type {
 public:
     using id_t = uint32_t;
 
+    /// Possible kinds of types.
     enum class Kind : uint32_t {
         Void,
         Integer,
