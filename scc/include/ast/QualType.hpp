@@ -15,7 +15,7 @@
 //
 
 #include <cstdint>
-#include <ostream>
+#include <string>
 
 namespace scc {
 
@@ -26,7 +26,8 @@ class QualType final {
 public:
     /// Possible qualifiers on a type.
     enum class Qualifier : uint32_t {
-        Const = 0x0, Volatile = 0x1,
+        Const = 1u << 0, 
+        Volatile = 1u << 1,
     };
 
 private:
@@ -64,24 +65,22 @@ public:
 
     /// Returns true if this type is qualified with 'const'.
     bool is_const() const {
-        return m_quals & (1 << static_cast<uint32_t>(Qualifier::Const));
+        return (m_quals & static_cast<uint32_t>(Qualifier::Const)) != 0;
     }
 
     /// Qualifies this type with 'const', if it isn't already.
     void with_const() {
-        if (!is_const())
-            m_quals |= (1 << static_cast<uint32_t>(Qualifier::Const));
+        m_quals |= static_cast<uint32_t>(Qualifier::Const);
     }
 
     /// Returns true if this type is qualified with 'volatile'.
     bool is_volatile() const {
-        return m_quals & (1 << static_cast<uint32_t>(Qualifier::Volatile));
+        return (m_quals & static_cast<uint32_t>(Qualifier::Volatile)) != 0;
     }
 
     /// Qualifies this type with 'volatile', if it isn't already.
     void with_volatile() {
-        if (!is_volatile())
-            m_quals |= (1 << static_cast<uint32_t>(Qualifier::Volatile));
+        m_quals |= static_cast<uint32_t>(Qualifier::Volatile);
     }
 
     /// Returns a stringified version of this type.

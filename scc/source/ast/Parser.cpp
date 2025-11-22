@@ -258,15 +258,15 @@ bool Parser::parse_type(QualType& ty) {
     if (!match(TokenKind::Identifier))
         return false;
     
-    if (m_lexer.last().value == "const") {
+    if (match("const")) {
         ty.with_const();
         next();
-    } else if (m_lexer.last().value == "volatile") {
+    } else if (match("volatile")) {
         ty.with_volatile();
         next();
     }
 
-    if (m_lexer.last().value == "volatile") {
+    if (match("volatile")) {
         if (ty.is_volatile()) {
             Logger::warn("type already marked with 'volatile', ignoring", 
                 since(m_lexer.last(1).loc));
@@ -464,6 +464,8 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         return parse_float();
     } else if (match(TokenKind::Character)) {
         return parse_character();
+    } else if (match(TokenKind::String)) {
+        return parse_string();
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
     } else if (match(TokenKind::SetParen)) {
@@ -532,12 +534,23 @@ std::unique_ptr<Expr> Parser::parse_character() {
     next(); // '...'
 
     return std::unique_ptr<CharLiteral>(new CharLiteral(
-        since(ch.loc), QualType(IntegerType::get(*m_context, 8, true)), ch.value[0]
+        since(ch.loc), 
+        QualType(IntegerType::get(*m_context, 8, true)), 
+        ch.value[0]
     ));
 }
 
 std::unique_ptr<Expr> Parser::parse_string() {
-    return nullptr;
+    const Token str = m_lexer.last();
+    next(); // "..."
+
+    QualType ty(PointerType::get(
+        *m_context, IntegerType::get(*m_context, 8, true)));
+    ty.with_const();
+
+    return std::unique_ptr<StringLiteral>(new StringLiteral(
+        since(str.loc), ty, str.value 
+    ));
 }
 
 std::unique_ptr<Expr> Parser::parse_binary() {

@@ -2,6 +2,8 @@ int main() {
     char a = 'a';
     char zero = '0';
 
+    const char* str = "hello, world!";
+
     double d1 = 1.;
     float f1 = 2.f;
     float d2 = .5;

@@ -42,7 +42,7 @@ void VariableDecl::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_name << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 
     if (has_initializer()) {
         ++g_indent;
@@ -58,7 +58,7 @@ void ParameterDecl::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_name << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 }
 
 void FunctionDecl::print(std::ostream& os) const {
@@ -68,7 +68,7 @@ void FunctionDecl::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_name << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 
     if (has_params() || has_body()) {
         ++g_indent;
@@ -174,7 +174,7 @@ void IntegerLiteral::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_value << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void FPLiteral::print(std::ostream& os) const {
@@ -184,7 +184,7 @@ void FPLiteral::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_value << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void CharLiteral::print(std::ostream& os) const {
@@ -194,7 +194,7 @@ void CharLiteral::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_value << " '" << m_type->to_string() << "'\n"; 
+    os << ' ' << m_value << " '" << m_type.to_string() << "'\n"; 
 }
 
 void StringLiteral::print(std::ostream& os) const {
@@ -204,7 +204,7 @@ void StringLiteral::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_value << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void BinaryExpr::print(std::ostream& os) const {
@@ -214,7 +214,7 @@ void BinaryExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_operator << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_operator << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_left->print(os);
@@ -229,7 +229,7 @@ void UnaryExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_operator << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_operator << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_expr->print(os);
@@ -243,7 +243,7 @@ void ParenExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << " '" << m_type->to_string() << "'\n";
+    os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_expr->print(os);
@@ -257,7 +257,7 @@ void RefExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << get_name() << " '" << m_type->to_string() << "'\n";
+    os << ' ' << get_name() << " '" << m_type.to_string() << "'\n";
 }
 
 void CallExpr::print(std::ostream& os) const {
@@ -267,7 +267,7 @@ void CallExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << " '" << m_type->to_string() << "'\n";
+    os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_callee->print(os);
@@ -282,7 +282,7 @@ void CastExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << " '" << m_type->to_string() << "'\n";
+    os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_expr->print(os);
@@ -296,5 +296,5 @@ void SizeofExpr::print(std::ostream& os) const {
     
     print_span(os, m_span);
 
-    os << ' ' << m_target->to_string() << " '" << m_type->to_string() << "'\n";
+    os << ' ' << m_target->to_string() << " '" << m_type.to_string() << "'\n";
 }
