@@ -68,6 +68,9 @@ class Parser final {
     /// Returns true if \p ident is a reserved C keyword.
     bool is_reserved(const std::string& ident) const;
 
+    /// Returns true if \p ident is a keyword reserved for storage classes.
+    bool is_storage_class(const std::string& ident) const;
+
     /// Returns true if \p ident corresponds to some known type at the current
     /// state of the parser.
     bool is_typedef(const std::string& ident) const;

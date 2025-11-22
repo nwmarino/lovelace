@@ -15,7 +15,7 @@ Type::id_t Type::s_id = 0;
 
 const VoidType* VoidType::get(Context& ctx) {
     using TK = Context::TypeKind;
-    return static_cast<const VoidType*>(ctx.m_prims[TK::Void].get());
+    return static_cast<const VoidType*>(ctx.m_prims.at(TK::Void).get());
 }
 
 const IntegerType* IntegerType::get(
@@ -26,19 +26,19 @@ const IntegerType* IntegerType::get(
     switch (bits) {
     case 8:
         ty = (is_signed ? 
-            ctx.m_prims[TK::Char].get() : ctx.m_prims[TK::UChar].get());
+            ctx.m_prims.at(TK::Char).get() : ctx.m_prims.at(TK::UChar).get());
         break;
     case 16:
         ty = (is_signed ? 
-            ctx.m_prims[TK::Short].get() : ctx.m_prims[TK::UShort].get());
+            ctx.m_prims.at(TK::Short).get() : ctx.m_prims.at(TK::UShort).get());
         break;
     case 32:
         ty = (is_signed ? 
-            ctx.m_prims[TK::Int].get() : ctx.m_prims[TK::UInt].get());
+            ctx.m_prims.at(TK::Int).get() : ctx.m_prims.at(TK::UInt).get());
         break;
     case 64:
         ty = (is_signed ? 
-            ctx.m_prims[TK::Long].get() : ctx.m_prims[TK::ULong].get());
+            ctx.m_prims.at(TK::Long).get() : ctx.m_prims.at(TK::ULong).get());
         break;
     }
 
@@ -67,10 +67,10 @@ const FPType* FPType::get(Context& ctx, uint32_t bits) {
     const Type* ty = nullptr;
     switch (bits) {
     case 32:
-        ty = ctx.m_prims[TK::Float].get();
+        ty = ctx.m_prims.at(TK::Float).get();
         break;
     case 64:
-        ty = ctx.m_prims[TK::Double].get();
+        ty = ctx.m_prims.at(TK::Double).get();
         break;
     }
 

@@ -28,7 +28,7 @@ class Lexer final {
     std::string m_buf;
 
     /// The history of tokens lexed by this lexer instance.
-    std::vector<Token> m_history;
+    std::vector<Token> m_history = {};
 
     /// The current location of source code this lexer is at.
     SourceLocation m_loc;

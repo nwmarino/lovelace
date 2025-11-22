@@ -42,7 +42,26 @@ void VariableDecl::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+    os << ' ';
+    
+    switch (m_storage) {
+    case StorageClass::None:
+        break;
+    case StorageClass::Auto:
+        os << "auto ";
+        break;
+    case StorageClass::Register:
+        os << "register ";
+        break;
+    case StorageClass::Static:
+        os << "static ";
+        break;
+    case StorageClass::Extern:
+        os << "extern ";
+        break;
+    }
+
+    os << m_name << " '" << m_type.to_string() << "'\n";
 
     if (has_initializer()) {
         ++g_indent;
@@ -68,7 +87,26 @@ void FunctionDecl::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+    os << ' ';
+    
+    switch (m_storage) {
+    case StorageClass::None:
+        break;
+    case StorageClass::Auto:
+        os << "auto ";
+        break;
+    case StorageClass::Register:
+        os << "register ";
+        break;
+    case StorageClass::Static:
+        os << "static ";
+        break;
+    case StorageClass::Extern:
+        os << "extern ";
+        break;
+    }
+
+    os << m_name << " '" << m_type.to_string() << "'\n";
 
     if (has_params() || has_body()) {
         ++g_indent;

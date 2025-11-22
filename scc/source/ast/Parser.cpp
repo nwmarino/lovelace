@@ -12,6 +12,7 @@
 #include "core/Span.hpp"
 #include "lexer/Token.hpp"
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -222,6 +223,14 @@ bool Parser::is_reserved(const std::string& ident) const {
     return keywords.contains(ident);
 }
 
+bool Parser::is_storage_class(const std::string& ident) const {
+    static std::unordered_set<std::string> keywords = {
+        "auto", "extern", "register", "static",
+    };
+
+    return keywords.contains(ident);
+}
+
 bool Parser::is_typedef(const std::string& ident) const {
     // No named types yet, so only have to consider primitives.
 
@@ -236,6 +245,9 @@ bool Parser::is_typedef(const std::string& ident) const {
 }
 
 StorageClass Parser::parse_storage_class() {
+    if (!match(TokenKind::Identifier))
+        return StorageClass::None;
+
     static std::unordered_map<std::string, StorageClass> classes = {
         { "auto", StorageClass::Auto },
         { "extern", StorageClass::Extern },
@@ -243,10 +255,7 @@ StorageClass Parser::parse_storage_class() {
         { "static", StorageClass::Static },
     };
 
-    if (m_lexer.last().kind != TokenKind::Identifier)
-        return StorageClass::None;
-
-    const std::string& value = m_lexer.last().value;
+    const std::string value = m_lexer.last().value;
     if (classes.contains(value)) {
         next();
         return classes[value];
@@ -280,7 +289,7 @@ bool Parser::parse_type(QualType& ty) {
 
     std::string base = "";
 
-    while (match(TokenKind::Identifier) && is_reserved(m_lexer.last().value)) {
+    while (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
         base += m_lexer.last().value + ' ';
         next();
     }
@@ -288,7 +297,7 @@ bool Parser::parse_type(QualType& ty) {
     if (!base.empty())
         base = base.substr(0, base.size() - 1);
 
-    static std::unordered_map<std::string, const Type*> primitives = {
+    std::unordered_map<std::string, const Type*> primitives = {
         { "void", VoidType::get(*m_context) },
         { "char", IntegerType::get(*m_context, 8, true) },
         { "unsigned char", IntegerType::get(*m_context, 8, false) },
@@ -305,8 +314,9 @@ bool Parser::parse_type(QualType& ty) {
     };
 
     const Type* pType = nullptr;
-    if (primitives.count(base) != 0)
-        pType = primitives[base];
+    if (primitives.count(base) != 0) {
+        pType = primitives.at(base);
+    }
 
     while (match(TokenKind::Star)) {
         pType = PointerType::get(*m_context, pType);
@@ -325,7 +335,7 @@ std::unique_ptr<Decl> Parser::parse_decl() {
 
     // Attempt to parse a declaration type.
     QualType ty {};
-    if (!parse_type(ty))
+    if (sclass != StorageClass::Auto && !parse_type(ty))
         Logger::error("expected type", since(start));
     
     if (!match(TokenKind::Identifier))
@@ -348,6 +358,11 @@ std::unique_ptr<Decl> Parser::parse_decl() {
     } else if (match(TokenKind::SetParen)) {
         // The identifier is followed by a '(', which means its the beginning
         // of a function parameter list.
+
+        // TEMPORARY: Disallow auto classed functions.
+        if (sclass == StorageClass::Auto)
+            Logger::error("function cannot be marked with 'auto' keyword", since(start));
+
         return parse_function(start, sclass, ty, name);
     } else {
         // No declaration pattern matches.
@@ -405,13 +420,12 @@ std::unique_ptr<Decl> Parser::parse_function(
     if (!params.empty())
         params.shrink_to_fit();
 
-    const QualType& ret = ty;
     std::vector<QualType> param_types(params.size(), QualType {});
     for (uint32_t i = 0; i < params.size(); ++i)
         param_types[i] = params[i]->get_type();
 
-    const QualType& function_type = 
-        FunctionType::get(*m_context, ret, param_types);
+    const FunctionType* function_type = 
+        FunctionType::get(*m_context, ty, param_types);
 
     std::unique_ptr<Stmt> body = nullptr;
     if (match(TokenKind::Semi)) {
@@ -427,7 +441,7 @@ std::unique_ptr<Decl> Parser::parse_function(
         sclass, 
         since(start), 
         name, 
-        function_type, 
+        QualType(function_type), 
         params, 
         std::move(scope), 
         std::move(body)));
@@ -446,8 +460,20 @@ std::unique_ptr<Decl> Parser::parse_variable(
         assert(init != nullptr && "could not parse variable initializer!");
     }
 
+    if (sclass == StorageClass::Auto) {
+        if (!init)
+            Logger::error("variable marked 'auto' but requires initializer");
+
+        if (ty.get_type() != nullptr)
+            Logger::error("variable marked 'auto', but type provided");
+    }
+
     auto var = std::unique_ptr<VariableDecl>(new VariableDecl(
-        sclass, since(start), name, ty, std::move(init)
+        sclass, 
+        since(start), 
+        name, 
+        sclass == StorageClass::Auto ? init->get_type() : ty, 
+        std::move(init)
     ));
 
     m_scope->add(var.get());
@@ -704,7 +730,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         next(); // 'continue'
 
         return std::unique_ptr<ContinueStmt>(new ContinueStmt(since(start)));
-    } else if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
+    } else if (match(TokenKind::Identifier) && 
+      (is_storage_class(m_lexer.last().value) || is_typedef(m_lexer.last().value))) {
         auto var = parse_decl();
         assert(var != nullptr && "could not parse variable declaration!");
 

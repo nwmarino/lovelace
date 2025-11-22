@@ -48,7 +48,7 @@ protected:
     const Kind m_kind;
 
     /// The storage class of this declaration, if any.
-    const StorageClass m_storage = StorageClass::None;
+    const StorageClass m_storage;
 
     /// The span of source code this declaration covers.
     const Span m_span;

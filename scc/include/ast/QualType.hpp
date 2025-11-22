@@ -41,6 +41,16 @@ public:
     QualType() = default;
     QualType(const Type* ty, uint32_t quals = 0) : m_type(ty), m_quals(quals) {}
 
+    QualType(QualType& other) {
+        m_type = other.m_type;
+        m_quals = other.m_quals;
+    }
+
+    QualType(const QualType& other) {
+        m_type = other.m_type;
+        m_quals = other.m_quals;
+    }
+
     bool operator == (const QualType& other) const;
     bool operator != (const QualType& other) const;
 

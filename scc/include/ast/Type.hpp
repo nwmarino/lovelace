@@ -36,11 +36,11 @@ public:
 
     /// Possible kinds of types.
     enum class Kind : uint32_t {
-        Void,
-        Integer,
-        Float,
-        Pointer,
-        Function,
+        Void = 0,
+        Integer = 1,
+        Float = 2,
+        Pointer = 3,
+        Function = 4,
     };
 
 protected:

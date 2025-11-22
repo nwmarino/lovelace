@@ -31,15 +31,20 @@ class Context final {
     friend class FunctionType;
 
     /// Potential kinds of primitive types.
-    enum class TypeKind : uint16_t {
-        Void,
-        UChar, Char,
-        UShort, Short,
-        UInt, Int,
-        ULong, Long,
-        ULongLong, LongLong,
-        Float,
-        Double,
+    enum class TypeKind : uint32_t {
+        Void = 0,
+        UChar = 1, 
+        Char = 2,
+        UShort = 3, 
+        Short = 4,
+        UInt = 5, 
+        Int = 6,
+        ULong = 7, 
+        Long = 8,
+        ULongLong = 9, 
+        LongLong = 10,
+        Float = 11,
+        Double = 12,
     };
 
     using PrimitiveTypePool = 

@@ -30,6 +30,7 @@ int32_t main(int32_t argc, char* argv[]) {
     files.push_back("samples/literals.c");
     files.push_back("samples/unary.c");
     files.push_back("samples/binary.c");
+    files.push_back("samples/classes.c");
 #endif // SCC_COMPILE_SAMPLES
 
     for (int32_t arg = 1; arg < argc; ++arg) {
