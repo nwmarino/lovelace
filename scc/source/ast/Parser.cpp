@@ -460,6 +460,8 @@ std::unique_ptr<Expr> Parser::parse_expr() {
 std::unique_ptr<Expr> Parser::parse_primary() {
     if (match(TokenKind::Integer)) {
         return parse_integer();
+    } else if (match(TokenKind::Float)) {
+        return parse_float();
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
     } else if (match(TokenKind::SetParen)) {
@@ -493,10 +495,13 @@ std::unique_ptr<Expr> Parser::parse_integer() {
         ty = IntegerType::get(*m_context, 32, true);
     } else if (match("u") || match("U")) {
         ty = IntegerType::get(*m_context, 32, false);
+        next(); // 'u' || 'U'
     } else if (match("l") || match("L") || match("ll") || match("LL")) {
         ty = IntegerType::get(*m_context, 64, true);
+        next(); // 'l' || 'L' || 'll' || 'LL'
     } else if (match("ul") || match("UL") || match("ull") || match("ULL")) {
         ty = IntegerType::get(*m_context, 64, false);
+        next(); // 'ul' || 'UL' || 'ull' || 'ULL'
     }
 
     return std::unique_ptr<IntegerLiteral>(new IntegerLiteral(
@@ -505,7 +510,23 @@ std::unique_ptr<Expr> Parser::parse_integer() {
 }
 
 std::unique_ptr<Expr> Parser::parse_float() {
-    return nullptr;
+    const Token& fp = m_lexer.last();
+    const SourceLocation start = fp.loc;
+    double value = std::stod(fp.value);
+    next();
+
+    const Type* ty = nullptr;
+    if (!match(TokenKind::Identifier)) {
+        // Default to 'double' type.
+        ty = FPType::get(*m_context, 64);
+    } else if (match("f") || match("F")) {
+        ty = FPType::get(*m_context, 32);
+        next(); // 'f' || 'F'
+    }
+
+    return std::unique_ptr<FPLiteral>(new FPLiteral(
+        since(start), QualType(ty), value
+    ));
 }
 
 std::unique_ptr<Expr> Parser::parse_character() {

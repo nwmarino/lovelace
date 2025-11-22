@@ -6,6 +6,7 @@
 #include "core/Logger.hpp"
 #include "core/Tools.hpp"
 #include "lexer/Token.hpp"
+#include <cctype>
 #include "lexer/Lexer.hpp"
 
 using namespace scc;
@@ -269,11 +270,6 @@ const Token& Lexer::lex() {
             move();
             break;
 
-        case '.':
-            token.kind = TokenKind::Dot;
-            move();
-            break;
-
         case ',':
             token.kind = TokenKind::Comma;
             move();
@@ -282,6 +278,23 @@ const Token& Lexer::lex() {
         case ';':
             token.kind = TokenKind::Semi;
             move();
+            break;
+
+        case '.':
+            if (std::isdigit(peek())) {
+                token.kind = TokenKind::Float;
+                token.value = ".";
+                move();
+
+                while (std::isdigit(current())) {
+                    token.value += current();
+                    move();
+                }
+            } else {
+                token.kind = TokenKind::Dot;
+                move();
+            }
+
             break;
 
         case '\'':
@@ -366,7 +379,7 @@ const Token& Lexer::lex() {
 
             while (std::isdigit(current()) || current() == '.') {
                 if (current() == '.') {
-                    if (!std::isdigit(peek()) || token.kind == TokenKind::Float)
+                    if (token.kind == TokenKind::Float)
                         break;
 
                     token.kind = TokenKind::Float;

@@ -38,6 +38,8 @@ public:
         For,
         Case,
         Switch,
+        Goto,
+        Label,
         */
     };
 
