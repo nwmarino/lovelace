@@ -18,6 +18,7 @@
 #include "ast/Decl.hpp"
 
 #include <memory>
+#include <ostream>
 #include <vector>
 
 namespace scc {
@@ -41,6 +42,8 @@ public:
     TranslationUnit& operator = (const TranslationUnit&) = delete;
 
     ~TranslationUnit() = default;
+
+    void print(std::ostream& os) const;
 };
 
 } // namespace scc

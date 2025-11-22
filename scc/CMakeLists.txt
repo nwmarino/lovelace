@@ -3,6 +3,8 @@ set(SCC_SOURCES
     source/ast/Context.cpp
     source/ast/Decl.cpp
     source/ast/Parser.cpp
+    source/ast/Printer.cpp
+    source/ast/QualType.cpp
     source/ast/Scope.cpp
     source/ast/Type.cpp
     source/core/Logger.cpp

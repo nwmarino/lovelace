@@ -71,6 +71,9 @@ public:
     /// Returns the type of this expression.
     const QualType& get_type() const { return m_type; }
     QualType& get_type() { return m_type; }
+
+    /// Pretty-print this expression node to the output stream \p os.
+    virtual void print(std::ostream& os) const = 0;
 };
 
 /// Represents integer literal expressions, e.g. '0' and '1'.
@@ -87,6 +90,8 @@ public:
 
     /// Returns the value of this literal as an integer.
     int64_t get_value() const { return m_value; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. '0.1' and '3.14'.
@@ -103,6 +108,8 @@ public:
 
     /// Returns the value of this literal as a floating point.
     double get_value() const { return m_value; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. 'a' and 'b'.
@@ -119,6 +126,8 @@ public:
 
     /// Returns the value of this literal as a character.
     char get_value() const { return m_value; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. "Hello" and "World!".
@@ -136,6 +145,8 @@ public:
 
     /// Returns the value of this literal as a string.
     const std::string& get_value() const { return m_value; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents binary operations between two nested expressions.
@@ -204,6 +215,8 @@ public:
     /// Returns the right hand side expression of this operator.
     const Expr* get_rhs() const { return m_right.get(); }
     Expr* get_rhs() { return m_right.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents unary operations over a nested expression.
@@ -253,6 +266,8 @@ public:
     /// Returns the expression that this unary operation works on.
     const Expr* get_expr() const { return m_expr.get(); }
     Expr* get_expr() { return m_expr.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a valued reference to some declaration.
@@ -278,6 +293,8 @@ public:
         assert(m_decl != nullptr && "declaration not set!");
         return m_decl->name(); 
     }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a call to some function declaration.
@@ -317,6 +334,8 @@ public:
         return const_cast<Expr*>(
             static_cast<const CallExpr*>(this)->get_arg(i)); 
     }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a C-style type casting expression. This node can represent both
@@ -336,6 +355,8 @@ public:
     /// Returns the expression that this type cast works on.
     const Expr* get_expr() const { return m_expr.get(); }
     Expr* get_expr() { return m_expr.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a 'sizeof' compile-time expression over some type.
@@ -352,6 +373,8 @@ public:
 
     /// Returns the type that this sizeof operator works on.
     const Type* get_target() const { return m_target; }
+
+    void print(std::ostream& os) const override;
 };
 
 /*

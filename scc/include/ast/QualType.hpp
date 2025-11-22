@@ -15,6 +15,7 @@
 //
 
 #include <cstdint>
+#include <ostream>
 
 namespace scc {
 
@@ -39,13 +40,8 @@ public:
     QualType() = default;
     QualType(const Type* ty, uint32_t quals = 0) : m_type(ty), m_quals(quals) {}
 
-    bool operator == (const QualType& other) const {
-        return m_type == other.get_type() && m_quals == other.m_quals;
-    }
-
-    bool operator != (const QualType& other) const {
-        return m_type != other.get_type() || m_quals != other.m_quals;
-    }
+    bool operator == (const QualType& other) const;
+    bool operator != (const QualType& other) const;
 
     const Type& operator* () const { return *m_type; }
     const Type* operator-> () const { return m_type; }
@@ -87,6 +83,9 @@ public:
         if (!is_volatile())
             m_quals |= (1 << static_cast<uint32_t>(Qualifier::Volatile));
     }
+
+    /// Returns a stringified version of this type.
+    std::string to_string() const;
 };
 
 } // namespace scc

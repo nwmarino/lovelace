@@ -61,6 +61,9 @@ public:
 
     /// Returns the span of source code this statement covers.
     const Span& span() const { return m_span; }
+
+    /// Pretty-print this expression node to the output stream \p os.
+    virtual void print(std::ostream& os) const = 0;
 };
 
 /// Represents a scoped list of statements enclosed by curly braces '{, }'.
@@ -100,6 +103,8 @@ public:
         return const_cast<Stmt*>(
             static_cast<const CompoundStmt*>(this)->get_stmt(i));
     }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents an inline declaration as part of a statement. This is generally
@@ -118,6 +123,8 @@ public:
     /// Returns the declaration that is part of this statement.
     const Decl* get_decl() const { return m_decl.get(); }
     Decl* get_decl() { return m_decl.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents an inline expression as part of a statement. This generally 
@@ -136,6 +143,8 @@ public:
     /// Returns the expression that is part of this statement.
     const Expr* get_expr() const { return m_expr.get(); }
     Expr* get_expr() { return m_expr.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents an 'if' statement.
@@ -173,6 +182,8 @@ public:
     /// `nullptr` otherwise.
     const Stmt* get_else() const { return has_else() ? m_else.get() : nullptr; }
     Stmt* get_else() { return has_else() ? m_else.get() : nullptr; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a 'return' statement.
@@ -194,6 +205,8 @@ public:
     /// and 'nullptr' otherwise.
     const Expr* get_expr() const { return has_expr() ? m_expr.get() : nullptr; }
     Expr* get_expr() { return has_expr() ? m_expr.get() : nullptr; }
+
+    void print(std::ostream& os) const override;
 };
 
 /*

@@ -91,6 +91,9 @@ public:
 
     /// Returns true if this is a pointer type.
     bool is_pointer() const { return kind() == Kind::Pointer; }
+
+    /// Returns a stringified version of this type.
+    virtual std::string to_string() const = 0;
 };
 
 /// Represents the fundamental void type `void`.
@@ -102,6 +105,8 @@ class VoidType final : public Type {
 public:
     /// Returns the void type.
     static const VoidType* get(Context& ctx);
+
+    std::string to_string() const override { return "void"; }
 };
 
 /// Represents the fundamental integral types, i.e. 'char', 'short', 'int', and
@@ -130,6 +135,8 @@ public:
     bool is_signed() const { return m_signed; }
 
     bool is_integer(uint32_t bits) const override { return m_bits == bits; }
+
+    std::string to_string() const override;
 };
 
 /// Represents the fundamental floating point types, i.e. `float` and `double`.
@@ -150,6 +157,8 @@ public:
     uint32_t bits() const { return m_bits; }
 
     bool is_float(uint32_t bits) const override { return m_bits == bits; }
+
+    std::string to_string() const override;
 };
 
 /// Represents a C pointer type.
@@ -170,6 +179,10 @@ public:
     /// Returns the type that this pointer type is pointing to.
     const QualType& get_pointee() const { return m_pointee; }
     QualType& get_pointee() { return m_pointee; }
+
+    std::string to_string() const override { 
+        return m_pointee->to_string() + '*'; 
+    }
 };
 
 /// Represents the signature type implicitly defined by a function declaration.
@@ -217,6 +230,8 @@ public:
         assert(i < num_params() && "index out of bounds!");
         return m_params[i];
     }
+    
+    std::string to_string() const override;
 };
 
 } // namespace scc

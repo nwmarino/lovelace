@@ -46,6 +46,21 @@ const IntegerType* IntegerType::get(
     return static_cast<const IntegerType*>(ty);
 }
 
+std::string IntegerType::to_string() const {
+    switch (m_bits) {
+    case 8:
+        return (m_signed ? "char" : "unsigned char");
+    case 16:
+        return (m_signed ? "short" : "unsigned short");
+    case 32:
+        return (m_signed ? "int" : "unsigned int");
+    case 64:
+        return (m_signed ? "long" : "unsigned long");
+    default:
+        assert(false && "invalid bits for an integer type!");
+    }
+}
+
 const FPType* FPType::get(Context& ctx, uint32_t bits) {
     using TK = Context::TypeKind;
 
@@ -63,6 +78,17 @@ const FPType* FPType::get(Context& ctx, uint32_t bits) {
     return static_cast<const FPType*>(ty);
 }
 
+std::string FPType::to_string() const {
+    switch (m_bits) {
+    case 32:
+        return "float";
+    case 64:
+        return "double";
+    default:
+        assert(false && "invalid bits for a floating point type!");
+    }
+}
+
 const PointerType* PointerType::get(Context& ctx, const QualType& pointee) {
     auto ty = std::unique_ptr<PointerType>(new PointerType(pointee));
     const PointerType* pTy = ty.get();
@@ -78,4 +104,16 @@ const FunctionType* FunctionType::get(
 
     ctx.m_sigs.push_back(std::move(ty));
     return pTy;
+}
+
+std::string FunctionType::to_string() const {
+    std::string str = m_ret->to_string() + " (";
+
+    for (uint32_t i = 0, e = num_params(); i < e; ++i) {
+        str += get_param_type(i)->to_string();
+        if (i + 1 != e)
+            str += ", ";
+    }
+
+    return str + ')';
 }

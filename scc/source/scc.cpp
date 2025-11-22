@@ -50,6 +50,8 @@ int32_t main(int32_t argc, char* argv[]) {
         auto unit = std::unique_ptr<TranslationUnit>(new TranslationUnit());
         parser.parse(*unit);
 
+        unit->print(std::cout);
+
         units.push_back(std::move(unit));
     }
 

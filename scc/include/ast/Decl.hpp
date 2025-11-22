@@ -76,7 +76,10 @@ public:
     const Span& span() const { return m_span; }
 
     /// Returns the name of this declaration.
-    const std::string& name() const { return m_name; }   
+    const std::string& name() const { return m_name; }
+
+    /// Pretty-print this declaration node to the output stream \p os.
+    virtual void print(std::ostream& os) const = 0;
 };
 
 /// Represents a variable declaration, either global or local.
@@ -105,6 +108,8 @@ public:
 
     /// Returns true if this variable has an initializing expression.
     bool has_initializer() const { return m_init != nullptr; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a parameter declaration within a function parameter list.
@@ -121,6 +126,8 @@ public:
     /// Returns the type of this variable.
     const QualType& get_type() const { return m_type; }
     QualType& get_type() { return m_type; }
+
+    void print(std::ostream& os) const override;
 };
 
 /// Represents a top-level function declaration.
@@ -145,6 +152,12 @@ public:
     /// Returns the signature type of this function declaration.
     const QualType& get_type() const { return m_type; }
     QualType& get_type() { return m_type; }
+
+    /// Returns the number of parameters this function has.
+    uint32_t num_params() const { return m_params.size(); }
+
+    /// Returns true if this function has any parameters.
+    bool has_params() const { return !m_params.empty(); }
 
     /// Returns the parameter in this function named by \p name if it exists,
     /// and 'nullptr' otherwise.
@@ -182,6 +195,8 @@ public:
 
     /// Returns true if this function declaration has a body.
     bool has_body() const { return m_body != nullptr; }
+
+    void print(std::ostream& os) const override;
 };
 
 /*
