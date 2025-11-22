@@ -32,6 +32,7 @@ public:
         StringLiteral,
         Binary,
         Unary,
+        Paren,
         Ref,
         Call,
         Cast,
@@ -264,6 +265,25 @@ public:
     bool is_postfix() const { return m_postfix; }
 
     /// Returns the expression that this unary operation works on.
+    const Expr* get_expr() const { return m_expr.get(); }
+    Expr* get_expr() { return m_expr.get(); }
+
+    void print(std::ostream& os) const override;
+};
+
+/// Represents an expression enclosed with parentheses '(, )'.
+class ParenExpr final : public Expr {
+    /// The nested expression.
+    std::unique_ptr<Expr> m_expr;
+
+public:
+    ParenExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> expr)
+        : Expr(Kind::Paren, span, ty), m_expr(std::move(expr)) {}
+
+    ParenExpr(const ParenExpr&) = delete;
+    ParenExpr& operator = (const ParenExpr&) = delete;
+
+    /// Returns the nested expression.
     const Expr* get_expr() const { return m_expr.get(); }
     Expr* get_expr() { return m_expr.get(); }
 

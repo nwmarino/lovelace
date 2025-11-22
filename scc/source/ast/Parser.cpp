@@ -462,6 +462,20 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         return parse_integer();
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
+    } else if (match(TokenKind::SetParen)) {
+        const SourceLocation start = m_lexer.last().loc;
+        next(); // '('
+
+        auto expr = parse_expr();
+        assert(expr != nullptr && "could not parse parentheses expression!");
+
+        if (!match(TokenKind::EndParen))
+            Logger::error("expected ')' after expression", since(start));
+
+        next(); // ')'
+        return std::unique_ptr<ParenExpr>(new ParenExpr(
+            since(start), expr->get_type(), std::move(expr)
+        ));
     }
     
     return nullptr;

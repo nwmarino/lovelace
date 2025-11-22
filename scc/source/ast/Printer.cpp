@@ -236,6 +236,20 @@ void UnaryExpr::print(std::ostream& os) const {
     --g_indent;
 }
 
+void ParenExpr::print(std::ostream& os) const {
+    print_indent(os);
+
+    os << "Paren ";
+
+    print_span(os, m_span);
+
+    os << " '" << m_type->to_string() << "'\n";
+
+    ++g_indent;
+    m_expr->print(os);
+    --g_indent;
+}
+
 void RefExpr::print(std::ostream& os) const {
     print_indent(os);
 

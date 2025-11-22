@@ -26,6 +26,7 @@ int32_t main(int32_t argc, char* argv[]) {
     files.push_back("samples/local_ref.c");
     files.push_back("samples/if_then.c");
     files.push_back("samples/if_then_else.c");
+    files.push_back("samples/paren.c");
 #endif // SCC_COMPILE_SAMPLES
 
     for (int32_t arg = 1; arg < argc; ++arg) {
