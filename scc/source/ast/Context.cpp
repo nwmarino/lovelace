@@ -9,7 +9,7 @@
 using namespace scc;
 
 Context::Context() {
-    using TK = TypeKind;
+    using TK = Context::TypeKind;
 
     m_prims[TK::Void] = std::unique_ptr<VoidType>(new VoidType());
     m_prims[TK::UChar] = std::unique_ptr<IntegerType>(new IntegerType(8, false));

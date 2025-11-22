@@ -228,6 +228,11 @@ const Token& Lexer::lex() {
             }
 
             break;
+        
+        case '~':
+            token.kind = TokenKind::Tilde;
+            move();
+            break;
 
         case ':':
             token.kind = TokenKind::Colon;

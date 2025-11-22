@@ -34,7 +34,7 @@ class Lexer final {
     SourceLocation m_loc;
     
     /// The position of the buffer \p m_buf this lexer is at.
-    uint32_t m_pos;
+    uint32_t m_pos = 0;
 
     /// Returns the character at position \c m_pos in the buffer \c m_buf.
     char current() const {
@@ -73,7 +73,7 @@ public:
     /// Returns the token created by this lexer \p n tokens ago.
     const Token& last(uint32_t n = 0) const {
         std::size_t size = m_history.size();
-        assert((size - n - 1) > 0 && 
+        assert((size - n - 1) >= 0 && 
             "lexer has not lexed that many tokens yet!");
 
         return m_history[size - n - 1];

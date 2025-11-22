@@ -23,6 +23,8 @@
 namespace scc {
 
 class TranslationUnit final {
+    friend class Parser;
+
     /// The type context of this translation unit's syntax tree.
     Context m_context = {};
 

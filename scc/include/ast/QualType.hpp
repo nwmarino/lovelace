@@ -14,33 +14,38 @@
 // on the types they are applied to.
 //
 
-#include "ast/Type.hpp"
-
-#include <algorithm>
+#include <cstdint>
 
 namespace scc {
+
+class Type;
 
 /// Represents the use of a possibly qualified type.
 class QualType final {
 public:
     /// Possible qualifiers on a type.
-    enum class Qualifier : uint8_t {
-        Const, Volatile,
+    enum class Qualifier : uint32_t {
+        Const = 0x0, Volatile = 0x1,
     };
-
-    using QualifierList = std::vector<Qualifier>;
 
 private:
     /// The underlying type that this refers to, without any qualifiers.
     const Type* m_type = nullptr;
 
-    /// The list of qualifiers on this type, if any.
-    QualifierList m_quals = {};
+    /// The bitfield of qualifiers on this type, if any.
+    uint32_t m_quals = 0;
 
 public:
-    QualType(const Type* ty) : m_type(ty) {}
+    QualType() = default;
+    QualType(const Type* ty, uint32_t quals = 0) : m_type(ty), m_quals(quals) {}
 
-    ~QualType() = default;
+    bool operator == (const QualType& other) const {
+        return m_type == other.get_type() && m_quals == other.m_quals;
+    }
+
+    bool operator != (const QualType& other) const {
+        return m_type != other.get_type() || m_quals != other.m_quals;
+    }
 
     const Type& operator* () const { return *m_type; }
     const Type* operator-> () const { return m_type; }
@@ -48,38 +53,39 @@ public:
     /// Returns the underlying type, without any qualifiers.
     const Type* get_type() const { return m_type; }
 
-    /// Returns the list of qualifiers on this type.
-    const QualifierList& qualifiers() const { return m_quals; }
-    QualifierList& qualifiers() { return m_quals; }
+    /// Set the underlying type pointer to \p ty.
+    void set_type(const Type* ty) { m_type = ty; }
+
+    /// Returns the qualifiers bitfield on this type.
+    const uint32_t& qualifiers() const { return m_quals; }
+    uint32_t& qualifiers() { return m_quals; }
 
     /// Returns true if this type has any qualifiers.
-    bool is_qualified() const { return !m_quals.empty(); }
+    bool is_qualified() const { return m_quals != 0; }
 
     /// Clear any qualifiers from this type.
-    void clear_qualifiers() { m_quals.clear(); }
+    void clear_qualifiers() { m_quals = 0; }
 
     /// Returns true if this type is qualified with 'const'.
     bool is_const() const {
-        return std::find(
-            m_quals.begin(), m_quals.end(), Qualifier::Const) != m_quals.end();
+        return m_quals & (1 << static_cast<uint32_t>(Qualifier::Const));
     }
 
     /// Qualifies this type with 'const', if it isn't already.
     void with_const() {
         if (!is_const())
-            m_quals.push_back(Qualifier::Const);
+            m_quals |= (1 << static_cast<uint32_t>(Qualifier::Const));
     }
 
     /// Returns true if this type is qualified with 'volatile'.
     bool is_volatile() const {
-        return std::find(
-            m_quals.begin(), m_quals.end(), Qualifier::Volatile) != m_quals.end();
+        return m_quals & (1 << static_cast<uint32_t>(Qualifier::Volatile));
     }
 
     /// Qualifies this type with 'volatile', if it isn't already.
     void with_volatile() {
         if (!is_volatile())
-            m_quals.push_back(Qualifier::Volatile);
+            m_quals |= (1 << static_cast<uint32_t>(Qualifier::Volatile));
     }
 };
 

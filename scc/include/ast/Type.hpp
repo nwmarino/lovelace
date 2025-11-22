@@ -17,6 +17,9 @@
 // hold onto valued instances of QualType.
 //
 
+#include "ast/QualType.hpp"
+
+#include <cassert>
 #include <cstdint>
 #include <vector>
 
@@ -155,17 +158,18 @@ class PointerType final : public Type {
 
     /// The pointee type of this pointer. For example, for 'int*', the pointee
     /// is an integral type 'int'.
-    const Type* m_pointee;
+    QualType m_pointee;
 
-    PointerType(const Type* pointee) 
+    PointerType(const QualType& pointee) 
         : Type(Kind::Pointer), m_pointee(pointee) {}
 
 public:
     /// Returns the pointer type that points to type \p pointee.
-    static const PointerType* get(Context& ctx, const Type* pointee);
+    static const PointerType* get(Context& ctx, const QualType& pointee);
 
     /// Returns the type that this pointer type is pointing to.
-    const Type* pointee() const { return m_pointee; }
+    const QualType& get_pointee() const { return m_pointee; }
+    QualType& get_pointee() { return m_pointee; }
 };
 
 /// Represents the signature type implicitly defined by a function declaration.
@@ -173,32 +177,46 @@ class FunctionType final : public Type {
     friend class Context;
 
     /// The type that the underlying function returns.
-    const Type* m_ret;
+    QualType m_ret;
 
     /// The list of parameter types of the underlying function.
-    std::vector<const Type*> m_params;
+    std::vector<QualType> m_params;
 
-    FunctionType(const Type* ret, const std::vector<const Type*>& params)
+    FunctionType(const QualType& ret, const std::vector<QualType>& params)
         : Type(Kind::Function), m_ret(ret), m_params(params) {}
 
 public:
     /// Returns a function signature type that returns type \p ret, and has
     /// parameter types \p params.
-    static const FunctionType* get(Context& ctx, const Type* ret, 
-                                   const std::vector<const Type*>& params);
+    static const FunctionType* get(Context& ctx, const QualType& ret, 
+                                   const std::vector<QualType>& params);
 
     /// Returns the type that this function returns.
-    const Type* ret() const { return m_ret; }
+    const QualType& get_return_type() const { return m_ret; }
+    QualType& get_return_type() { return m_ret; }
 
     /// Returns true if this function returns void, or nothing.
     bool returns_void() const { return m_ret->is_void(); }
 
     /// Returns the list of parameter types for this function.
-    const std::vector<const Type*>& params() const { return m_params; }
-    std::vector<const Type*>& params() { return m_params; }
+    const std::vector<QualType>& params() const { return m_params; }
+    std::vector<QualType>& params() { return m_params; }
+
+    uint32_t num_params() const { return m_params.size(); }
 
     /// Returns true if this function has any parameter types.
     bool has_params() const { return !m_params.empty(); }
+
+    /// Returns the parameter type at position \p i.
+    const QualType& get_param_type(uint32_t i) const {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
+    }
+
+    QualType& get_param_type(uint32_t i) {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
+    }
 };
 
 } // namespace scc

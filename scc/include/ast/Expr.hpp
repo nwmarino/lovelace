@@ -143,6 +143,7 @@ class BinaryExpr final : public Expr {
 public:
     /// Possible kinds of binary operations.
     enum Op : uint32_t {
+        Unknown = 0x0,
         Assign,
         Add,
         AddAssign,
@@ -210,6 +211,7 @@ class UnaryExpr final : public Expr {
 public:
     /// Possible kinds of unary operators.
     enum Op : uint32_t {
+        Unknown = 0x0,
         Not,
         LogicNot,
         Negate,

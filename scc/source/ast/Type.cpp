@@ -63,20 +63,16 @@ const FPType* FPType::get(Context& ctx, uint32_t bits) {
     return static_cast<const FPType*>(ty);
 }
 
-const PointerType* PointerType::get(Context& ctx, const Type* pointee) {
-    auto it = ctx.m_ptrs.find(pointee);
-    if (it != ctx.m_ptrs.end())
-        return it->second.get();
-
+const PointerType* PointerType::get(Context& ctx, const QualType& pointee) {
     auto ty = std::unique_ptr<PointerType>(new PointerType(pointee));
     const PointerType* pTy = ty.get();
 
-    ctx.m_ptrs[pointee] = std::move(ty);
+    ctx.m_ptrs.push_back(std::move(ty));
     return pTy;
 }
 
 const FunctionType* FunctionType::get(
-        Context& ctx, const Type* ret, const std::vector<const Type*>& params) {
+        Context& ctx, const QualType& ret, const std::vector<QualType>& params) {
     auto ty = std::unique_ptr<FunctionType>(new FunctionType(ret, params));
     const FunctionType* pTy = ty.get();
 

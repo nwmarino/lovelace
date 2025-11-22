@@ -23,8 +23,6 @@ namespace scc {
 
 class Expr;
 class Stmt;
-class Type;
-class FunctionType;
 
 /// Possible kinds of storage classes in C.
 enum class StorageClass : uint32_t {

@@ -143,6 +143,9 @@ enum class TokenKind : uint32_t {
     /// Shorthand right bitwise shift assignment operator `>>=`.
     RShiftEq,
 
+    /// Bitwise not operator `~`.
+    Tilde,
+
     /// Period `.` and member operator.
     Dot,
 

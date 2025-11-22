@@ -11,7 +11,6 @@
 // declarations in a program.
 //
 
-#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -25,7 +24,7 @@ public:
 
 private:
     /// The parent node to this scope, if it exists.
-    std::shared_ptr<Scope> m_parent = nullptr;
+    Scope* m_parent = nullptr;
 
     /// The map <name, symbol> of named declarations defined in this scope.
     /// This does not include symbols accessible in this scope but defined in
@@ -34,7 +33,7 @@ private:
 
 public:
     /// Create a new scope with an optional parent node \p parent.
-    Scope(const std::shared_ptr<Scope>& parent = nullptr) : m_parent(parent) {}
+    Scope(Scope* parent = nullptr) : m_parent(parent) {}
 
     Scope(const Scope&) = delete;
     Scope& operator = (const Scope&) = delete;
@@ -42,8 +41,8 @@ public:
     ~Scope() = default;
 
     /// Returns the parent scope of this scope, if it exists.
-    const std::shared_ptr<Scope>& get_parent() const { return m_parent; }
-    std::shared_ptr<Scope>& get_parent() { return m_parent; }
+    const Scope* get_parent() const { return m_parent; }
+    Scope* get_parent() { return m_parent; }
 
     /// Returns true if this scope has a parent scope.
     bool has_parent() const { return m_parent != nullptr; }
