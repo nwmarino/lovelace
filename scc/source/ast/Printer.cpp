@@ -296,5 +296,5 @@ void SizeofExpr::print(std::ostream& os) const {
     
     print_span(os, m_span);
 
-    os << ' ' << m_target->to_string() << " '" << m_type.to_string() << "'\n";
+    os << ' ' << m_target.to_string() << " '" << m_type.to_string() << "'\n";
 }

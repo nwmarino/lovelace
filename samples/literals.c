@@ -8,4 +8,7 @@ int main() {
     float f1 = 2.f;
     float d2 = .5;
     float f2 = 3.14F;
+
+    unsigned long sz1 = sizeof(float);
+    unsigned long sz2 = sizeof(const int*);
 }

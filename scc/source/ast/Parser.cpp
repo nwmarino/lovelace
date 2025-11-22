@@ -466,6 +466,8 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         return parse_character();
     } else if (match(TokenKind::String)) {
         return parse_string();
+    } else if (match("sizeof")) {
+        return parse_sizeof();
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
     } else if (match(TokenKind::SetParen)) {
@@ -585,7 +587,27 @@ std::unique_ptr<Expr> Parser::parse_cast() {
 }
 
 std::unique_ptr<Expr> Parser::parse_sizeof() {
-    return nullptr;
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'sizeof'
+
+    if (!match(TokenKind::SetParen))
+        Logger::error("missing '(' after 'sizeof' keyword");
+
+    next(); // '('
+
+    QualType ty {};
+    if (!parse_type(ty))
+        Logger::error("expected type for 'sizeof' operator");
+
+    if (!match(TokenKind::EndParen))
+        Logger::error("missing ')' after 'sizeof' type");
+
+    next(); // ')'
+
+    // Uses ulong for the sizeof result.
+    return std::unique_ptr<SizeofExpr>(new SizeofExpr(
+        since(start), QualType(IntegerType::get(*m_context, 64, false)), ty
+    ));
 }
 
 std::unique_ptr<Stmt> Parser::parse_stmt() {

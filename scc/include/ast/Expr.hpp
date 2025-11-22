@@ -382,17 +382,18 @@ public:
 /// Represents a 'sizeof' compile-time expression over some type.
 class SizeofExpr final : public Expr {
     /// The type to evaluate the size of.
-    const Type* m_target;
+    QualType m_target;
 
 public:
-    SizeofExpr(const Span& span, const QualType& ty, const Type* target)
+    SizeofExpr(const Span& span, const QualType& ty, const QualType& target)
         : Expr(Kind::Sizeof, span, ty), m_target(target) {}
 
     SizeofExpr(const SizeofExpr&) = delete;
     SizeofExpr& operator = (const SizeofExpr&) = delete;
 
     /// Returns the type that this sizeof operator works on.
-    const Type* get_target() const { return m_target; }
+    const QualType& get_target() const { return m_target; }
+    QualType& get_target() { return m_target; }
 
     void print(std::ostream& os) const override;
 };
