@@ -24,6 +24,7 @@ namespace scc {
 /// Base class for all expression nodes in the abstract syntax tree.
 class Expr {
 public:
+    /// Possible kinds of C expressions.
     enum Kind : uint32_t {
         IntegerLiteral,
         FPLiteral,

@@ -148,43 +148,44 @@ public:
     FunctionDecl(const FunctionDecl&) = delete;
     FunctionDecl& operator = (const FunctionDecl&) = delete;
 
-    /// Returns the type of this function.
+    /// Returns the signature type of this function declaration.
     const FunctionType* get_type() const { return m_type; }
 
     /// Returns the parameter in this function named by \p name if it exists,
     /// and 'nullptr' otherwise.
-    const ParameterDecl* get_field(const std::string& name) const {
+    const ParameterDecl* get_param(const std::string& name) const {
         for (const auto& field : m_params)
             if (field->name() == name) return field.get();
 
         return nullptr;
     }
 
-    ParameterDecl* get_field(const std::string& name) {
+    ParameterDecl* get_param(const std::string& name) {
         return const_cast<ParameterDecl*>(
-            static_cast<const FunctionDecl*>(this)->get_field(name));
+            static_cast<const FunctionDecl*>(this)->get_param(name));
     }
 
-    /// Returns the parameter at the given index of this function.
-    const ParameterDecl* get_field(uint32_t index) const {
-        assert(index < m_params.size() && "index out of bounds!");
-        return m_params[index].get();
+    /// Returns the parameter at position \p i of this function's parameter 
+    /// list.
+    const ParameterDecl* get_param(uint32_t i) const {
+        assert(i < m_params.size() && "index out of bounds!");
+        return m_params[i].get();
     }
 
-    ParameterDecl* get_field(uint32_t index) {
+    ParameterDecl* get_param(uint32_t i) {
         return const_cast<ParameterDecl*>(
-            static_cast<const FunctionDecl*>(this)->get_field(index));
+            static_cast<const FunctionDecl*>(this)->get_param(i));
     }
 
-    /// Returns the scope of this function.
+    /// Returns the scope of this function declaration.
     const Scope* get_scope() const { return m_scope.get(); }
     Scope* get_scope() { return m_scope.get(); }
 
-    /// Returns the body statement of this function, if it exists.
+    /// Returns the body statement of this function declaration, if it exists.
     const Stmt* get_body() const { return m_body.get(); }
     Stmt* get_body() { return m_body.get(); }
 
-    /// Returns true if this function has a body.
+    /// Returns true if this function declaration has a body.
     bool has_body() const { return m_body != nullptr; }
 };
 
