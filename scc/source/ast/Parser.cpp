@@ -544,6 +544,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
 
     if (match("return")) {
         return parse_return();
+    } else if (match("if")) {
+        return parse_if();
     } else if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
         auto var = parse_decl();
         assert(var != nullptr && "could not parse variable declaration!");
@@ -597,7 +599,38 @@ std::unique_ptr<Stmt> Parser::parse_compound() {
 }
 
 std::unique_ptr<Stmt> Parser::parse_if() {
-    return nullptr;
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'if'
+
+    std::unique_ptr<Expr> cond = nullptr;
+    std::unique_ptr<Stmt> then = nullptr, els = nullptr;
+
+    if (!match(TokenKind::SetParen))
+        Logger::error("missing '(' after 'if' keyword", since(start));
+
+    next(); // '('
+
+    cond = parse_expr();
+    assert(cond != nullptr && "could not parse if condition expression!");
+
+    if (!match(TokenKind::EndParen))
+        Logger::error("missing ')' after 'if' condition", since(start));
+
+    next(); // ')'
+
+    then = parse_stmt();
+    assert(then != nullptr && "could not parse if-then statement!");
+
+    if (match("else")) {
+        next(); // 'else'
+        
+        els = parse_stmt();
+        assert(els != nullptr && "could not parse if-else statement!");
+    }
+
+    return std::unique_ptr<IfStmt>(new IfStmt(
+        since(start), std::move(cond), std::move(then), std::move(els)
+    ));
 }
 
 std::unique_ptr<Stmt> Parser::parse_return() {
