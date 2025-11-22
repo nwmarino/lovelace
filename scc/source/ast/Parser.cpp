@@ -454,7 +454,9 @@ std::unique_ptr<Decl> Parser::parse_variable(
 }
 
 std::unique_ptr<Expr> Parser::parse_expr() {
-    return parse_primary();
+    auto base = parse_unary_prefix();
+    assert(base != nullptr && "could not parse base expression!");
+    return parse_binary(std::move(base), 0);
 }
 
 std::unique_ptr<Expr> Parser::parse_primary() {
@@ -555,12 +557,84 @@ std::unique_ptr<Expr> Parser::parse_string() {
     ));
 }
 
-std::unique_ptr<Expr> Parser::parse_binary() {
-    return nullptr;
+std::unique_ptr<Expr> Parser::parse_binary(std::unique_ptr<Expr> base, 
+                                           int32_t precedence) {
+    while (1) {
+        const Token& last = m_lexer.last();
+
+        int32_t token_prec = get_binary_operator_precedence(last.kind);
+        if (token_prec < precedence)
+            break;
+
+        BinaryExpr::Op op = get_binary_operator(last.kind);
+        if (op == BinaryExpr::Unknown)
+            break;
+
+        next(); // operator
+        
+        auto right = parse_unary_prefix();
+        assert(right != nullptr && "could not parse binary rhs expression!");
+
+        int32_t next_prec = get_binary_operator_precedence(m_lexer.last().kind);
+        if (token_prec < next_prec) {
+            right = parse_binary(std::move(right), precedence + 1);
+            assert(right != nullptr && 
+                "could not parse secondary binary rhs expression!");
+        }
+
+        base = std::unique_ptr<BinaryExpr>(new BinaryExpr(
+            Span(base->span().begin, right->span().end),
+            base->get_type(),
+            op,
+            std::move(base),
+            std::move(right)
+        ));
+    }
+
+    return base;
 }
 
-std::unique_ptr<Expr> Parser::parse_unary() {
-    return nullptr;
+std::unique_ptr<Expr> Parser::parse_unary_prefix() {
+    UnaryExpr::Op op = get_unary_operator(m_lexer.last().kind);
+    if (UnaryExpr::is_prefix_op(op)) {
+        const SourceLocation start = m_lexer.last().loc;
+        next(); // operator
+
+        std::unique_ptr<Expr> base = parse_unary_prefix();
+        assert(base != nullptr && "could not parse prefix unary expression!");
+
+        return std::unique_ptr<UnaryExpr>(new UnaryExpr(
+            since(start), base->get_type(), op, false, std::move(base)
+        ));
+    } else return parse_unary_postfix();
+}
+
+std::unique_ptr<Expr> Parser::parse_unary_postfix() {
+    std::unique_ptr<Expr> base = parse_primary();
+    assert(base != nullptr && "could not parse unary postfix base expression!");
+
+    while (1) {
+        const SourceLocation start = m_lexer.last().loc;
+        UnaryExpr::Op op = get_unary_operator(m_lexer.last().kind);
+
+        if (UnaryExpr::is_postfix_op(op)) {
+            next(); // operator
+
+            base = std::unique_ptr<UnaryExpr>(new UnaryExpr(
+                since(start), base->get_type(), op, true, std::move(base)
+            ));
+        }
+        
+        // else if [ (subscript)
+
+        // else if . (member)
+
+        else {
+            break;
+        }
+    }
+
+    return base;
 }
 
 std::unique_ptr<Expr> Parser::parse_ref() {

@@ -2,6 +2,7 @@ set(SCC_SOURCES
     source/scc.cpp
     source/ast/Context.cpp
     source/ast/Decl.cpp
+    source/ast/Expr.cpp
     source/ast/Parser.cpp
     source/ast/Printer.cpp
     source/ast/QualType.cpp

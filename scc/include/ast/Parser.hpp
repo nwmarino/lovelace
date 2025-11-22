@@ -95,8 +95,10 @@ class Parser final {
     std::unique_ptr<Expr> parse_float();
     std::unique_ptr<Expr> parse_character();
     std::unique_ptr<Expr> parse_string();
-    std::unique_ptr<Expr> parse_binary();
-    std::unique_ptr<Expr> parse_unary();
+    std::unique_ptr<Expr> parse_binary(std::unique_ptr<Expr> base, 
+                                       int32_t precedence);
+    std::unique_ptr<Expr> parse_unary_prefix();
+    std::unique_ptr<Expr> parse_unary_postfix();
     std::unique_ptr<Expr> parse_ref();
     std::unique_ptr<Expr> parse_call();
     std::unique_ptr<Expr> parse_cast();

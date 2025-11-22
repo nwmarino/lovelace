@@ -187,6 +187,9 @@ public:
         LogicOr,
     };
 
+    /// Returns a stringified version of the operator \p op.
+    static std::string to_string(Op op);
+
 private:
     /// The operator of this binary expression.
     Op m_operator;
@@ -234,6 +237,19 @@ public:
         Increment,
         Decrement,
     };
+
+    /// Returns true if the operator \p op can work as a prefix.
+    static bool is_prefix_op(Op op) {
+        return op != Unknown;
+    }
+
+    /// Returns true if the operator \p op can work as a postfix.
+    static bool is_postfix_op(Op op) {
+        return op == Increment || op == Decrement;
+    }
+
+    /// Returns a stringified version of the operator \p op.
+    static std::string to_string(Op op);
 
 private:
     /// The operator of this unary expression.

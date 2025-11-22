@@ -214,7 +214,7 @@ void BinaryExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_operator << " '" << m_type.to_string() << "'\n";
+    os << ' ' << to_string(m_operator) << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_left->print(os);
@@ -229,7 +229,8 @@ void UnaryExpr::print(std::ostream& os) const {
 
     print_span(os, m_span);
 
-    os << ' ' << m_operator << " '" << m_type.to_string() << "'\n";
+    os << ' ' << to_string(m_operator) << ' ' << (m_postfix ? "postfix" : "prefix") 
+       << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
     m_expr->print(os);
