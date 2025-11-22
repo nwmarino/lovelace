@@ -147,6 +147,26 @@ void ReturnStmt::print(std::ostream& os) const {
     }
 }
 
+void BreakStmt::print(std::ostream& os) const {
+    print_indent(os);
+
+    os << "Break ";
+
+    print_span(os, m_span);
+
+    os << '\n';
+}
+
+void ContinueStmt::print(std::ostream& os) const {
+    print_indent(os);
+
+    os << "Continue ";
+
+    print_span(os, m_span);
+
+    os << '\n';
+}
+
 void IntegerLiteral::print(std::ostream& os) const {
     print_indent(os);
 

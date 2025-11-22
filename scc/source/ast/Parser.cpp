@@ -546,6 +546,16 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         return parse_return();
     } else if (match("if")) {
         return parse_if();
+    } else if (match("break")) {
+        const SourceLocation start = m_lexer.last().loc;
+        next(); // 'break'
+
+        return std::unique_ptr<BreakStmt>(new BreakStmt(since(start)));
+    } else if (match("continue")) {
+        const SourceLocation start = m_lexer.last().loc;
+        next(); // 'continue'
+
+        return std::unique_ptr<ContinueStmt>(new ContinueStmt(since(start)));
     } else if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
         auto var = parse_decl();
         assert(var != nullptr && "could not parse variable declaration!");
@@ -623,7 +633,7 @@ std::unique_ptr<Stmt> Parser::parse_if() {
 
     if (match("else")) {
         next(); // 'else'
-        
+
         els = parse_stmt();
         assert(els != nullptr && "could not parse if-else statement!");
     }

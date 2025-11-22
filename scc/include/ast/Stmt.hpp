@@ -31,9 +31,9 @@ public:
         Expression,
         If,
         Return,
-        /*
         Break,
         Continue,
+        /*
         While,
         For,
         Case,
@@ -209,15 +209,29 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
+/// Represents a 'break' statement.
 class BreakStmt final : public Stmt {
+public:
+    BreakStmt(const Span& span) : Stmt(Kind::Break, span) {}
 
+    BreakStmt(const BreakStmt&) = delete;
+    BreakStmt& operator = (const BreakStmt&) = delete;
+
+    void print(std::ostream& os) const override;
 };
 
+/// Represents a 'continue' statement.
 class ContinueStmt final : public Stmt {
+public:
+    ContinueStmt(const Span& span) : Stmt(Kind::Continue, span) {}
 
+    ContinueStmt(const ContinueStmt&) = delete;
+    ContinueStmt& operator = (const ContinueStmt&) = delete;
+
+    void print(std::ostream& os) const override;
 };
+
+/*
 
 class WhileStmt final : public Stmt {
     std::unique_ptr<Expr> m_cond;
