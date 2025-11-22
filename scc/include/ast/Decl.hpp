@@ -11,6 +11,7 @@
 // declarations; both top-level and nested.
 //
 
+#include "ast/QualType.hpp"
 #include "ast/Scope.hpp"
 #include "core/Span.hpp"
 
@@ -83,21 +84,22 @@ public:
 /// Represents a variable declaration, either global or local.
 class VariableDecl final : public Decl {
     /// The type of this variable.
-    const Type* m_type = nullptr;
+    QualType m_type = nullptr;
 
     /// The initializing expression of this variable, if there is one.
     std::unique_ptr<Expr> m_init = nullptr;
 
 public:
     explicit VariableDecl(StorageClass storage, const Span& span, 
-                          const std::string& name, const Type* ty, 
+                          const std::string& name, const QualType& ty, 
                           std::unique_ptr<Expr> init);
 
     VariableDecl(const VariableDecl&) = delete;
     VariableDecl& operator = (const VariableDecl&) = delete;
 
     /// Returns the type of this variable.
-    const Type* get_type() const { return m_type; }
+    const QualType& get_type() const { return m_type; }
+    QualType& get_type() { return m_type; }
 
     /// Returns the initializing expression of this variable, if there is one.
     const Expr* get_initializer() const { return m_init.get(); }
@@ -110,16 +112,17 @@ public:
 /// Represents a parameter declaration within a function parameter list.
 class ParameterDecl final : public Decl {
     /// The type of this parameter.
-    const Type* m_type;
+    QualType m_type;
 
 public:
-    ParameterDecl(const Span& span, const std::string& name, const Type* ty);
+    ParameterDecl(const Span& span, const std::string& name, const QualType& ty);
 
     ParameterDecl(const ParameterDecl&) = delete;
     ParameterDecl& operator = (const ParameterDecl&) = delete;
 
     /// Returns the type of this variable.
-    const Type* get_type() const { return m_type; }
+    const QualType& get_type() const { return m_type; }
+    QualType& get_type() { return m_type; }
 };
 
 /// Represents a top-level function declaration.
@@ -127,14 +130,14 @@ class FunctionDecl final : public Decl {
 public:
     using ParameterList = std::vector<std::unique_ptr<ParameterDecl>>;
 
-    const FunctionType* m_type;
+    QualType m_type;
     ParameterList m_params;
     std::unique_ptr<Scope> m_scope;
     std::unique_ptr<Stmt> m_body;
 
 public:
     explicit FunctionDecl(StorageClass storage, const Span& span, 
-                          const std::string& name, const FunctionType* ty,
+                          const std::string& name, const QualType& ty,
                           ParameterList& params, std::unique_ptr<Scope> scope, 
                           std::unique_ptr<Stmt> body);
 
@@ -142,7 +145,8 @@ public:
     FunctionDecl& operator = (const FunctionDecl&) = delete;
 
     /// Returns the signature type of this function declaration.
-    const FunctionType* get_type() const { return m_type; }
+    const QualType& get_type() const { return m_type; }
+    QualType& get_type() { return m_type; }
 
     /// Returns the parameter in this function named by \p name if it exists,
     /// and 'nullptr' otherwise.
