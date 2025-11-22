@@ -110,7 +110,7 @@ class Parser final {
     std::unique_ptr<Stmt> parse_return();
 
 public:
-    Parser(const std::string& file);
+    Parser(const std::string& file, const std::string& source = "");
 
     Parser(const Parser&) = delete;
     Parser& operator = (const Parser&) = delete;

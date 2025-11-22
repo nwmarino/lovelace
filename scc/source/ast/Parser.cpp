@@ -20,7 +20,8 @@
 
 using namespace scc;
 
-Parser::Parser(const std::string& file) : m_file(file), m_lexer(file) {}
+Parser::Parser(const std::string& file, const std::string& source) 
+    : m_file(file), m_lexer(file, source) {}
 
 void Parser::parse(TranslationUnit& unit) {
     next();

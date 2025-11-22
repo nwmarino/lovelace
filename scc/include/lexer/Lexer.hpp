@@ -37,10 +37,7 @@ class Lexer final {
     uint32_t m_pos = 0;
 
     /// Returns the character at position \c m_pos in the buffer \c m_buf.
-    char current() const {
-        assert(!is_eof() && "iterator has exceeded buffer size!");
-        return m_buf[m_pos];
-    }
+    char current() const { return is_eof() ? '\0' : m_buf[m_pos]; }
 
     /// Peek at the upcoming \p n characters in the buffer \c m_buf.
     char peek(uint32_t n = 1) const {

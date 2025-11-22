@@ -17,6 +17,7 @@
 #include "ast/Context.hpp"
 #include "ast/Decl.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <ostream>
 #include <vector>
@@ -42,6 +43,24 @@ public:
     TranslationUnit& operator = (const TranslationUnit&) = delete;
 
     ~TranslationUnit() = default;
+
+    /// Returns the number of top-level declarations in this translation unit.
+    uint32_t num_decls() const { return m_decls.size(); }
+
+    /// Returns true if this translation unit carries any top-level declarations.
+    bool has_decls() const { return !m_decls.empty(); }
+
+    /// Returns the top-level declaration at position \p i of this translation
+    /// unit.
+    const Decl* get_decl(uint32_t i) const {
+        assert(i < num_decls() && "index out of bounds!");
+        return m_decls[i].get();
+    }
+
+    Decl* get_decl(uint32_t i) {
+        assert(i < num_decls() && "index out of bounds!");
+        return m_decls[i].get();
+    }
 
     void print(std::ostream& os) const;
 };
