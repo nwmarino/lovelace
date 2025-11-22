@@ -11,10 +11,10 @@
 using namespace scc;
 
 void Scope::add(Decl* decl) {
-    assert(!contains(decl->get_name()) && 
+    assert(!contains(decl->name()) && 
         "symbol with name already exists in scope!");
 
-    m_decls.emplace(decl->get_name(), decl);
+    m_decls.emplace(decl->name(), decl);
 }
 
 Decl* Scope::get(const std::string& name) const {

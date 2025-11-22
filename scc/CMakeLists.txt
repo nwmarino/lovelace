@@ -1,6 +1,7 @@
 set(SCC_SOURCES
     source/scc.cpp
     source/ast/Context.cpp
+    source/ast/Decl.cpp
     source/ast/Scope.cpp
     source/ast/Type.cpp
     source/core/Logger.cpp

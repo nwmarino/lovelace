@@ -1,0 +1,28 @@
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "ast/Decl.hpp"
+#include "ast/Expr.hpp"
+#include "ast/Stmt.hpp"
+
+using namespace scc;
+
+VariableDecl::VariableDecl(StorageClass storage, const Span& span, 
+                           const std::string& name, const Type* ty, 
+                           std::unique_ptr<Expr> init)
+    : Decl(Kind::Variable, storage, span, name), m_type(ty), 
+      m_init(std::move(init)) {}
+
+ParameterDecl::ParameterDecl(const Span& span, const std::string& name, 
+							 const Type* ty)
+	: Decl(Kind::Parameter, StorageClass::None, span, name), m_type(ty) {}
+
+FunctionDecl::FunctionDecl(StorageClass storage, const Span& span, 
+                           const std::string& name, const FunctionType* ty,
+                           ParameterList& params, std::unique_ptr<Scope> scope, 
+                           std::unique_ptr<Stmt> body)
+    : Decl(Kind::Function, storage, span, name), m_type(ty), 
+      m_params(std::move(params)), m_scope(std::move(scope)), 
+      m_body(std::move(body)) {}
