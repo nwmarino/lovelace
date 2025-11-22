@@ -462,6 +462,8 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         return parse_integer();
     } else if (match(TokenKind::Float)) {
         return parse_float();
+    } else if (match(TokenKind::Character)) {
+        return parse_character();
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
     } else if (match(TokenKind::SetParen)) {
@@ -484,10 +486,8 @@ std::unique_ptr<Expr> Parser::parse_primary() {
 }
 
 std::unique_ptr<Expr> Parser::parse_integer() {
-    const Token& integer = m_lexer.last();
-    const SourceLocation start = integer.loc;
-    int64_t value = std::stoll(integer.value);
-    next();
+    const Token integer = m_lexer.last();
+    next(); // integer
 
     const Type* ty = nullptr;
     if (!match(TokenKind::Identifier)) {
@@ -505,15 +505,13 @@ std::unique_ptr<Expr> Parser::parse_integer() {
     }
 
     return std::unique_ptr<IntegerLiteral>(new IntegerLiteral(
-        since(start), QualType(ty), value
+        since(integer.loc), QualType(ty), std::stoll(integer.value)
     ));
 }
 
 std::unique_ptr<Expr> Parser::parse_float() {
-    const Token& fp = m_lexer.last();
-    const SourceLocation start = fp.loc;
-    double value = std::stod(fp.value);
-    next();
+    const Token fp = m_lexer.last();
+    next(); // float
 
     const Type* ty = nullptr;
     if (!match(TokenKind::Identifier)) {
@@ -525,12 +523,17 @@ std::unique_ptr<Expr> Parser::parse_float() {
     }
 
     return std::unique_ptr<FPLiteral>(new FPLiteral(
-        since(start), QualType(ty), value
+        since(fp.loc), QualType(ty), std::stod(fp.value)
     ));
 }
 
 std::unique_ptr<Expr> Parser::parse_character() {
-    return nullptr;
+    const Token ch = m_lexer.last();
+    next(); // '...'
+
+    return std::unique_ptr<CharLiteral>(new CharLiteral(
+        since(ch.loc), QualType(IntegerType::get(*m_context, 8, true)), ch.value[0]
+    ));
 }
 
 std::unique_ptr<Expr> Parser::parse_string() {
