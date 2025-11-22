@@ -21,8 +21,9 @@ int32_t main(int32_t argc, char* argv[]) {
     std::string output = "main";
     std::vector<std::string> files = {};
 
-#ifndef SCC_COMPILE_SAMPLES
-    files.push_back("../samples/return_zero.c");
+#ifdef SCC_COMPILE_SAMPLES
+    files.push_back("samples/return_zero.c");
+    files.push_back("samples/local_ref.c");
 #endif // SCC_COMPILE_SAMPLES
 
     for (int32_t arg = 1; arg < argc; ++arg) {

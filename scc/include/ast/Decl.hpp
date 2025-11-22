@@ -56,10 +56,14 @@ protected:
     /// The name of this declaration, if it has one.
     const std::string m_name;
 
+    /// The type of this declaration.
+    QualType m_type;
+
 public:
     explicit Decl(Kind kind, StorageClass storage, const Span& span, 
-                  const std::string& name) 
-        : m_kind(kind), m_storage(storage), m_span(span), m_name(name) {}
+                  const std::string& name, const QualType& ty) 
+        : m_kind(kind), m_storage(storage), m_span(span), m_name(name), 
+          m_type(ty) {}
 
     Decl(const Decl&) = delete;
     Decl& operator = (const Decl&) = delete;
@@ -78,15 +82,16 @@ public:
     /// Returns the name of this declaration.
     const std::string& name() const { return m_name; }
 
+    /// Returns the type of this variable.
+    const QualType& get_type() const { return m_type; }
+    QualType& get_type() { return m_type; }
+
     /// Pretty-print this declaration node to the output stream \p os.
     virtual void print(std::ostream& os) const = 0;
 };
 
 /// Represents a variable declaration, either global or local.
 class VariableDecl final : public Decl {
-    /// The type of this variable.
-    QualType m_type = nullptr;
-
     /// The initializing expression of this variable, if there is one.
     std::unique_ptr<Expr> m_init = nullptr;
 
@@ -97,10 +102,6 @@ public:
 
     VariableDecl(const VariableDecl&) = delete;
     VariableDecl& operator = (const VariableDecl&) = delete;
-
-    /// Returns the type of this variable.
-    const QualType& get_type() const { return m_type; }
-    QualType& get_type() { return m_type; }
 
     /// Returns the initializing expression of this variable, if there is one.
     const Expr* get_initializer() const { return m_init.get(); }
@@ -114,18 +115,11 @@ public:
 
 /// Represents a parameter declaration within a function parameter list.
 class ParameterDecl final : public Decl {
-    /// The type of this parameter.
-    QualType m_type;
-
 public:
     ParameterDecl(const Span& span, const std::string& name, const QualType& ty);
 
     ParameterDecl(const ParameterDecl&) = delete;
     ParameterDecl& operator = (const ParameterDecl&) = delete;
-
-    /// Returns the type of this variable.
-    const QualType& get_type() const { return m_type; }
-    QualType& get_type() { return m_type; }
 
     void print(std::ostream& os) const override;
 };
@@ -135,7 +129,6 @@ class FunctionDecl final : public Decl {
 public:
     using ParameterList = std::vector<std::unique_ptr<ParameterDecl>>;
 
-    QualType m_type;
     ParameterList m_params;
     std::unique_ptr<Scope> m_scope;
     std::unique_ptr<Stmt> m_body;
@@ -148,10 +141,6 @@ public:
 
     FunctionDecl(const FunctionDecl&) = delete;
     FunctionDecl& operator = (const FunctionDecl&) = delete;
-
-    /// Returns the signature type of this function declaration.
-    const QualType& get_type() const { return m_type; }
-    QualType& get_type() { return m_type; }
 
     /// Returns the number of parameters this function has.
     uint32_t num_params() const { return m_params.size(); }

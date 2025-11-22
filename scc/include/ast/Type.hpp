@@ -62,7 +62,7 @@ public:
     Type(const Type&) = delete;
     Type& operator = (const Type&) = delete;
 
-    ~Type() = default;
+    virtual ~Type() = default;
 
     bool operator == (const Type& other) const { return m_id == other.id(); }
     bool operator != (const Type& other) const { return m_id != other.id(); }

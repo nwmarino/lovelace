@@ -12,7 +12,7 @@ set(SCC_SOURCES
     source/lexer/Lexer.cpp
 )
 
-add_compile_options(-g)
+add_compile_options(-g -D SCC_COMPILE_SAMPLES)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 

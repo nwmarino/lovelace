@@ -221,6 +221,19 @@ bool Parser::is_reserved(const std::string& ident) const {
     return keywords.contains(ident);
 }
 
+bool Parser::is_typedef(const std::string& ident) const {
+    // No named types yet, so only have to consider primitives.
+
+    static std::unordered_set<std::string> keywords = {
+        "auto", "char", "const", "double",
+        "enum", "float", "int", "long",
+        "short", "signed", "struct", "typedef",
+        "union", "unsigned", "void", "volatile",  
+    };
+
+    return keywords.contains(ident);
+}
+
 StorageClass Parser::parse_storage_class() {
     static std::unordered_map<std::string, StorageClass> classes = {
         { "auto", StorageClass::Auto },
@@ -264,39 +277,35 @@ bool Parser::parse_type(QualType& ty) {
         next();
     }
 
-    bool is_int = false, is_signed;
-    if (m_lexer.last().value == "signed") {
-        is_int = true;
-        is_signed = true;
-        next();
-    } else if (m_lexer.last().value == "unsigned") {
-        is_int = true;
-        is_signed = false;
+    std::string base = "";
+
+    while (match(TokenKind::Identifier) && is_reserved(m_lexer.last().value)) {
+        base += m_lexer.last().value + ' ';
         next();
     }
+
+    if (!base.empty())
+        base = base.substr(0, base.size() - 1);
 
     static std::unordered_map<std::string, const Type*> primitives = {
         { "void", VoidType::get(*m_context) },
         { "char", IntegerType::get(*m_context, 8, true) },
+        { "unsigned char", IntegerType::get(*m_context, 8, false) },
         { "short", IntegerType::get(*m_context, 16, true) },
+        { "unsigned short", IntegerType::get(*m_context, 16, false) },
         { "int", IntegerType::get(*m_context, 32, true) },
+        { "unsigned int", IntegerType::get(*m_context, 32, false) },
         { "long", IntegerType::get(*m_context, 64, true) },
+        { "unsigned long", IntegerType::get(*m_context, 64, false) },
+        { "long long", IntegerType::get(*m_context, 64, true) },
+        { "unsigned long long", IntegerType::get(*m_context, 64, false) },
         { "float", FPType::get(*m_context, 32) },
         { "double", FPType::get(*m_context, 64) },  
     };
 
     const Type* pType = nullptr;
-    if (primitives.count(m_lexer.last().value) != 0)
-        pType = primitives[m_lexer.last().value];
-
-    if (pType != nullptr)
-        next();
-
-    if (is_int && (!pType || !pType->is_integer())) {
-        Logger::error("expected integer type" + 
-            std::string(!is_signed ? " after 'unsigned'" : ""), 
-            since(m_lexer.last(1).loc));
-    }
+    if (primitives.count(base) != 0)
+        pType = primitives[base];
 
     while (match(TokenKind::Star)) {
         pType = PointerType::get(*m_context, pType);
@@ -327,12 +336,13 @@ std::unique_ptr<Decl> Parser::parse_decl() {
     if (is_reserved(name))
         Logger::error("identifier '" + name + "' is reserved", since(start));
 
-    if (match(TokenKind::Eq)) {
-        // The identifier is followed by an '=', which means its a global 
+    if (match(TokenKind::Semi) || match(TokenKind::Eq)) {
+        // The identifier is followed by a ';' or '=', which means its a 
         // variable in the form of:
         //
+        // <type> <ident> ';'
+        //       or
         // <type> <ident> = ...
-        
         return parse_variable(start, sclass, ty, name);
     } else if (match(TokenKind::SetParen)) {
         // The identifier is followed by a '(', which means its the beginning
@@ -428,7 +438,19 @@ std::unique_ptr<Decl> Parser::parse_function(
 std::unique_ptr<Decl> Parser::parse_variable(
         const SourceLocation& start, StorageClass sclass, const QualType& ty, 
         const std::string& name) {
-    return nullptr;
+    std::unique_ptr<Expr> init = nullptr;
+    if (match(TokenKind::Eq)) {
+        next(); // '='
+        init = parse_expr();
+        assert(init != nullptr && "could not parse variable initializer!");
+    }
+
+    auto var = std::unique_ptr<VariableDecl>(new VariableDecl(
+        sclass, since(start), name, ty, std::move(init)
+    ));
+
+    m_scope->add(var.get());
+    return var;
 }
 
 std::unique_ptr<Expr> Parser::parse_expr() {
@@ -438,6 +460,8 @@ std::unique_ptr<Expr> Parser::parse_expr() {
 std::unique_ptr<Expr> Parser::parse_primary() {
     if (match(TokenKind::Integer)) {
         return parse_integer();
+    } else if (match(TokenKind::Identifier)) {
+        return parse_ref();
     }
     
     return nullptr;
@@ -487,7 +511,18 @@ std::unique_ptr<Expr> Parser::parse_unary() {
 }
 
 std::unique_ptr<Expr> Parser::parse_ref() {
-    return nullptr;
+    const Token token = m_lexer.last();
+    next(); // identifier
+
+    Decl* decl = m_scope->get(token.value);
+    if (!decl) {
+        Logger::error("unresolved reference: '" + token.value + "'", 
+            since(token.loc));
+    }
+
+    return std::unique_ptr<RefExpr>(new RefExpr(
+        since(token.loc), decl->get_type(), decl
+    ));
 }
 
 std::unique_ptr<Expr> Parser::parse_call() {
@@ -505,11 +540,25 @@ std::unique_ptr<Expr> Parser::parse_sizeof() {
 std::unique_ptr<Stmt> Parser::parse_stmt() {
     if (match(TokenKind::SetBrace)) {
         return parse_compound();
-    } else if (match("return")) {
-        return parse_return();
     }
 
-    return nullptr;
+    if (match("return")) {
+        return parse_return();
+    } else if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
+        auto var = parse_decl();
+        assert(var != nullptr && "could not parse variable declaration!");
+
+        return std::unique_ptr<DeclStmt>(new DeclStmt(
+            var->span(), std::move(var)
+        ));
+    }
+
+    auto expr = parse_expr();
+    assert(expr != nullptr && "could not parse expression statement!");
+
+    return std::unique_ptr<ExprStmt>(new ExprStmt(
+        expr->span(), std::move(expr)
+    ));
 }
 
 std::unique_ptr<Stmt> Parser::parse_compound() {
