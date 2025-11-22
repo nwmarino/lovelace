@@ -41,8 +41,7 @@ class Lexer final {
 
     /// Peek at the upcoming \p n characters in the buffer \c m_buf.
     char peek(uint32_t n = 1) const {
-        assert(m_pos + n < m_buf.size() && "iterator would exceed buffer size!");
-        return m_buf[m_pos + n];
+        return (m_pos + n >= m_buf.size()) ? '\0' : m_buf[m_pos + n];
     }
 
     /// Move the iterator \c m_pos \p n positions forward. Also updates
