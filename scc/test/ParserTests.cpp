@@ -8,6 +8,7 @@
 #include "ast/Parser.hpp"
 #include "ast/Stmt.hpp"
 #include "ast/Type.hpp"
+#include "core/Logger.hpp"
 #include "core/TranslationUnit.hpp"
 
 #include "gtest/gtest.h"
@@ -897,6 +898,30 @@ TEST_F(ParserTests, ParseTypedefDeclRef) {
     auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_EQ(fn->get_type().to_string(), "const uint64_t ()");
+}
+
+TEST_F(ParserTests, ParseStructDecl) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "struct Box { long long x; const int y; };");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = dynamic_cast<const StructDecl*>(unit.get_scope()->get("Box"));
+    EXPECT_NE(decl, nullptr);
+    EXPECT_EQ(decl->name(), "Box");
+    EXPECT_EQ(decl->num_fields(), 2);
+
+    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_field(0));
+    EXPECT_NE(f1, nullptr);
+    EXPECT_EQ(f1->name(), "x");
+    EXPECT_EQ(f1->get_type().to_string(), "long long");
+
+    auto f2 = dynamic_cast<const FieldDecl*>(decl->get_field(1));
+    EXPECT_NE(f2, nullptr);
+    EXPECT_EQ(f2->name(), "y");
+    EXPECT_EQ(f2->get_type().to_string(), "const int");
 }
 
 TEST_F(ParserTests, ParseEnumDecl) {

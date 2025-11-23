@@ -38,3 +38,13 @@ EnumDecl::EnumDecl(const Span& span, const std::string& name,
                    std::vector<std::unique_ptr<VariantDecl>>& variants)
     : Decl(Kind::Enum, StorageClass::None, span, name, ty),
 	  m_variants(std::move(variants)) {}
+
+FieldDecl::FieldDecl(const Span& span, const std::string& name, 
+                     const QualType& ty)
+    : Decl(Kind::Field, StorageClass::None, span, name, ty) {}
+
+StructDecl::StructDecl(const Span& span, const std::string& name, 
+                       const QualType& ty, 
+                       std::vector<std::unique_ptr<FieldDecl>>& fields)
+    : Decl(Kind::Struct, StorageClass::None, span, name, ty), 
+      m_fields(std::move(fields)) {}

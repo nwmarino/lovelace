@@ -93,6 +93,7 @@ class Parser final {
                                          const QualType& ty, 
                                          const std::string& name);
     std::unique_ptr<Decl> parse_typedef();
+    std::unique_ptr<Decl> parse_struct();
     std::unique_ptr<Decl> parse_enum();
 
     std::unique_ptr<Expr> parse_expr();

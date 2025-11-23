@@ -42,6 +42,8 @@ public:
         Parameter,
         Function,
         Typedef,
+        Field,
+        Struct,
         Variant,
         Enum,
     };
@@ -203,54 +205,43 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
 /// Represents a field of a structure.
 class FieldDecl final : public Decl {
-    std::shared_ptr<Type> m_type;
-
 public:
-    FieldDecl(const Span& span, const std::string& name, 
-              std::shared_ptr<Type> type);
+    FieldDecl(const Span& span, const std::string& name, const QualType& ty);
 
     FieldDecl(const FieldDecl&) = delete;
     FieldDecl& operator = (const FieldDecl&) = delete;
 
-    ~FieldDecl() override = default;
-
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    void print(std::ostream& os) const override;
 };
 
-/// Represents a `struct` type declaration.
+/// Represents a 'struct' declaration.
 class StructDecl final : public Decl {
-    /// The type that this structure defines. It is owned by the AST context. 
-    std::shared_ptr<Type> m_type;
-
-    /// The fields in this structure.
+    /// The fields of this structure.
     std::vector<std::unique_ptr<FieldDecl>> m_fields;
 
 public:
-    StructDecl(const Span& span, const std::string& name, 
-               std::shared_ptr<Type> type, 
-               const std::vector<std::unique_ptr<FieldDecl>>& fields);
+    StructDecl(const Span& span, const std::string& name, const QualType& ty, 
+               std::vector<std::unique_ptr<FieldDecl>>& fields);
 
     StructDecl(const StructDecl&) = delete;
     StructDecl& operator = (const StructDecl&) = delete;
 
-    ~StructDecl() override = default;
+    /// Returns the number of fields in this structure.
+    uint32_t num_fields() const { return m_fields.size(); }
 
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    /// Returns true if this structure has any fields.
+    bool has_fields() const { return !m_fields.empty(); }
 
-    /// Returns the field in this structure with the given name if it exists,
-    /// and `nullptr` otherwise.
+    /// Returns true if this structure does not have any fields.
+    bool empty() const { return m_fields.empty(); }
+
+    /// Returns the field in this structure named by \p name if it exists,
+    /// and 'nullptr' otherwise.
     const FieldDecl* get_field(const std::string& name) const {
         for (const auto& field : m_fields)
-            if (field->get_name() == name)
-                return field.get();
+            if (field->name() == name) return field.get();
 
         return nullptr;
     }
@@ -260,19 +251,19 @@ public:
             static_cast<const StructDecl*>(this)->get_field(name));
     }
 
-    /// Returns the field at the given index of this structure.
-    const FieldDecl* get_field(uint32_t index) const {
-        assert(index < m_fields.size() && "index out of bounds!");
-        return m_fields[index].get();
+    /// Returns the field at position \p i of this structure.
+    const FieldDecl* get_field(uint32_t i) const {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i].get();
     }
 
-    FieldDecl* get_field(uint32_t index) {
+    FieldDecl* get_field(uint32_t i) {
         return const_cast<FieldDecl*>(
-            static_cast<const StructDecl*>(this)->get_field(index));
+            static_cast<const StructDecl*>(this)->get_field(i));
     }
-};
 
-*/
+    void print(std::ostream& os) const override;
+};
 
 /// Represents a variant of an enumeration.
 class VariantDecl final : public Decl {

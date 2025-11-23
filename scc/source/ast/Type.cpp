@@ -160,9 +160,23 @@ const TypedefType* TypedefType::create(
 
     ctx.m_typedefs.push_back(std::move(ty));
     return pTy;
-} 
+}
 
 std::string TypedefType::to_string() const {
+    return m_decl->name();
+}
+
+const StructType* StructType::create(
+        Context& ctx, const StructDecl* decl, 
+        const std::vector<QualType>& fields) {
+    auto ty = std::unique_ptr<StructType>(new StructType(decl, fields));
+    const StructType* pTy = ty.get();
+
+    ctx.m_structs.push_back(std::move(ty));
+    return pTy;
+}
+
+std::string StructType::to_string() const {
     return m_decl->name();
 }
 

@@ -345,6 +345,8 @@ bool Parser::parse_type(QualType& ty) {
 std::unique_ptr<Decl> Parser::parse_decl() {
     if (match("typedef")) {
         return parse_typedef();
+    } else if (match("struct")) {
+        return parse_struct();
     } else if (match("enum")) {
         return parse_enum();
     }
@@ -620,6 +622,80 @@ std::unique_ptr<Decl> Parser::parse_typedef() {
 
     decl->get_type() = QualType(TypedefType::create(
         *m_context, decl.get(), underlying
+    ));
+
+    return decl;
+}
+
+std::unique_ptr<Decl> Parser::parse_struct() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'enum'
+
+    std::vector<std::unique_ptr<FieldDecl>> fields = {};
+   
+    if (!match(TokenKind::Identifier))
+        Logger::error("expected identifier after 'struct'", since(start));
+
+    const std::string name = m_lexer.last().value;
+    next(); // identifier
+
+    if (is_reserved(name))
+        Logger::error("identifier '" + name + "' is reserved", since(start));
+
+    if (match(TokenKind::SetBrace)) {
+        next(); // '{'
+    } else {
+        Logger::error("expected '{'", since(start));
+    }
+
+    if (!match(TokenKind::EndBrace)) fields.reserve(2);
+
+    while (!match(TokenKind::EndBrace)) {
+        const SourceLocation fstart = m_lexer.last().loc;
+
+        QualType fty {};
+        if (!parse_type(fty))
+            Logger::error("expected type", since(fstart));
+
+        if (!match(TokenKind::Identifier))
+            Logger::error("expected identifier", since(fstart));
+
+        const std::string fname = m_lexer.last().value;
+        next(); // identifier
+
+        if (is_reserved(fname))
+            Logger::error("identifier '" + fname + "' is reserved", since(start));
+
+        std::unique_ptr<FieldDecl> field = std::make_unique<FieldDecl>(
+            since(fstart), fname, fty
+        );
+
+        fields.push_back(std::move(field));
+
+        if (match(TokenKind::EndBrace)) break;
+
+        if (!match(TokenKind::Semi))
+            Logger::error("expected ';'", since(fstart));
+
+        while(match(TokenKind::Semi)) next(); // ';'
+    }
+
+    next(); // '}'
+
+    if (!fields.empty()) fields.shrink_to_fit();
+
+    std::unique_ptr<StructDecl> decl = std::make_unique<StructDecl>(
+        since(start), name, QualType(), fields
+    );
+
+    m_scope->add(decl.get());
+
+    std::vector<QualType> field_types(fields.size(), QualType());
+    for (uint32_t i = 0; i < fields.size(); ++i)
+        field_types[i] = decl->get_field(i)->get_type();
+
+    decl->get_type() = QualType(StructType::create(
+        *m_context, decl.get(), field_types
     ));
 
     return decl;

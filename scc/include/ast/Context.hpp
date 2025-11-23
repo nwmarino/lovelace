@@ -27,6 +27,7 @@ class Context final {
     friend class PointerType;
     friend class FunctionType;
     friend class TypedefType;
+    friend class StructType;
     friend class EnumType;
 
     using BuiltinTypePool = 
@@ -35,6 +36,7 @@ class Context final {
     using PointerTypePool = std::vector<std::unique_ptr<PointerType>>;
     using FunctionTypePool = std::vector<std::unique_ptr<FunctionType>>;
     using TypedefTypePool = std::vector<std::unique_ptr<TypedefType>>;
+    using StructTypePool = std::vector<std::unique_ptr<StructType>>;
     using EnumTypePool = std::vector<std::unique_ptr<EnumType>>;
 
     /// Pool of types that are built-in to the C language.
@@ -53,6 +55,9 @@ class Context final {
 
     /// Pool of typedef types.
     TypedefTypePool m_typedefs = {};
+
+    /// Pool of struct types.
+    StructTypePool m_structs = {};
 
     /// Pool of enum types.
     EnumTypePool m_enums = {};

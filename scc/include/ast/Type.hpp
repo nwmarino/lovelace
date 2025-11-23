@@ -27,6 +27,7 @@
 namespace scc {
 
 class Context;
+class StructDecl;
 class EnumDecl;
 class TypedefDecl;
 
@@ -297,6 +298,45 @@ public:
     /// Returns the underlying type.
     const QualType& get_underlying() const { return m_underlying; }
     QualType& get_underlying() { return m_underlying; }
+
+    std::string to_string() const override;
+};
+
+/// Represents the type defined by a 'struct' declaration.
+class StructType final : public Type {
+    friend class Context;
+
+    /// The 'struct' declaration that defines this type.
+    const StructDecl* m_decl;
+
+    /// The types of the fields in the structure that defines this type.
+    std::vector<QualType> m_fields;
+
+    StructType(const StructDecl* decl, const std::vector<QualType>& fields)
+        : Type(), m_decl(decl), m_fields(fields) {}
+
+public:
+    /// Create and return a new type defined by a 'struct' declaration \p decl
+    /// and field types \p fields.
+    static const StructType* create(Context& ctx, const StructDecl* decl, 
+                                    const std::vector<QualType>& fields);
+
+    /// Returns the 'struct' declaration that defines this type.
+    const StructDecl* get_decl() const { return m_decl; }
+
+    /// Returns the number of fields in this type.
+    uint32_t num_fields() const { return m_fields.size(); }
+
+    /// Returns the type of the field at position \p i.
+    const QualType& get_field(uint32_t i) const {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
+
+    QualType& get_field(uint32_t i) {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
 
     std::string to_string() const override;
 };

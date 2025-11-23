@@ -113,6 +113,24 @@ void TypedefDecl::print(std::ostream& os) const {
     os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 }
 
+void FieldDecl::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Field ";
+    print_span(os, m_span);
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+}
+
+void StructDecl::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Struct ";
+    print_span(os, m_span);
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+
+    ++g_indent;
+    for (const auto& field : m_fields) field->print(os);
+    --g_indent;
+}
+
 void VariantDecl::print(std::ostream& os) const {
     print_indent(os);
     os << "Variant ";
