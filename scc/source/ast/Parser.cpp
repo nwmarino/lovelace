@@ -343,7 +343,11 @@ bool Parser::parse_type(QualType& ty) {
 }
 
 std::unique_ptr<Decl> Parser::parse_decl() {
-    if (match("typedef")) return parse_typedef();
+    if (match("typedef")) {
+        return parse_typedef();
+    } else if (match("enum")) {
+        return parse_enum();
+    }
 
     const SourceLocation start = m_lexer.last().loc;
 
@@ -617,6 +621,98 @@ std::unique_ptr<Decl> Parser::parse_typedef() {
     decl->get_type() = QualType(TypedefType::create(
         *m_context, decl.get(), underlying
     ));
+
+    return decl;
+}
+
+std::unique_ptr<Decl> Parser::parse_enum() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'enum'
+
+    std::vector<std::unique_ptr<VariantDecl>> variants = {};
+
+    if (!match(TokenKind::Identifier))
+        Logger::error("expected identifier", since(start));
+
+    const std::string name = m_lexer.last().value;
+    next(); // identifier
+
+    if (is_reserved(name))
+        Logger::error("identifier '" + name + "' is reserved", since(start));
+
+    if (match(TokenKind::SetBrace)) {
+        next(); // '{'
+    } else {
+        Logger::error("expected '{'", since(start));
+    }
+
+    if (!match(TokenKind::EndBrace)) variants.reserve(4);
+
+    int32_t value = 0;
+    while (!match(TokenKind::EndBrace)) {
+        const SourceLocation vstart = m_lexer.last().loc;
+
+        if (!match(TokenKind::Identifier))
+            Logger::error("expected identifier", since(vstart));
+
+        const std::string vname = m_lexer.last().value;
+        next(); // identifier
+
+        if (is_reserved(vname))
+            Logger::error("identifier '" + vname + "' is reserved", since(start));
+
+        if (match(TokenKind::Eq)) {
+            next(); // '='
+
+            bool neg = match(TokenKind::Minus);
+            if (neg)
+                next(); // '-'
+
+            if (match(TokenKind::Integer)) {
+                value = std::stod(m_lexer.last().value);
+                next(); // integer
+            } else {
+                Logger::error("expected integer after '='", since(vstart));
+            }
+
+            if (neg)
+                value = -value;
+        }
+
+        std::unique_ptr<VariantDecl> variant = std::make_unique<VariantDecl>(
+            since(vstart),
+            vname,
+            QualType(),
+            value++
+        );
+
+        m_scope->add(variant.get());
+        variants.push_back(std::move(variant));
+
+        if (match(TokenKind::EndBrace)) break;
+
+        if (match(TokenKind::Comma)) {
+            next(); // ','
+        } else {
+            Logger::error("expected ','", since(vstart));
+        }
+    }
+
+    next(); // '}'
+
+    if (!variants.empty()) variants.shrink_to_fit();
+
+    std::unique_ptr<EnumDecl> decl = std::make_unique<EnumDecl>(
+        since(start), name, QualType(), variants
+    );
+
+    m_scope->add(decl.get());
+
+    decl->get_type() = QualType(EnumType::create(*m_context, decl.get()));
+
+    // Retroactively match all the variant types with the new enum type.
+    for (uint32_t i = 0; i < decl->num_variants(); ++i)
+        decl->get_variant(i)->get_type() = decl->get_type();
 
     return decl;
 }

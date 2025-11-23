@@ -27,6 +27,7 @@
 namespace scc {
 
 class Context;
+class EnumDecl;
 class TypedefDecl;
 
 /// Base class for all types in the C type system.
@@ -285,7 +286,8 @@ class TypedefType final : public Type {
         : Type(), m_decl(decl), m_underlying(underlying) {}
 
 public:
-    /// Create and return a new type defined by a 'typedef' declaration.
+    /// Create and return a new type defined by a 'typedef' declaration \p decl
+    /// with the underlying type \p underlying.
     static const TypedefType* create(Context& ctx, const TypedefDecl* decl, 
                                      const QualType& underlying);
                                
@@ -295,6 +297,25 @@ public:
     /// Returns the underlying type.
     const QualType& get_underlying() const { return m_underlying; }
     QualType& get_underlying() { return m_underlying; }
+
+    std::string to_string() const override;
+};
+
+/// Represents the type defined by an 'enum' declaration.
+class EnumType final : public Type {
+    friend class Context;
+
+    /// The 'enum' declaration that defines this type.
+    const EnumDecl* m_decl;
+
+    EnumType(const EnumDecl* decl) : Type(), m_decl(decl) {}
+
+public:
+    /// Create and return a new type defined by an 'enum' declaration \p decl.
+    static const EnumType* create(Context& ctx, const EnumDecl* decl);
+
+    /// Returns the 'enum' declaration that defines this type.
+    const EnumDecl* get_decl() const { return m_decl; }
 
     std::string to_string() const override;
 };

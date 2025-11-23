@@ -15,7 +15,7 @@ VariableDecl::VariableDecl(StorageClass storage, const Span& span,
     : Decl(Kind::Variable, storage, span, name, ty), m_init(std::move(init)) {}
 
 ParameterDecl::ParameterDecl(const Span& span, const std::string& name, 
-							               const QualType& ty)
+							 const QualType& ty)
 	: Decl(Kind::Parameter, StorageClass::None, span, name, ty) {}
 
 FunctionDecl::FunctionDecl(StorageClass storage, const Span& span, 
@@ -28,3 +28,13 @@ FunctionDecl::FunctionDecl(StorageClass storage, const Span& span,
 TypedefDecl::TypedefDecl(const Span& span, const std::string& name, 
 						 const QualType& ty)
 	: Decl(Kind::Typedef, StorageClass::None, span, name, ty) {}
+
+VariantDecl::VariantDecl(const Span& span, const std::string& name, 
+						 const QualType& ty, int32_t value)
+	: Decl(Kind::Variant, StorageClass::None, span, name, ty), m_value(value) {}
+
+EnumDecl::EnumDecl(const Span& span, const std::string& name, 
+                   const QualType& ty, 
+                   std::vector<std::unique_ptr<VariantDecl>>& variants)
+    : Decl(Kind::Enum, StorageClass::None, span, name, ty),
+	  m_variants(std::move(variants)) {}

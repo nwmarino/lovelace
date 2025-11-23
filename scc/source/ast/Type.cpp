@@ -165,3 +165,15 @@ const TypedefType* TypedefType::create(
 std::string TypedefType::to_string() const {
     return m_decl->name();
 }
+
+const EnumType* EnumType::create(Context& ctx, const EnumDecl* decl) {
+    auto ty = std::unique_ptr<EnumType>(new EnumType(decl));
+    const EnumType* pTy = ty.get();
+
+    ctx.m_enums.push_back(std::move(ty));
+    return pTy;
+}
+
+std::string EnumType::to_string() const {
+    return m_decl->name();
+}

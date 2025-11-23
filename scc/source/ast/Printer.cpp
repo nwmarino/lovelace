@@ -110,7 +110,25 @@ void TypedefDecl::print(std::ostream& os) const {
     print_indent(os);
     os << "Typedef ";
     print_span(os, m_span);
-    os <<  ' ' << m_name << " '" << m_type.to_string() << "'\n";
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+}
+
+void VariantDecl::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Variant ";
+    print_span(os, m_span);
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+}
+
+void EnumDecl::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Enum ";
+    print_span(os, m_span);
+    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+
+    ++g_indent;
+    for (const auto& variant : m_variants) variant->print(os);
+    --g_indent;
 }
 
 void CompoundStmt::print(std::ostream& os) const {

@@ -42,6 +42,8 @@ public:
         Parameter,
         Function,
         Typedef,
+        Variant,
+        Enum,
     };
 
 protected:
@@ -270,61 +272,52 @@ public:
     }
 };
 
+*/
+
 /// Represents a variant of an enumeration.
 class VariantDecl final : public Decl {
-    /// The type of this enum variant - this will be the same as the type of
-    /// its parent enumeration.
-    std::shared_ptr<Type> m_type;
-
-    /// The value of this enum variant.
+    /// The value of this variant.
     const int32_t m_value;
 
 public:
-    VariantDecl(const Span& span, const std::string& name, 
-                    std::shared_ptr<Type> type, int32_t value);
+    VariantDecl(const Span& span, const std::string& name, const QualType& ty, 
+                int32_t value);
 
     VariantDecl(const VariantDecl&) = delete;
     VariantDecl& operator = (const VariantDecl&) = delete;
 
-    ~VariantDecl() override = default;
-
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
-
     /// Returns the value of this variant.
     int32_t get_value() const { return m_value; }
+
+    void print(std::ostream& os) const override;
 };
 
-/// Represents an `enum` type declaration.
+/// Represents an 'enum' declaration.
 class EnumDecl final : public Decl {
-    /// The type that this enumeration defines. This is owned by the AST 
-    /// context.
-    std::shared_ptr<Type> m_type;
-
-    /// The variants in this enumeration.
+    /// The variants of this enumeration.
     std::vector<std::unique_ptr<VariantDecl>> m_variants;
 
 public:
-    EnumDecl(const Span& span, const std::string& name,
-             std::shared_ptr<Type> type, 
-             const std::vector<std::unique_ptr<VariantDecl>>& variants);
+    EnumDecl(const Span& span, const std::string& name, const QualType& ty, 
+             std::vector<std::unique_ptr<VariantDecl>>& variants);
 
     EnumDecl(const EnumDecl&) = delete;
     EnumDecl& operator = (const EnumDecl&) = delete;
 
-    ~EnumDecl() override = default;
+    /// Returns the number of variants in this enum.
+    uint32_t num_variants() const { return m_variants.size(); }
 
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    /// Returns true if this enum has any variants.
+    bool has_variants() const { return !m_variants.empty(); }
 
-    /// Returns the variant in this enum with the given name if it exists, and 
-    /// `nullptr` otherwise.
+    /// Returns true if this enum does not have any variants.
+    bool empty() const { return m_variants.empty(); }
+
+    /// Returns the variant in this enum named by \p name if it exists, and
+    /// 'nullptr' otherwise.
     const VariantDecl* get_variant(const std::string& name) const {
         for (const auto& variant : m_variants)
-            if (variant->get_name() == name)
-                return variant.get();
+            if (variant->name() == name) return variant.get();
 
         return nullptr;
     }
@@ -334,19 +327,19 @@ public:
             static_cast<const EnumDecl*>(this)->get_variant(name));
     }
 
-    /// Returns the variant at the given index of this enum.
-    const VariantDecl* get_variant(uint32_t index) const {
-        assert(index < m_variants.size() && "index out of bounds!");
-        return m_variants[index].get();
+    /// Returns the variant at position \p i of this enum.
+    const VariantDecl* get_variant(uint32_t i) const {
+        assert(i < m_variants.size() && "index out of bounds!");
+        return m_variants[i].get();
     }
 
-    VariantDecl* get_variant(uint32_t index) {
+    VariantDecl* get_variant(uint32_t i) {
         return const_cast<VariantDecl*>(
-            static_cast<const EnumDecl*>(this)->get_variant(index));
+            static_cast<const EnumDecl*>(this)->get_variant(i));
     }
-};
 
-*/
+    void print(std::ostream& os) const override;
+};
 
 } // namespace scc
 
