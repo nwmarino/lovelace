@@ -195,7 +195,7 @@ public:
     uint32_t get_size();
 
     std::string to_string() const override {
-        return m_element->to_string() + '[' + std::to_string(m_size) + ']';
+        return m_element.to_string() + '[' + std::to_string(m_size) + ']';
     }
 };
 
@@ -218,7 +218,7 @@ public:
     QualType& get_pointee() { return m_pointee; }
 
     std::string to_string() const override { 
-        return m_pointee->to_string() + '*'; 
+        return m_pointee.to_string() + '*'; 
     }
 };
 

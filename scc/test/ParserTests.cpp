@@ -886,6 +886,19 @@ TEST_F(ParserTests, ParseTypedefDecl) {
     EXPECT_EQ(underlying.to_string(), "unsigned long long");
 }
 
+TEST_F(ParserTests, ParseTypedefDeclRef) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "typedef unsigned long long uint64_t; const uint64_t main();");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 2);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_EQ(fn->get_type().to_string(), "const uint64_t ()");
+}
+
 /*
 TEST_F(ParserTests, ParseMemberBasic) {
     TranslationUnit unit {};

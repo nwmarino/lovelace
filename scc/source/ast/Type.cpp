@@ -142,10 +142,10 @@ const FunctionType* FunctionType::get(
 }
 
 std::string FunctionType::to_string() const {
-    std::string str = m_ret->to_string() + " (";
+    std::string str = m_ret.to_string() + " (";
 
     for (uint32_t i = 0, e = num_params(); i < e; ++i) {
-        str += get_param_type(i)->to_string();
+        str += get_param_type(i).to_string();
         if (i + 1 != e)
             str += ", ";
     }

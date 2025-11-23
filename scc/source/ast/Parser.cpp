@@ -269,6 +269,8 @@ StorageClass Parser::parse_storage_class() {
 bool Parser::parse_type(QualType& ty) {
     if (!match(TokenKind::Identifier))
         return false;
+
+    const SourceLocation start = m_lexer.last().loc;
     
     if (match("const")) {
         ty.with_const();
@@ -317,8 +319,18 @@ bool Parser::parse_type(QualType& ty) {
     };
 
     const Type* pType = nullptr;
-    if (primitives.count(base) != 0) {
-        pType = primitives.at(base);
+    if (!base.empty()) {
+        if (primitives.count(base) != 0) {
+            pType = primitives.at(base);
+        } else {
+            Logger::error("expected type", since(start));
+        }
+    } else {
+        const Decl* decl = m_scope->get(m_lexer.last().value);
+        if (!decl) Logger::error("expected type", since(start));
+
+        pType = decl->get_type().get_type();
+        next(); // identifier
     }
 
     while (match(TokenKind::Star)) {
@@ -346,7 +358,7 @@ std::unique_ptr<Decl> Parser::parse_decl() {
     if (!match(TokenKind::Identifier))
         Logger::error("missing identifier after declaration type", since(start));
 
-    std::string name = m_lexer.last().value;
+    const std::string name = m_lexer.last().value;
     next(); // identifier
 
     if (is_reserved(name))
@@ -386,8 +398,7 @@ std::unique_ptr<Decl> Parser::parse_function(
     std::vector<std::unique_ptr<ParameterDecl>> params = {};
 
     // Reserve some space if there are going to be parameters.
-    if (!match(TokenKind::EndParen))
-        params.reserve(6);
+    if (!match(TokenKind::EndParen)) params.reserve(6);
 
     while (!match(TokenKind::EndParen)) {
         const SourceLocation pstart = m_lexer.last().loc;
