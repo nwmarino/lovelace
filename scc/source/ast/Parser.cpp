@@ -616,9 +616,7 @@ std::unique_ptr<Expr> Parser::parse_primary() {
             expr = parse_expr();
             assert(expr != nullptr && "could not parse cast expression!");
 
-            return std::unique_ptr<CastExpr>(new CastExpr(
-                since(start), ty, std::move(expr)
-            ));
+            return std::make_unique<CastExpr>(since(start), ty, std::move(expr));
         } else {
             expr = parse_expr();
             assert(expr != nullptr && "could not parse parentheses expression!");
@@ -627,9 +625,9 @@ std::unique_ptr<Expr> Parser::parse_primary() {
                 Logger::error("expected ')' after expression", since(start));
 
             next(); // ')'
-            return std::unique_ptr<ParenExpr>(new ParenExpr(
+            return std::make_unique<ParenExpr>(
                 since(start), expr->get_type(), std::move(expr)
-            ));
+            );
         }
     }
     
@@ -661,9 +659,9 @@ std::unique_ptr<Expr> Parser::parse_integer() {
         next(); // 'ull' || 'ULL'
     }
 
-    return std::unique_ptr<IntegerLiteral>(new IntegerLiteral(
+    return std::make_unique<IntegerLiteral>(
         since(integer.loc), QualType(ty), std::stoll(integer.value)
-    ));
+    );
 }
 
 std::unique_ptr<Expr> Parser::parse_float() {
@@ -679,20 +677,20 @@ std::unique_ptr<Expr> Parser::parse_float() {
         next(); // 'f' || 'F'
     }
 
-    return std::unique_ptr<FPLiteral>(new FPLiteral(
+    return std::make_unique<FPLiteral>(
         since(fp.loc), QualType(ty), std::stod(fp.value)
-    ));
+    );
 }
 
 std::unique_ptr<Expr> Parser::parse_character() {
     const Token ch = m_lexer.last();
     next(); // '...'
 
-    return std::unique_ptr<CharLiteral>(new CharLiteral(
+    return std::make_unique<CharLiteral>(
         since(ch.loc), 
         QualType(BuiltinType::get_char_type(*m_context)), 
         ch.value[0]
-    ));
+    );
 }
 
 std::unique_ptr<Expr> Parser::parse_string() {
@@ -704,43 +702,39 @@ std::unique_ptr<Expr> Parser::parse_string() {
     ));
     ty.with_const();
 
-    return std::unique_ptr<StringLiteral>(new StringLiteral(
-        since(str.loc), ty, str.value 
-    ));
+    return std::make_unique<StringLiteral>(since(str.loc), ty, str.value);
 }
 
 std::unique_ptr<Expr> Parser::parse_binary(std::unique_ptr<Expr> base, 
                                            int32_t precedence) {
     while (1) {
-        const Token& last = m_lexer.last();
+        const Token last = m_lexer.last();
 
         int32_t token_prec = get_binary_operator_precedence(last.kind);
-        if (token_prec < precedence)
-            break;
+        if (token_prec < precedence) break;
 
         BinaryExpr::Op op = get_binary_operator(last.kind);
-        if (op == BinaryExpr::Unknown)
-            break;
-
+        if (op == BinaryExpr::Unknown) break;
         next(); // operator
         
-        auto right = parse_unary_prefix();
-        assert(right != nullptr && "could not parse binary rhs expression!");
+        std::unique_ptr<Expr> right = parse_unary_prefix();
+        if (!right)
+            Logger::error("expected right side expression", since(last.loc));
 
         int32_t next_prec = get_binary_operator_precedence(m_lexer.last().kind);
         if (token_prec < next_prec) {
             right = parse_binary(std::move(right), precedence + 1);
-            assert(right != nullptr && 
-                "could not parse secondary binary rhs expression!");
+            if (!right)
+                Logger::error("expected right side expression", since(last.loc));
         }
 
-        base = std::unique_ptr<BinaryExpr>(new BinaryExpr(
+        base = std::make_unique<BinaryExpr>(
             Span(base->span().begin, right->span().end),
             base->get_type(),
             op,
             std::move(base),
             std::move(right)
-        ));
+        );
     }
 
     return base;
@@ -748,16 +742,17 @@ std::unique_ptr<Expr> Parser::parse_binary(std::unique_ptr<Expr> base,
 
 std::unique_ptr<Expr> Parser::parse_unary_prefix() {
     UnaryExpr::Op op = get_unary_operator(m_lexer.last().kind);
+    
     if (UnaryExpr::is_prefix_op(op)) {
         const SourceLocation start = m_lexer.last().loc;
         next(); // operator
 
         std::unique_ptr<Expr> base = parse_unary_prefix();
-        assert(base != nullptr && "could not parse prefix unary expression!");
+        if (!base) Logger::error("expected expression", since(start));
 
-        return std::unique_ptr<UnaryExpr>(new UnaryExpr(
+        return std::make_unique<UnaryExpr>(
             since(start), base->get_type(), op, false, std::move(base)
-        ));
+        );
     } else return parse_unary_postfix();
 }
 
@@ -772,47 +767,44 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
         if (UnaryExpr::is_postfix_op(op)) {
             next(); // operator
 
-            base = std::unique_ptr<UnaryExpr>(new UnaryExpr(
+            base = std::make_unique<UnaryExpr>(
                 since(start), base->get_type(), op, true, std::move(base)
-            ));
+            );
         } else if (match(TokenKind::SetParen)) {
             next(); // '('
 
             std::vector<std::unique_ptr<Expr>> args = {};
-
-            if (!match(TokenKind::EndParen))
-                args.reserve(2);
+            if (!match(TokenKind::EndParen)) args.reserve(2);
 
             while (!match(TokenKind::EndParen)) {
-                auto arg = parse_expr();
-                assert(arg != nullptr && 
-                    "could not parse function call argument expression!");
+                std::unique_ptr<Expr> arg = parse_expr();
+                if (!arg) Logger::error("expected expression", since(start));
                 
                 args.push_back(std::move(arg));
 
-                if (match(TokenKind::EndParen))
-                    break;
+                if (match(TokenKind::EndParen)) break;
 
-                if (!match(TokenKind::Comma))
-                    Logger::error("missing ',' after function call argument", since(start));
-
-                next(); // ','
+                if (match(TokenKind::Comma)) {
+                    next(); // ','
+                } else {
+                    Logger::error("expected ',' after function call argument", 
+                        since(start));
+                }
             }
 
             next(); // ')'
 
-            if (!args.empty())
-                args.shrink_to_fit();
+            if (!args.empty()) args.shrink_to_fit();
 
-            base = std::unique_ptr<CallExpr>(new CallExpr(
+            base = std::make_unique<CallExpr>(
                 since(start), base->get_type(), std::move(base), args
-            ));
+            );
         } else if (match(TokenKind::SetBrack)) {
             next(); // '['
 
-            std::unique_ptr<Expr> index = nullptr;
-            if (!(index = parse_expr())) 
-                Logger::error("expected expression after '['");
+            std::unique_ptr<Expr> index = parse_expr();
+            if (!index) 
+                Logger::error("expected expression after '['", since(start));
 
             if (match(TokenKind::EndBrack)) {
                 next(); // ']'
@@ -820,17 +812,34 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
                 Logger::error("expected ']'");
             }
 
-            base = std::unique_ptr<SubscriptExpr>(new SubscriptExpr(
+            base = std::make_unique<SubscriptExpr>(
                 since(start), 
                 base->get_type(), 
                 std::move(base), 
                 std::move(index)
-            ));
-        }
+            );
+        } else if (match(TokenKind::Dot) || match(TokenKind::Arrow)) {
+            bool arrow = match(TokenKind::Arrow);
+            next(); // '.' || '->'
 
-        // else if . (member)
+            const Decl* member = nullptr;
 
-        else {
+            if (match(TokenKind::Identifier)) {
+                const QualType& base_type = base->get_type();
+                // TODO: Determine member based on base structure type.
+            } else {
+                Logger::error("expected identifier after '" + 
+                    std::string(arrow ? "->" : ".") + "'", since(start));
+            }
+
+            base = std::make_unique<MemberExpr>(
+                since(start),
+                member->get_type(),
+                std::move(base),
+                member,
+                arrow
+            );
+        } else {
             break;
         }
     }
@@ -943,34 +952,31 @@ std::unique_ptr<Stmt> Parser::parse_compound() {
     const SourceLocation start = m_lexer.last().loc;
     next(); // '{'
 
-    auto scope = enter_scope();
+    std::unique_ptr<Scope> scope = enter_scope();
+    std::unique_ptr<Stmt> stmt = nullptr;
     std::vector<std::unique_ptr<Stmt>> stmts = {};
-    
-    if (!match(TokenKind::EndBrace))
-        stmts.reserve(4);
+    if (!match(TokenKind::EndBrace)) stmts.reserve(4);
 
     while (!match(TokenKind::EndBrace)) {
-        auto stmt = parse_stmt();
-        assert(stmt != nullptr && "could not parse statement!");
+        if (!(stmt = parse_stmt())) 
+            Logger::error("expected statement", since(start));
+
         stmts.push_back(std::move(stmt));
+        stmt = nullptr;
 
-        if (match(TokenKind::EndBrace))
-            break;
+        if (match(TokenKind::EndBrace)) break;
 
-        while (match(TokenKind::Semi))
-            next(); // ';'
+        while (match(TokenKind::Semi)) next(); // ';'
     }
 
     next(); // '}'
-
-    if (!stmts.empty())
-        stmts.shrink_to_fit();
-
     exit_scope();
 
-    return std::unique_ptr<CompoundStmt>(new CompoundStmt(
+    if (!stmts.empty()) stmts.shrink_to_fit();
+
+    return std::make_unique<CompoundStmt>(
         since(start), std::move(scope), stmts
-    ));
+    );
 }
 
 std::unique_ptr<Stmt> Parser::parse_if() {
@@ -980,32 +986,34 @@ std::unique_ptr<Stmt> Parser::parse_if() {
     std::unique_ptr<Expr> cond = nullptr;
     std::unique_ptr<Stmt> then = nullptr, els = nullptr;
 
-    if (!match(TokenKind::SetParen))
-        Logger::error("missing '(' after 'if' keyword", since(start));
+    if (match(TokenKind::SetParen)) {
+        next(); // '('
+    } else {
+        Logger::error("expected '(' after 'if'", since(start));
+    }
 
-    next(); // '('
+    if (!(cond = parse_expr()))
+        Logger::error("expected expression after '('", since(start));
 
-    cond = parse_expr();
-    assert(cond != nullptr && "could not parse if condition expression!");
-
-    if (!match(TokenKind::EndParen))
+    if (match(TokenKind::EndParen)) {
+        next(); // ')'
+    } else {
         Logger::error("missing ')' after 'if' condition", since(start));
+    }
 
-    next(); // ')'
-
-    then = parse_stmt();
-    assert(then != nullptr && "could not parse if-then statement!");
+    if (!(then = parse_stmt())) 
+        Logger::error("expected statement", since(start));
 
     if (match("else")) {
         next(); // 'else'
 
-        els = parse_stmt();
-        assert(els != nullptr && "could not parse if-else statement!");
+        if (!(els = parse_stmt()))
+            Logger::error("expected statement after 'else'", since(start));
     }
 
-    return std::unique_ptr<IfStmt>(new IfStmt(
+    return std::make_unique<IfStmt>(
         since(start), std::move(cond), std::move(then), std::move(els)
-    ));
+    );
 }
 
 std::unique_ptr<Stmt> Parser::parse_return() {
@@ -1174,15 +1182,11 @@ std::unique_ptr<Stmt> Parser::parse_switch() {
         while (match(TokenKind::Semi)) next(); // ';'
     }
 
-    next(); // '}'   
+    next(); // '}'
 
     if (!cases.empty()) cases.shrink_to_fit();
     
     return std::make_unique<SwitchStmt>(
-        since(start),
-        std::move(mtch),
-        cases,
-        std::move(def)
+        since(start), std::move(mtch), cases, std::move(def)
     );
 }
-

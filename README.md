@@ -1,46 +1,28 @@
 # statim ('stat·​im) *"immediately"*
 
-Statim is to be a multi-purpose, strongly typed language designed with kernel 
-development in mind. The main point of the project is to expirement with the 
-potential of an interpretable intermediate represenation (IR) closely coupled 
-into the compiler.
+statim is a compiler toolchain that consists of both a custom backend intended
+for systems-related programming languages, and two frontends for C and a custom 
+language.
 
-## Overview
+## scc
 
-Overarching priorities of the language are reduced compilation times from that 
-of modern C/C++, metaprogramming capabilities, and compile-time executions of 
-arbitrary code. Although costly to the former, having a unique IR allows for 
-some interesting compiler feedback and compile-time opportunities.
+scc is the C compiler frontend that uses a standard version of the portable
+backend. It implements most major ANSI C language rules, with some exceptions.
 
-## Desugaring
+## stmc
 
-Although keeping with the general purpose idea, to write software that we want, 
-we need features like complex casting, pointer arithmetic, etc. and thus the 
-language won't shy away from those constructs; it's not meant to be 
-"high-level".
+stmc is the frontend for an expiremental, general-purpose language with some 
+systems-esque features.
 
-### What *is* part of the plan
+## spbe
 
-* compile-time evaluation
-* operator overloading
-* templates via monomorphization
-* parallelization
-* runtime type reflection
-* auto dereferencing (no `->` operator)
-* functions with multiple return values, natively
-* namespaces
-* `defer` statements
-* optional bounds, null pointer checks
+The portable backend leverages an intermediate representation (IR) capable of 
+Static-Single Assignment (SSA) form that is based on a control-flow graph,
+similar to other IRs you may be familiar with. The stmc frontend uses a custom 
+fork of this backend to implement special intrinsics related to the language. 
+The standard version can be translated to LLVM IR if it is desired for more
+aggressive optimizations i.e. for release builds.
 
-### What *isn't* part of the plan
+## Building
 
-* constructors, destructors
-* `new` & `delete` operators
-* garbage collector
-* RAII
-* function overloading
-* inheritance
-* a preprocessor 
-* external build system(s)
-* exceptions
-* references
+All components of the project use and require CMake >= 4.0 to build.

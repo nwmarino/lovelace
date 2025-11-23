@@ -62,7 +62,10 @@ const Token& Lexer::lex() {
             break;
         
         case '-':
-            if (peek() == '-') {
+            if (peek() == '>') {
+                token.kind = TokenKind::Arrow;
+                move(2);
+            } else if (peek() == '-') {
                 token.kind = TokenKind::MinusMinus;
                 move(2);
             } else if (peek() == '=') {
