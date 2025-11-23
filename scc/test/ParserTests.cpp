@@ -513,4 +513,32 @@ TEST_F(ParserTests, ParseArrayTypeParameter) {
     EXPECT_EQ(fn->get_type().to_string(), "int (int[5])");
 }
 
+TEST_F(ParserTests, ParseWhileLoop) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { while (1) continue; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const WhileStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_TRUE(loop->has_body());
+
+    auto cond = dynamic_cast<const IntegerLiteral*>(loop->get_cond());
+    EXPECT_NE(cond, nullptr);
+    EXPECT_EQ(cond->get_value(), 1);
+
+    auto cont = dynamic_cast<const ContinueStmt*>(loop->get_body());
+    EXPECT_NE(cont, nullptr);
+}
+
 } // namespace scc::test

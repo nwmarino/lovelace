@@ -863,6 +863,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         return parse_return();
     } else if (match("if")) {
         return parse_if();
+    } else if (match("while")) {
+        return parse_while();
     } else if (match("break")) {
         const SourceLocation start = m_lexer.last().loc;
         next(); // 'break'
@@ -893,7 +895,6 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
 
 std::unique_ptr<Stmt> Parser::parse_compound() {
     const SourceLocation start = m_lexer.last().loc;
-
     next(); // '{'
 
     auto scope = enter_scope();
@@ -973,5 +974,37 @@ std::unique_ptr<Stmt> Parser::parse_return() {
 
     return std::unique_ptr<ReturnStmt>(new ReturnStmt(
         since(start), std::move(expr)
+    ));
+}
+
+std::unique_ptr<Stmt> Parser::parse_while() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'while'
+
+    std::unique_ptr<Expr> cond = nullptr;
+    std::unique_ptr<Stmt> body = nullptr;
+
+    if (!match(TokenKind::SetParen))
+        Logger::error("missing '(' after 'while' keyword", since(start));
+
+    next(); // '('
+
+    cond = parse_expr();
+    assert(cond != nullptr && "could not parse while condition expression!");
+
+    if (!match(TokenKind::EndParen))
+        Logger::error("missing ')' after 'while' condition", since(start));
+
+    next(); // ')'
+
+    if (match(TokenKind::Semi)) {
+        next(); // ';'
+    } else {
+        body = parse_stmt();
+        assert(body != nullptr && "could not parse while body!");
+    }
+
+    return std::unique_ptr<WhileStmt>(new WhileStmt(
+        since(start), std::move(cond), std::move(body)
     ));
 }

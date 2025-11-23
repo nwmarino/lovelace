@@ -110,6 +110,7 @@ class Parser final {
     std::unique_ptr<Stmt> parse_compound();
     std::unique_ptr<Stmt> parse_if();
     std::unique_ptr<Stmt> parse_return();
+    std::unique_ptr<Stmt> parse_while();
 
 public:
     Parser(const std::string& file, const std::string& source = "");

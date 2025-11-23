@@ -33,9 +33,9 @@ public:
         Return,
         Break,
         Continue,
-        /*
         While,
         For,
+        /*
         Case,
         Switch,
         Goto,
@@ -236,12 +236,36 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
+/// Represents a 'while' statement.
 class WhileStmt final : public Stmt {
     std::unique_ptr<Expr> m_cond;
-    std::unique_ptr<Expr> m_body;
+    std::unique_ptr<Stmt> m_body;
+
+public:
+    WhileStmt(const Span& span, std::unique_ptr<Expr> cond, 
+              std::unique_ptr<Stmt> body)
+        : Stmt(Kind::While, span), m_cond(std::move(cond)), 
+          m_body(std::move(body)) {}
+
+    WhileStmt(const WhileStmt&) = delete;
+    WhileStmt& operator = (const WhileStmt&) = delete;
+
+    /// Returns the condition expression of this while statement.
+    const Expr* get_cond() const { return m_cond.get(); }
+    Expr* get_cond() { return m_cond.get(); }
+    
+    /// Returns true if this while statement has body.
+    bool has_body() const { return m_body != nullptr; }
+
+    /// Returns the body of this while statement if it has one, and 'nullptr'
+    /// otherwise.
+    const Stmt* get_body() const { return has_body() ? m_body.get() : nullptr; }
+    Stmt* get_body() { return has_body() ? m_body.get() : nullptr; }
+
+    void print(std::ostream& os) const override;
 };
+
+/*
 
 class ForStmt final : public Stmt {
     std::unique_ptr<Expr> m_init;

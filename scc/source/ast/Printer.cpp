@@ -205,6 +205,24 @@ void ContinueStmt::print(std::ostream& os) const {
     os << '\n';
 }
 
+void WhileStmt::print(std::ostream& os) const {
+    print_indent(os);
+
+    os << "While ";
+
+    print_span(os, m_span);
+
+    os << '\n';
+
+    ++g_indent;
+    m_cond->print(os);
+
+    if (has_body())
+        m_body->print(os);
+    
+    --g_indent;
+}
+
 void IntegerLiteral::print(std::ostream& os) const {
     print_indent(os);
 
