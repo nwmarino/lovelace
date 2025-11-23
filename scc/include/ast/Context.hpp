@@ -13,9 +13,7 @@
 //
 
 #include "ast/Type.hpp"
-#include "ast/QualType.hpp"
 
-#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -24,38 +22,19 @@ namespace scc {
 
 class Context final {
     friend class TranslationUnit;
-    friend class VoidType;
-    friend class IntegerType;
-    friend class FPType;
+    friend class BuiltinType;
     friend class ArrayType;
     friend class PointerType;
     friend class FunctionType;
 
-    /// Potential kinds of primitive types.
-    enum class TypeKind : uint32_t {
-        Void = 0,
-        UChar = 1, 
-        Char = 2,
-        UShort = 3, 
-        Short = 4,
-        UInt = 5, 
-        Int = 6,
-        ULong = 7, 
-        Long = 8,
-        ULongLong = 9, 
-        LongLong = 10,
-        Float = 11,
-        Double = 12,
-    };
-
-    using PrimitiveTypePool = 
-        std::unordered_map<TypeKind, std::unique_ptr<Type>>;
+    using BuiltinTypePool = 
+        std::unordered_map<BuiltinType::Kind, std::unique_ptr<BuiltinType>>;
     using ArrayTypePool = std::vector<std::unique_ptr<ArrayType>>;
     using PointerTypePool = std::vector<std::unique_ptr<PointerType>>;
     using FunctionTypeList = std::vector<std::unique_ptr<FunctionType>>;
 
-    /// Pool of primitive types which are built-in to the C language.
-    PrimitiveTypePool m_prims = {};
+    /// Pool of types that are built-in to the C language.
+    BuiltinTypePool m_bts = {};
 
     /// Pool of arrays types.
     ArrayTypePool m_arrays = {};

@@ -280,7 +280,7 @@ bool Parser::parse_type(QualType& ty) {
 
     if (match("volatile")) {
         if (ty.is_volatile()) {
-            Logger::warn("type already marked with 'volatile', ignoring", 
+            Logger::warn("type already qualified with 'volatile', ignoring", 
                 since(m_lexer.last(1).loc));
         } else {
             ty.with_volatile();
@@ -300,19 +300,20 @@ bool Parser::parse_type(QualType& ty) {
         base = base.substr(0, base.size() - 1);
 
     std::unordered_map<std::string, const Type*> primitives = {
-        { "void", VoidType::get(*m_context) },
-        { "char", IntegerType::get(*m_context, 8, true) },
-        { "unsigned char", IntegerType::get(*m_context, 8, false) },
-        { "short", IntegerType::get(*m_context, 16, true) },
-        { "unsigned short", IntegerType::get(*m_context, 16, false) },
-        { "int", IntegerType::get(*m_context, 32, true) },
-        { "unsigned int", IntegerType::get(*m_context, 32, false) },
-        { "long", IntegerType::get(*m_context, 64, true) },
-        { "unsigned long", IntegerType::get(*m_context, 64, false) },
-        { "long long", IntegerType::get(*m_context, 64, true) },
-        { "unsigned long long", IntegerType::get(*m_context, 64, false) },
-        { "float", FPType::get(*m_context, 32) },
-        { "double", FPType::get(*m_context, 64) },  
+        { "void", BuiltinType::get_void_type(*m_context) },
+        { "char", BuiltinType::get_char_type(*m_context) },
+        { "unsigned char", BuiltinType::get_uchar_type(*m_context) },
+        { "short", BuiltinType::get_short_type(*m_context) },
+        { "unsigned short", BuiltinType::get_ushort_type(*m_context) },
+        { "int", BuiltinType::get_int_type(*m_context) },
+        { "unsigned int", BuiltinType::get_uint_type(*m_context) },
+        { "long", BuiltinType::get_long_type(*m_context) },
+        { "unsigned long", BuiltinType::get_ulong_type(*m_context) },
+        { "long long", BuiltinType::get_longlong_type(*m_context) },
+        { "unsigned long long", BuiltinType::get_ulonglong_type(*m_context) },
+        { "float", BuiltinType::get_float_type(*m_context) },
+        { "double", BuiltinType::get_double_type(*m_context) },
+        { "long double", BuiltinType::get_longdouble_type(*m_context) },
     };
 
     const Type* pType = nullptr;
@@ -592,16 +593,22 @@ std::unique_ptr<Expr> Parser::parse_integer() {
     const Type* ty = nullptr;
     if (!match(TokenKind::Identifier)) {
         // Default to 'int' type.
-        ty = IntegerType::get(*m_context, 32, true);
+        ty = BuiltinType::get_int_type(*m_context);
     } else if (match("u") || match("U")) {
-        ty = IntegerType::get(*m_context, 32, false);
+        ty = BuiltinType::get_uint_type(*m_context);
         next(); // 'u' || 'U'
-    } else if (match("l") || match("L") || match("ll") || match("LL")) {
-        ty = IntegerType::get(*m_context, 64, true);
-        next(); // 'l' || 'L' || 'll' || 'LL'
-    } else if (match("ul") || match("UL") || match("ull") || match("ULL")) {
-        ty = IntegerType::get(*m_context, 64, false);
-        next(); // 'ul' || 'UL' || 'ull' || 'ULL'
+    } else if (match("l") || match("L")) {
+        ty = BuiltinType::get_long_type(*m_context);
+        next(); // 'l' || 'L'
+    } else if (match("ul") || match("UL")) {
+        ty = BuiltinType::get_ulong_type(*m_context);
+        next(); // 'ul' || 'UL'
+    } else if (match("ll") || match("LL")) {
+        ty = BuiltinType::get_longlong_type(*m_context);
+        next(); // 'll' || 'LL'
+    } else if (match("ull") || match("ULL")) {
+        ty = BuiltinType::get_ulonglong_type(*m_context);
+        next(); // 'ull' || 'ULL'
     }
 
     return std::unique_ptr<IntegerLiteral>(new IntegerLiteral(
@@ -616,9 +623,9 @@ std::unique_ptr<Expr> Parser::parse_float() {
     const Type* ty = nullptr;
     if (!match(TokenKind::Identifier)) {
         // Default to 'double' type.
-        ty = FPType::get(*m_context, 64);
+        ty = BuiltinType::get_double_type(*m_context);
     } else if (match("f") || match("F")) {
-        ty = FPType::get(*m_context, 32);
+        ty = BuiltinType::get_float_type(*m_context);
         next(); // 'f' || 'F'
     }
 
@@ -633,7 +640,7 @@ std::unique_ptr<Expr> Parser::parse_character() {
 
     return std::unique_ptr<CharLiteral>(new CharLiteral(
         since(ch.loc), 
-        QualType(IntegerType::get(*m_context, 8, true)), 
+        QualType(BuiltinType::get_char_type(*m_context)), 
         ch.value[0]
     ));
 }
@@ -643,7 +650,8 @@ std::unique_ptr<Expr> Parser::parse_string() {
     next(); // "..."
 
     QualType ty(PointerType::get(
-        *m_context, IntegerType::get(*m_context, 8, true)));
+        *m_context, BuiltinType::get_char_type(*m_context)
+    ));
     ty.with_const();
 
     return std::unique_ptr<StringLiteral>(new StringLiteral(
@@ -798,7 +806,7 @@ std::unique_ptr<Expr> Parser::parse_sizeof() {
 
     // Uses ulong for the sizeof result.
     return std::unique_ptr<SizeofExpr>(new SizeofExpr(
-        since(start), QualType(IntegerType::get(*m_context, 64, false)), ty
+        since(start), QualType(BuiltinType::get_ulong_type(*m_context)), ty
     ));
 }
 

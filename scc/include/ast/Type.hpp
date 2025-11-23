@@ -35,16 +35,6 @@ class Type {
 public:
     using id_t = uint32_t;
 
-    /// Possible kinds of types.
-    enum class Kind : uint32_t {
-        Void = 0,
-        Integer = 1,
-        Float = 2,
-        Array = 3,
-        Pointer = 4,
-        Function = 5,
-    };
-
 protected:
     /// Iterator for type ids during creation.
     static id_t s_id;
@@ -55,10 +45,7 @@ protected:
     /// The id of a type cannot be changed after creation.
     id_t m_id;
 
-    /// The kind of type this is. This cannot change after creation.
-    Kind m_kind;
-
-    Type(Kind kind) : m_id(s_id++), m_kind(kind) {}
+    Type() : m_id(s_id++) {}
 
 public:
     Type(const Type&) = delete;
@@ -72,93 +59,111 @@ public:
     /// Returns the unique numerical identifier of this type.
     id_t id() const { return m_id; }
 
-    /// Returns the kind of type this is.
-    Kind kind() const { return m_kind; }
-
     /// Returns true if this is the void type.
-    bool is_void() const { return kind() == Kind::Void; }
+    virtual bool is_void() const { return false; }
 
     /// Returns true if this is an integer type.
-    bool is_integer() const { return kind() == Kind::Integer; }
+    virtual bool is_integer() const { return false; }
     
-    /// Returns true if this is an integer type with the number of bits \p bits.
-    virtual bool is_integer(uint32_t bits) const { return false; }
+    /// Returns true if this is a signed integer type.
+    virtual bool is_signed_integer() const { return false; }
+
+    /// Returns true if this is an unsigned integer type.
+    virtual bool is_unsigned_integer() const { return false; }
 
     /// Returns true if this is a floating point type.
-    bool is_float() const { return kind() == Kind::Float; }
-
-    /// Returns true if this is a floating point type with the number of bits
-    /// \p bits.
-    virtual bool is_float(uint32_t bits) const { return false; }
+    virtual bool is_floating_point() const { return false; }
 
     /// Returns true if this is a pointer type.
-    bool is_pointer() const { return kind() == Kind::Pointer; }
+    virtual bool is_pointer() const { return false; }
 
     /// Returns a stringified version of this type.
     virtual std::string to_string() const = 0;
 };
 
-/// Represents the fundamental void type `void`.
-class VoidType final : public Type {
+/// Represents fundamental types built-in to C.
+class BuiltinType final : public Type {
     friend class Context;
+    
+public:
+    /// Possible kinds of built-in types.
+    enum Kind : uint32_t {
+        Void = 0,
+        Char,
+        UChar,
+        Short,
+        UShort,
+        Int,
+        UInt,
+        Long,
+        ULong,
+        LongLong,
+        ULongLong,
+        Float,
+        Double,
+        LongDouble,
+    };
 
-    VoidType() : Type(Kind::Void) {}
+private:
+    /// The kind of built-in type this is.
+    Kind m_kind;
+
+    BuiltinType(Kind kind) : Type(), m_kind(kind) {}
 
 public:
-    /// Returns the void type.
-    static const VoidType* get(Context& ctx);
+    /// Returns the 'void' type.
+    static const BuiltinType* get_void_type(Context& ctx);
 
-    std::string to_string() const override { return "void"; }
-};
+    /// Returns the 'unsigned char' type.
+    static const BuiltinType* get_uchar_type(Context& ctx);
 
-/// Represents the fundamental integral types, i.e. 'char', 'short', 'int', and
-/// 'long', as well their unsigned variants.
-class IntegerType final : public Type {
-    friend class Context;
+    /// Returns the 'char' or 'signed char' type.
+    static const BuiltinType* get_char_type(Context& ctx);
 
-    /// The width of this integer type in bits.
-    uint32_t m_bits;
+    /// Returns the 'unsigned short' type.
+    static const BuiltinType* get_ushort_type(Context& ctx);
 
-    /// If this integer type is marked with 'unsigned' or not.
-    bool m_signed;
+    /// Returns the 'short' or 'signed short' type.
+    static const BuiltinType* get_short_type(Context& ctx);
 
-    IntegerType(uint32_t bits, bool is_signed) 
-        : Type(Kind::Integer), m_bits(bits), m_signed(is_signed) {}
+    /// Returns the 'unsigned int' type.
+    static const BuiltinType* get_uint_type(Context& ctx);
 
-public:
-    /// Returns the primitive integer type with the bit width defined by 
-    /// \p bits, and signedness \p is_signed.
-    static const IntegerType* get(Context& ctx, uint32_t bits, bool is_signed);
+    /// Returns the 'signed int' or 'int' type.
+    static const BuiltinType* get_int_type(Context& ctx);
 
-    /// Returns the number of bits in this integer type.
-    uint32_t bits() const { return m_bits; }
+    /// Returns the 'unsigned long' type.
+    static const BuiltinType* get_ulong_type(Context& ctx);
 
-    /// Returns true if this integer type is signed, and false if unsigned.
-    bool is_signed() const { return m_signed; }
+    /// Returns the 'signed long' or 'long' type.
+    static const BuiltinType* get_long_type(Context& ctx);
 
-    bool is_integer(uint32_t bits) const override { return m_bits == bits; }
+    /// Returns the 'unsigned long long' type.
+    static const BuiltinType* get_ulonglong_type(Context& ctx);
 
-    std::string to_string() const override;
-};
+    /// Returns the 'signed long long' or 'long long' type.
+    static const BuiltinType* get_longlong_type(Context& ctx);
 
-/// Represents the fundamental floating point types, i.e. `float` and `double`.
-class FPType final : public Type {
-    friend class Context;
+    /// Returns the 'float' type.
+    static const BuiltinType* get_float_type(Context& ctx);
 
-    /// The width of this floating point type in bits.
-    uint32_t m_bits;
+    /// Returns the 'double' type.
+    static const BuiltinType* get_double_type(Context& ctx);
 
-    FPType(uint32_t bits) : Type(Kind::Float), m_bits(bits) {}
+    /// Returns the 'long double' type.
+    static const BuiltinType* get_longdouble_type(Context& ctx);
 
-public:
-    /// Returns the primitive floating point type with the bit width defined
-    /// by \p bits.
-    static const FPType* get(Context& ctx, uint32_t bits);
+    bool is_void() const override { return m_kind == Void; }
 
-    /// Returns the number of bits in this floating point type.
-    uint32_t bits() const { return m_bits; }
+    bool is_integer() const override { 
+        return Char <= m_kind && ULongLong <= m_kind; 
+    }
 
-    bool is_float(uint32_t bits) const override { return m_bits == bits; }
+    bool is_signed_integer() const override;
+    
+    bool is_unsigned_integer() const override;
+
+    bool is_floating_point() const override { return m_kind >= Float; }
 
     std::string to_string() const override;
 };
@@ -174,7 +179,7 @@ class ArrayType final : public Type {
     uint32_t m_size;
 
     ArrayType(const QualType& element, uint32_t size)
-        : Type(Kind::Array), m_element(element), m_size(size) {}
+        : Type(), m_element(element), m_size(size) {}
     
 public:
     /// Returns the array type with element type \p element and size \p size.
@@ -201,8 +206,7 @@ class PointerType final : public Type {
     /// is an integral type 'int'.
     QualType m_pointee;
 
-    PointerType(const QualType& pointee) 
-        : Type(Kind::Pointer), m_pointee(pointee) {}
+    PointerType(const QualType& pointee) : Type(), m_pointee(pointee) {}
 
 public:
     /// Returns the pointer type that points to type \p pointee.
@@ -228,7 +232,7 @@ class FunctionType final : public Type {
     std::vector<QualType> m_params;
 
     FunctionType(const QualType& ret, const std::vector<QualType>& params)
-        : Type(Kind::Function), m_ret(ret), m_params(params) {}
+        : Type(), m_ret(ret), m_params(params) {}
 
 public:
     /// Returns a function signature type that returns type \p ret, and has

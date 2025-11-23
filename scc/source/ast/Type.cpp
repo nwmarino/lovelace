@@ -13,79 +13,104 @@ using namespace scc;
 
 Type::id_t Type::s_id = 0;
 
-const VoidType* VoidType::get(Context& ctx) {
-    using TK = Context::TypeKind;
-    return static_cast<const VoidType*>(ctx.m_prims.at(TK::Void).get());
+const BuiltinType* BuiltinType::get_void_type(Context& ctx) {
+    return ctx.m_bts[Void].get();
 }
 
-const IntegerType* IntegerType::get(
-        Context& ctx, uint32_t bits, bool is_signed) {
-    using TK = Context::TypeKind;
-
-    const Type* ty = nullptr;
-    switch (bits) {
-    case 8:
-        ty = (is_signed ? 
-            ctx.m_prims.at(TK::Char).get() : ctx.m_prims.at(TK::UChar).get());
-        break;
-    case 16:
-        ty = (is_signed ? 
-            ctx.m_prims.at(TK::Short).get() : ctx.m_prims.at(TK::UShort).get());
-        break;
-    case 32:
-        ty = (is_signed ? 
-            ctx.m_prims.at(TK::Int).get() : ctx.m_prims.at(TK::UInt).get());
-        break;
-    case 64:
-        ty = (is_signed ? 
-            ctx.m_prims.at(TK::Long).get() : ctx.m_prims.at(TK::ULong).get());
-        break;
-    }
-
-    assert(ty != nullptr && "invalid bits for an integer type!");
-    return static_cast<const IntegerType*>(ty);
+const BuiltinType* BuiltinType::get_uchar_type(Context& ctx) {
+    return ctx.m_bts[UChar].get();
 }
 
-std::string IntegerType::to_string() const {
-    switch (m_bits) {
-    case 8:
-        return (m_signed ? "char" : "unsigned char");
-    case 16:
-        return (m_signed ? "short" : "unsigned short");
-    case 32:
-        return (m_signed ? "int" : "unsigned int");
-    case 64:
-        return (m_signed ? "long" : "unsigned long");
+const BuiltinType* BuiltinType::get_char_type(Context& ctx) {
+    return ctx.m_bts[Char].get();
+}
+
+const BuiltinType* BuiltinType::get_ushort_type(Context& ctx) {
+    return ctx.m_bts[UShort].get();
+}
+
+const BuiltinType* BuiltinType::get_short_type(Context& ctx) {
+    return ctx.m_bts[Short].get();
+}
+
+const BuiltinType* BuiltinType::get_uint_type(Context& ctx) {
+    return ctx.m_bts[UInt].get();
+}
+
+const BuiltinType* BuiltinType::get_int_type(Context& ctx) {
+    return ctx.m_bts[Int].get();
+}
+
+const BuiltinType* BuiltinType::get_ulong_type(Context& ctx) {
+    return ctx.m_bts[ULong].get();
+}
+
+const BuiltinType* BuiltinType::get_long_type(Context& ctx) {
+    return ctx.m_bts[Long].get();
+}
+
+const BuiltinType* BuiltinType::get_ulonglong_type(Context& ctx) {
+    return ctx.m_bts[ULongLong].get();
+}
+
+const BuiltinType* BuiltinType::get_longlong_type(Context& ctx) {
+    return ctx.m_bts[LongLong].get();
+}
+
+const BuiltinType* BuiltinType::get_float_type(Context& ctx) {
+    return ctx.m_bts[Float].get();
+}
+
+const BuiltinType* BuiltinType::get_double_type(Context& ctx) {
+    return ctx.m_bts[Double].get();
+}
+
+const BuiltinType* BuiltinType::get_longdouble_type(Context& ctx) {
+    return ctx.m_bts[LongDouble].get();
+}
+
+bool BuiltinType::is_signed_integer() const {
+    switch (m_kind) {
+    case Char:
+    case Short:
+    case Int:
+    case Long:
+    case LongLong:
+        return true;
     default:
-        assert(false && "invalid bits for an integer type!");
+        return false;
     }
 }
 
-const FPType* FPType::get(Context& ctx, uint32_t bits) {
-    using TK = Context::TypeKind;
-
-    const Type* ty = nullptr;
-    switch (bits) {
-    case 32:
-        ty = ctx.m_prims.at(TK::Float).get();
-        break;
-    case 64:
-        ty = ctx.m_prims.at(TK::Double).get();
-        break;
-    }
-
-    assert(ty != nullptr && "invalid bits for a floating point type!");
-    return static_cast<const FPType*>(ty);
-}
-
-std::string FPType::to_string() const {
-    switch (m_bits) {
-    case 32:
-        return "float";
-    case 64:
-        return "double";
+bool BuiltinType::is_unsigned_integer() const {
+    switch (m_kind) {
+    case UChar:
+    case UShort:
+    case UInt:
+    case ULong:
+    case ULongLong:
+        return true;
     default:
-        assert(false && "invalid bits for a floating point type!");
+        return false;
+    }
+}
+
+std::string BuiltinType::to_string() const {
+    switch (m_kind) {
+    case Void:          return "void";
+    case Char:          return "char";
+    case UChar:         return "unsigned char";
+    case Short:         return "short";
+    case UShort:        return "unsigned short";
+    case Int:           return "int";
+    case UInt:          return "unsigned int";
+    case Long:          return "long";
+    case ULong:         return "unsigned long";
+    case LongLong:      return "long long";
+    case ULongLong:     return "unsigned long long";
+    case Float:         return "float";
+    case Double:        return "double";
+    case LongDouble:    return "long double";
     }
 }
 
