@@ -575,7 +575,13 @@ std::unique_ptr<Decl> Parser::parse_variable(
 std::unique_ptr<Expr> Parser::parse_expr() {
     auto base = parse_unary_prefix();
     assert(base != nullptr && "could not parse base expression!");
-    return parse_binary(std::move(base), 0);
+    base = parse_binary(std::move(base), 0);
+
+    if (match(TokenKind::Question)) {
+        return parse_ternary(std::move(base));
+    } else {
+        return base;
+    }
 }
 
 std::unique_ptr<Expr> Parser::parse_primary() {
@@ -869,6 +875,33 @@ std::unique_ptr<Expr> Parser::parse_sizeof() {
     return std::unique_ptr<SizeofExpr>(new SizeofExpr(
         since(start), QualType(BuiltinType::get_ulong_type(*m_context)), ty
     ));
+}
+
+std::unique_ptr<Expr> Parser::parse_ternary(std::unique_ptr<Expr> base) {
+    next(); // '?'
+
+    std::unique_ptr<Expr> tval = nullptr;
+    std::unique_ptr<Expr> fval = nullptr;
+
+    // Parse the true value: '?' ... ':'
+    if (!(tval = parse_expr())) Logger::error("expected expression");
+
+    if (match(TokenKind::Colon)) {
+        next(); // ':'
+    } else {
+        Logger::error("expected ':' after ternary specifier");
+    }
+
+    /// Parse the false value: ':' ...
+    if (!(fval = parse_expr())) Logger::error("expected expression");
+
+    return std::make_unique<TernaryExpr>(
+        since(base->span().begin), 
+        tval->get_type(), 
+        std::move(base), 
+        std::move(tval), 
+        std::move(fval)
+    );
 }
 
 std::unique_ptr<Stmt> Parser::parse_stmt() {

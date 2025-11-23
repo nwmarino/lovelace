@@ -105,6 +105,7 @@ class Parser final {
     std::unique_ptr<Expr> parse_unary_postfix();
     std::unique_ptr<Expr> parse_ref();
     std::unique_ptr<Expr> parse_sizeof();
+    std::unique_ptr<Expr> parse_ternary(std::unique_ptr<Expr> base);
 
     std::unique_ptr<Stmt> parse_stmt();
     std::unique_ptr<Stmt> parse_compound();

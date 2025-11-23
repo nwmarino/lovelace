@@ -307,3 +307,28 @@ void SubscriptExpr::print(std::ostream& os) const {
     m_index->print(os);
     --g_indent;
 }
+
+void MemberExpr::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Member ";
+    print_span(os, m_span);
+    os << (m_arrow ? "->" : ".") << m_member->name() << " '" 
+       << m_type.to_string() << "'\n";
+
+    ++g_indent;
+    m_base->print(os);
+    --g_indent;
+}
+
+void TernaryExpr::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Ternary ";
+    print_span(os, m_span);
+    os << " '" << m_type.to_string() << "'\n";
+
+    ++g_indent;
+    m_cond->print(os);
+    m_tval->print(os);
+    m_fval->print(os);
+    --g_indent;
+}

@@ -38,10 +38,8 @@ public:
         Cast,
         Sizeof,
         Subscript,
-        /*
         Member,
         Ternary,
-        */
     };
 
 protected:
@@ -443,20 +441,76 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
+/// Represents a '.' or '->' member access expression.
 class MemberExpr final : public Expr {
+    /// The base expression to access.
     std::unique_ptr<Expr> m_base;
-    std::string m_member;
+
+    /// The member declaration to access.
+    const Decl* m_member;
+
+    /// If this is an arrow member access, i.e. one using the '->' operator 
+    /// instead of the '.' operator.
+    bool m_arrow;
+
+public:
+    MemberExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> base,
+               const Decl* member, bool arrow)
+        : Expr(Kind::Member, span, ty), m_base(std::move(base)),
+          m_member(member), m_arrow(arrow) {}
+
+    MemberExpr(const MemberExpr&) = delete;
+    MemberExpr& operator = (const MemberExpr&) = delete;
+
+    /// Returns the base expression of this member access.
+    const Expr* get_base() const { return m_base.get(); }
+    Expr* get_base() { return m_base.get(); }
+
+    /// Returns the declaration that this member access references.
+    const Decl* get_member() const { return m_member; }
+
+    /// Returns true if this is an arrow '->' member access.
+    bool is_arrow() const { return m_arrow; }
+
+    void print(std::ostream& os) const override;
 };
 
+/// Represents a '?' ternary selection expression.
 class TernaryExpr final : public Expr {
-    std::unique_ptr<Expr> m_condition;
-    std::unique_ptr<Expr> m_true;
-    std::unique_ptr<Expr> m_else;
-};
+    /// The condition expression of the ternary operator.
+    std::unique_ptr<Expr> m_cond;
+    
+    /// The expression to use if the condition is true.
+    std::unique_ptr<Expr> m_tval;
 
-*/
+    /// The expression to use if the condition is false.
+    std::unique_ptr<Expr> m_fval;
+
+public:
+    TernaryExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> cond,
+                std::unique_ptr<Expr> tval, std::unique_ptr<Expr> fval)
+        : Expr(Kind::Ternary, span, ty), m_cond(std::move(cond)), 
+          m_tval(std::move(tval)), m_fval(std::move(fval)) {}
+
+    TernaryExpr(const TernaryExpr&) = delete;
+    TernaryExpr& operator = (const TernaryExpr&) = delete;
+
+    /// Returns the condition expression of this operator.
+    const Expr* get_cond() const { return m_cond.get(); }
+    Expr* get_cond() { return m_cond.get(); }
+
+    /// Returns the expression to be used if the condition of this operator
+    /// is true.
+    const Expr* get_true_value() const { return m_tval.get(); }
+    Expr* get_true_value() { return m_tval.get(); }
+
+    /// Returns the expression to be used if the condition of this operator
+    /// is false.
+    const Expr* get_false_value() const { return m_fval.get(); }
+    Expr* get_false_value() { return m_fval.get(); }
+
+    void print(std::ostream& os) const override;
+};
 
 } // namespace scc
 

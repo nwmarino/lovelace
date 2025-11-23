@@ -146,6 +146,9 @@ enum class TokenKind : uint32_t {
     /// Bitwise not operator `~`.
     Tilde,
 
+    /// Ternary operator `?`.
+    Question,
+
     /// Period `.` and member operator.
     Dot,
 

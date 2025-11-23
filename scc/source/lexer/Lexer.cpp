@@ -235,6 +235,11 @@ const Token& Lexer::lex() {
             move();
             break;
 
+        case '?':
+            token.kind = TokenKind::Question;
+            move();
+            break;
+
         case ':':
             token.kind = TokenKind::Colon;
             move();

@@ -756,4 +756,68 @@ TEST_F(ParserTests, ParseSubscriptBasic) {
     EXPECT_EQ(index->get_value(), 5);
 }
 
+TEST_F(ParserTests, ParseTernaryBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { return 5 ? 0 : 1; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto ret = dynamic_cast<const ReturnStmt*>(body->get_stmt(0));
+    EXPECT_NE(ret, nullptr);
+    EXPECT_TRUE(ret->has_expr());
+
+    auto ternary = dynamic_cast<const TernaryExpr*>(ret->get_expr());
+    EXPECT_NE(ternary, nullptr);
+
+    auto cond = dynamic_cast<const IntegerLiteral*>(ternary->get_cond());
+    EXPECT_NE(cond, nullptr);
+    EXPECT_EQ(cond->get_value(), 5);
+
+    auto tval = dynamic_cast<const IntegerLiteral*>(ternary->get_true_value());
+    EXPECT_NE(tval, nullptr);
+    EXPECT_EQ(tval->get_value(), 0);
+
+    auto fval = dynamic_cast<const IntegerLiteral*>(ternary->get_false_value());
+    EXPECT_NE(fval, nullptr);
+    EXPECT_EQ(fval->get_value(), 1);
+}
+
+/*
+TEST_F(ParserTests, ParseMemberBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "struct A { int a; }; int main() { struct A x; x.a; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 2);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 2);
+
+    auto dstmt = dynamic_cast<const DeclStmt*>(body->get_stmt(0));
+    EXPECT_NE(dstmt, nullptr);
+
+    auto expr = dynamic_cast<const ExprStmt*>(body->get_stmt(1));
+    EXPECT_NE(expr, nullptr);
+
+    auto member = dynamic_cast<const MemberExpr*>(expr->get_expr());
+    EXPECT_NE(member, nullptr);
+}
+*/
+
 } // namespace scc::test
