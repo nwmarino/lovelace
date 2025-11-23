@@ -242,4 +242,37 @@ TEST_F(ParserTests, ParseAutoLocal) {
     EXPECT_TRUE(var->has_initializer());
 }
 
+TEST_F(ParserTests, ParseCastBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { float x = (float) 3.14; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = unit.get_decl(0);
+    EXPECT_NE(decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+    
+    auto compound = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(compound, nullptr);
+    EXPECT_EQ(compound->num_stmts(), 1);
+
+    auto dstmt = dynamic_cast<const DeclStmt*>(compound->get_stmt(0));
+    EXPECT_NE(dstmt, nullptr);
+
+    auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
+    EXPECT_NE(var, nullptr);
+    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_type().to_string(), "float");
+    EXPECT_TRUE(var->has_initializer());
+
+    auto init = dynamic_cast<const CastExpr*>(var->get_initializer());
+    EXPECT_NE(init, nullptr);
+    EXPECT_EQ(init->get_type().to_string(), "float");
+}
+
 } // namespace scc::test

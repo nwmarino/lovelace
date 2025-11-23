@@ -503,16 +503,36 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         const SourceLocation start = m_lexer.last().loc;
         next(); // '('
 
-        auto expr = parse_expr();
-        assert(expr != nullptr && "could not parse parentheses expression!");
+        std::unique_ptr<Expr> expr = nullptr;
 
-        if (!match(TokenKind::EndParen))
-            Logger::error("expected ')' after expression", since(start));
+        if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
+            QualType ty {};
+            if (!parse_type(ty))
+                Logger::error("expected cast type", since(start));
 
-        next(); // ')'
-        return std::unique_ptr<ParenExpr>(new ParenExpr(
-            since(start), expr->get_type(), std::move(expr)
-        ));
+            if (!match(TokenKind::EndParen))
+                Logger::error("expected ')' after cast type", since(start));
+
+            next(); // ')'
+
+            expr = parse_expr();
+            assert(expr != nullptr && "could not parse cast expression!");
+
+            return std::unique_ptr<CastExpr>(new CastExpr(
+                since(start), ty, std::move(expr)
+            ));
+        } else {
+            expr = parse_expr();
+            assert(expr != nullptr && "could not parse parentheses expression!");
+
+            if (!match(TokenKind::EndParen))
+                Logger::error("expected ')' after expression", since(start));
+
+            next(); // ')'
+            return std::unique_ptr<ParenExpr>(new ParenExpr(
+                since(start), expr->get_type(), std::move(expr)
+            ));
+        }
     }
     
     return nullptr;
