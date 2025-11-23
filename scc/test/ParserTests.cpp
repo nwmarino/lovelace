@@ -915,26 +915,74 @@ TEST_F(ParserTests, ParseEnumDecl) {
     auto v1 = dynamic_cast<const VariantDecl*>(decl->get_variant(0));
     EXPECT_NE(v1, nullptr);
     EXPECT_EQ(v1->name(), "Orange");
+    EXPECT_EQ(v1->get_type().to_string(), "Colors");
     EXPECT_EQ(v1->get_value(), 0);
 
     auto v2 = dynamic_cast<const VariantDecl*>(decl->get_variant(1));
     EXPECT_NE(v2, nullptr);
     EXPECT_EQ(v2->name(), "Yellow");
+    EXPECT_EQ(v2->get_type().to_string(), "Colors");
     EXPECT_EQ(v2->get_value(), 5);
 
     auto v3 = dynamic_cast<const VariantDecl*>(decl->get_variant(2));
     EXPECT_NE(v3, nullptr);
     EXPECT_EQ(v3->name(), "Red");
+    EXPECT_EQ(v3->get_type().to_string(), "Colors");
     EXPECT_EQ(v3->get_value(), 6);
 
     auto v4 = dynamic_cast<const VariantDecl*>(decl->get_variant(3));
     EXPECT_NE(v4, nullptr);
     EXPECT_EQ(v4->name(), "Blue");
+    EXPECT_EQ(v4->get_type().to_string(), "Colors");
     EXPECT_EQ(v4->get_value(), -12);
 
     auto v5 = dynamic_cast<const VariantDecl*>(decl->get_variant(4));
     EXPECT_NE(v5, nullptr);
     EXPECT_EQ(v5->name(), "Green");
+    EXPECT_EQ(v5->get_type().to_string(), "Colors");
+    EXPECT_EQ(v5->get_value(), -11);
+}
+
+TEST_F(ParserTests, ParseUnnamedEnumDecl) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "enum { Orange, Yellow = 5, Red, Blue = -12, Green };");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = dynamic_cast<const EnumDecl*>(unit.get_decl(0));
+    EXPECT_NE(decl, nullptr);
+    EXPECT_EQ(decl->num_variants(), 5);
+
+    auto v1 = dynamic_cast<const VariantDecl*>(decl->get_variant(0));
+    EXPECT_NE(v1, nullptr);
+    EXPECT_EQ(v1->name(), "Orange");
+    EXPECT_EQ(v1->get_type().to_string(), "int");
+    EXPECT_EQ(v1->get_value(), 0);
+
+    auto v2 = dynamic_cast<const VariantDecl*>(decl->get_variant(1));
+    EXPECT_NE(v2, nullptr);
+    EXPECT_EQ(v2->name(), "Yellow");
+    EXPECT_EQ(v2->get_type().to_string(), "int");
+    EXPECT_EQ(v2->get_value(), 5);
+
+    auto v3 = dynamic_cast<const VariantDecl*>(decl->get_variant(2));
+    EXPECT_NE(v3, nullptr);
+    EXPECT_EQ(v3->name(), "Red");
+    EXPECT_EQ(v3->get_type().to_string(), "int");
+    EXPECT_EQ(v3->get_value(), 6);
+
+    auto v4 = dynamic_cast<const VariantDecl*>(decl->get_variant(3));
+    EXPECT_NE(v4, nullptr);
+    EXPECT_EQ(v4->name(), "Blue");
+    EXPECT_EQ(v4->get_type().to_string(), "int");
+    EXPECT_EQ(v4->get_value(), -12);
+
+    auto v5 = dynamic_cast<const VariantDecl*>(decl->get_variant(4));
+    EXPECT_NE(v5, nullptr);
+    EXPECT_EQ(v5->name(), "Green");
+    EXPECT_EQ(v5->get_type().to_string(), "int");
     EXPECT_EQ(v5->get_value(), -11);
 }
 

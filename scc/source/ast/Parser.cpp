@@ -629,16 +629,16 @@ std::unique_ptr<Decl> Parser::parse_enum() {
     const SourceLocation start = m_lexer.last().loc;
     next(); // 'enum'
 
+    std::string name = "";
     std::vector<std::unique_ptr<VariantDecl>> variants = {};
+   
+    if (match(TokenKind::Identifier)) {
+        name = m_lexer.last().value;
+        next(); // identifier
 
-    if (!match(TokenKind::Identifier))
-        Logger::error("expected identifier", since(start));
-
-    const std::string name = m_lexer.last().value;
-    next(); // identifier
-
-    if (is_reserved(name))
-        Logger::error("identifier '" + name + "' is reserved", since(start));
+        if (is_reserved(name))
+            Logger::error("identifier '" + name + "' is reserved", since(start));
+    }
 
     if (match(TokenKind::SetBrace)) {
         next(); // '{'
@@ -682,7 +682,7 @@ std::unique_ptr<Decl> Parser::parse_enum() {
         std::unique_ptr<VariantDecl> variant = std::make_unique<VariantDecl>(
             since(vstart),
             vname,
-            QualType(),
+            QualType(BuiltinType::get_int_type(*m_context)),
             value++
         );
 
@@ -706,13 +706,15 @@ std::unique_ptr<Decl> Parser::parse_enum() {
         since(start), name, QualType(), variants
     );
 
-    m_scope->add(decl.get());
+    if (!name.empty()) {
+        m_scope->add(decl.get());
 
-    decl->get_type() = QualType(EnumType::create(*m_context, decl.get()));
+        decl->get_type() = QualType(EnumType::create(*m_context, decl.get()));
 
-    // Retroactively match all the variant types with the new enum type.
-    for (uint32_t i = 0; i < decl->num_variants(); ++i)
-        decl->get_variant(i)->get_type() = decl->get_type();
+        // Retroactively match all the variant types with the new enum type.
+        for (uint32_t i = 0; i < decl->num_variants(); ++i)
+            decl->get_variant(i)->get_type() = decl->get_type();
+    }
 
     return decl;
 }
