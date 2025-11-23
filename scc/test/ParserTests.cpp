@@ -725,4 +725,35 @@ TEST_F(ParserTests, ParseForLoopNoBody) {
     EXPECT_FALSE(loop->has_body());
 }
 
+TEST_F(ParserTests, ParseSubscriptBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { 1[5]; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto expr = dynamic_cast<const ExprStmt*>(body->get_stmt(0));
+    EXPECT_NE(expr, nullptr);
+
+    auto ss = dynamic_cast<const SubscriptExpr*>(expr->get_expr());
+    EXPECT_NE(ss, nullptr);
+
+    auto base = dynamic_cast<const IntegerLiteral*>(ss->get_base());
+    EXPECT_NE(base, nullptr);
+    EXPECT_EQ(base->get_value(), 1);
+
+    auto index = dynamic_cast<const IntegerLiteral*>(ss->get_index());
+    EXPECT_NE(index, nullptr);
+    EXPECT_EQ(index->get_value(), 5);
+}
+
 } // namespace scc::test

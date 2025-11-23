@@ -801,9 +801,26 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
             base = std::unique_ptr<CallExpr>(new CallExpr(
                 since(start), base->get_type(), std::move(base), args
             ));
+        } else if (match(TokenKind::SetBrack)) {
+            next(); // '['
+
+            std::unique_ptr<Expr> index = nullptr;
+            if (!(index = parse_expr())) 
+                Logger::error("expected expression after '['");
+
+            if (match(TokenKind::EndBrack)) {
+                next(); // ']'
+            } else {
+                Logger::error("expected ']'");
+            }
+
+            base = std::unique_ptr<SubscriptExpr>(new SubscriptExpr(
+                since(start), 
+                base->get_type(), 
+                std::move(base), 
+                std::move(index)
+            ));
         }
-        
-        // else if [ (subscript)
 
         // else if . (member)
 

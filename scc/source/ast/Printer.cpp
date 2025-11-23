@@ -31,17 +31,13 @@ static void print_span(std::ostream& os, const Span& span) {
 }
 
 void TranslationUnit::print(std::ostream& os) const {
-    for (const auto& decl : m_decls)
-        decl->print(os);
+    for (const auto& decl : m_decls) decl->print(os);
 }
 
 void VariableDecl::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Variable ";
-
     print_span(os, m_span);
-
     os << ' ';
     
     switch (m_storage) {
@@ -72,21 +68,15 @@ void VariableDecl::print(std::ostream& os) const {
 
 void ParameterDecl::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Parameter ";
-
     print_span(os, m_span);
-
     os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 }
 
 void FunctionDecl::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Function ";
-
     print_span(os, m_span);
-
     os << ' ';
     
     switch (m_storage) {
@@ -110,31 +100,21 @@ void FunctionDecl::print(std::ostream& os) const {
 
     if (has_params() || has_body()) {
         ++g_indent;
-        for (const auto& param : m_params) 
-            param->print(os);
-
-        if (has_body())
-            m_body->print(os);
-
+        for (const auto& param : m_params) param->print(os);
+        if (has_body()) m_body->print(os);
         --g_indent;
     }
 }
 
 void CompoundStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Compound ";
-
     print_span(os, m_span);
-
     os << '\n';
 
     if (has_stmts()) {
         ++g_indent;
-
-        for (const auto& stmt : m_stmts)
-            stmt->print(os);
-
+        for (const auto& stmt : m_stmts) stmt->print(os);
         --g_indent;
     }
 }
@@ -149,29 +129,20 @@ void ExprStmt::print(std::ostream& os) const {
 
 void IfStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "If ";
-
     print_span(os, m_span);
-
     os << '\n';
 
     ++g_indent;
-
     m_cond->print(os);
     m_then->print(os);
-
-    if (has_else())
-        m_else->print(os);
-
+    if (has_else()) m_else->print(os);
     --g_indent;
 }
 
 void ReturnStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Return ";
-
     print_span(os, m_span);
 
     if (has_expr()) {
@@ -187,21 +158,15 @@ void ReturnStmt::print(std::ostream& os) const {
 
 void BreakStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Break ";
-
     print_span(os, m_span);
-
     os << '\n';
 }
 
 void ContinueStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Continue ";
-
     print_span(os, m_span);
-
     os << '\n';
 }
 
@@ -233,51 +198,36 @@ void ForStmt::print(std::ostream& os) const {
 
 void IntegerLiteral::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Integer ";
-
     print_span(os, m_span);
-
     os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void FPLiteral::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Float ";
-
     print_span(os, m_span);
-
     os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void CharLiteral::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Character ";
-
     print_span(os, m_span);
-
     os << ' ' << m_value << " '" << m_type.to_string() << "'\n"; 
 }
 
 void StringLiteral::print(std::ostream& os) const {
     print_indent(os);
-
     os << "String ";
-
     print_span(os, m_span);
-
     os << ' ' << m_value << " '" << m_type.to_string() << "'\n";
 }
 
 void BinaryExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Binop ";
-
     print_span(os, m_span);
-
     os << ' ' << to_string(m_operator) << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
@@ -288,11 +238,8 @@ void BinaryExpr::print(std::ostream& os) const {
 
 void UnaryExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Unop ";
-
     print_span(os, m_span);
-
     os << ' ' << to_string(m_operator) << ' ' << (m_postfix ? "postfix" : "prefix") 
        << " '" << m_type.to_string() << "'\n";
 
@@ -303,11 +250,8 @@ void UnaryExpr::print(std::ostream& os) const {
 
 void ParenExpr::print(std::ostream& os) const {
     print_indent(os);
-
-    os << "Paren ";
-
+    os << "Parentheses ";
     print_span(os, m_span);
-
     os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
@@ -317,21 +261,15 @@ void ParenExpr::print(std::ostream& os) const {
 
 void RefExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Ref ";
-
     print_span(os, m_span);
-
     os << ' ' << get_name() << " '" << m_type.to_string() << "'\n";
 }
 
 void CallExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Call ";
-
     print_span(os, m_span);
-
     os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
@@ -342,11 +280,8 @@ void CallExpr::print(std::ostream& os) const {
 
 void CastExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Cast ";
-
     print_span(os, m_span);
-
     os << " '" << m_type.to_string() << "'\n";
 
     ++g_indent;
@@ -356,10 +291,19 @@ void CastExpr::print(std::ostream& os) const {
 
 void SizeofExpr::print(std::ostream& os) const {
     print_indent(os);
-
     os << "Sizeof ";
-    
     print_span(os, m_span);
-
     os << ' ' << m_target.to_string() << " '" << m_type.to_string() << "'\n";
+}
+
+void SubscriptExpr::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Subscript ";
+    print_span(os, m_span);
+    os << " '" << m_type.to_string() << "'\n";
+
+    ++g_indent;
+    m_base->print(os);
+    m_index->print(os);
+    --g_indent;
 }

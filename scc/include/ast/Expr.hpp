@@ -37,9 +37,9 @@ public:
         Call,
         Cast,
         Sizeof,
+        Subscript,
         /*
         Member,
-        Subscript,
         Ternary,
         */
     };
@@ -414,16 +414,40 @@ public:
     void print(std::ostream& os) const override;
 };
 
+/// Represents a '[]' subscript expression.
+class SubscriptExpr final : public Expr {
+    /// The base expression to access.
+    std::unique_ptr<Expr> m_base;
+
+    /// The index to access the base expression at, i.e. the expression
+    /// enclosed by braces '[, ]'.
+    std::unique_ptr<Expr> m_index;
+
+public:
+    SubscriptExpr(const Span& span, const QualType& ty, 
+                  std::unique_ptr<Expr> base, std::unique_ptr<Expr> index)
+        : Expr(Kind::Subscript, span, ty), m_base(std::move(base)), 
+          m_index(std::move(index)) {}
+
+    SubscriptExpr(const SubscriptExpr&) = delete;
+    SubscriptExpr& operator = (const SubscriptExpr&) = delete;
+
+    /// Returns the base expression of this subscript.
+    const Expr* get_base() const { return m_base.get(); }
+    Expr* get_base() { return m_base.get(); }
+
+    /// Returns the index expression of this subscript.
+    const Expr* get_index() const { return m_index.get(); }
+    Expr* get_index() { return m_index.get(); }
+
+    void print(std::ostream& os) const override;
+};
+
 /*
 
 class MemberExpr final : public Expr {
     std::unique_ptr<Expr> m_base;
     std::string m_member;
-};
-
-class SubscriptExpr final : public Expr {
-    std::unique_ptr<Expr> m_base;
-    std::unique_ptr<Expr> m_index;
 };
 
 class TernaryExpr final : public Expr {
