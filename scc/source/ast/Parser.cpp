@@ -350,13 +350,15 @@ std::unique_ptr<Decl> Parser::parse_decl() {
     if (is_reserved(name))
         Logger::error("identifier '" + name + "' is reserved", since(start));
 
-    if (match(TokenKind::Semi) || match(TokenKind::Eq)) {
-        // The identifier is followed by a ';' or '=', which means its a 
+    if (match(TokenKind::Semi) || match(TokenKind::Eq) || match(TokenKind::SetBrack)) {
+        // The identifier is followed by a ';' or '=' or '[', which means its a 
         // variable in the form of:
         //
         // <type> <ident> ';'
         //       or
         // <type> <ident> = ...
+        //       or
+        // <type> <ident>[...]
         return parse_variable(start, sclass, ty, name);
     } else if (match(TokenKind::SetParen)) {
         // The identifier is followed by a '(', which means its the beginning
@@ -400,6 +402,26 @@ std::unique_ptr<Decl> Parser::parse_function(
 
         if (is_reserved(pname))
             Logger::error("identifier '" + pname + "' is reserved", since(start));
+
+        while (match(TokenKind::SetBrack)) {
+            next(); // '['
+
+            // TODO: Support automatic array size checks.
+            if (!match(TokenKind::Integer))
+                Logger::error("missing array size literal after '['", since(start));
+
+            uint32_t size = std::stoul(m_lexer.last().value);
+            next(); // size
+
+            if (!match(TokenKind::EndBrack))
+                Logger::error("missing ']' after array size");
+
+            next(); // ']'
+
+            pty = QualType(
+                ArrayType::get(*m_context, pty, size)
+            );
+        }
 
         auto param = std::unique_ptr<ParameterDecl>(
             new ParameterDecl(since(pstart), pname, pty));
@@ -501,6 +523,28 @@ std::unique_ptr<Decl> Parser::parse_function(
 std::unique_ptr<Decl> Parser::parse_variable(
         const SourceLocation& start, StorageClass sclass, const QualType& ty, 
         const std::string& name) {
+    QualType var_type = ty;
+
+    while (match(TokenKind::SetBrack)) {
+        next(); // '['
+
+        // TODO: Support automatic array size checks.
+        if (!match(TokenKind::Integer))
+            Logger::error("missing array size literal after '['", since(start));
+
+        uint32_t size = std::stoul(m_lexer.last().value);
+        next(); // size
+
+        if (!match(TokenKind::EndBrack))
+            Logger::error("missing ']' after array size");
+
+        next(); // ']'
+
+        var_type = QualType(
+            ArrayType::get(*m_context, var_type, size)
+        );
+    }
+
     std::unique_ptr<Expr> init = nullptr;
     if (match(TokenKind::Eq)) {
         next(); // '='
@@ -520,7 +564,7 @@ std::unique_ptr<Decl> Parser::parse_variable(
         sclass, 
         since(start), 
         name, 
-        sclass == StorageClass::Auto ? init->get_type() : ty, 
+        sclass == StorageClass::Auto ? init->get_type() : var_type, 
         std::move(init)
     ));
 

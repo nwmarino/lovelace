@@ -487,4 +487,30 @@ TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
     EXPECT_FALSE(body->empty());
 }
 
+TEST_F(ParserTests, ParseArrayTypeVariable) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int x[5];");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto var = dynamic_cast<const VariableDecl*>(unit.get_scope()->get("x"));
+    EXPECT_NE(var, nullptr);
+    EXPECT_EQ(var->get_type().to_string(), "int[5]");
+}
+
+TEST_F(ParserTests, ParseArrayTypeParameter) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(int x[5]);");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("foo"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_EQ(fn->get_type().to_string(), "int (int[5])");
+}
+
 } // namespace scc::test

@@ -44,6 +44,10 @@ public:
 
     ~TranslationUnit() = default;
 
+    /// Returns the global scope of this translation unit.
+    const Scope* get_scope() const { return m_scope.get(); }
+    Scope* get_scope() { return m_scope.get(); }
+
     /// Returns the number of top-level declarations in this translation unit.
     uint32_t num_decls() const { return m_decls.size(); }
 
