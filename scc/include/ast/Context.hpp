@@ -27,6 +27,7 @@ class Context final {
     friend class VoidType;
     friend class IntegerType;
     friend class FPType;
+    friend class ArrayType;
     friend class PointerType;
     friend class FunctionType;
 
@@ -49,13 +50,17 @@ class Context final {
 
     using PrimitiveTypePool = 
         std::unordered_map<TypeKind, std::unique_ptr<Type>>;
+    using ArrayTypePool = std::vector<std::unique_ptr<ArrayType>>;
     using PointerTypePool = std::vector<std::unique_ptr<PointerType>>;
     using FunctionTypeList = std::vector<std::unique_ptr<FunctionType>>;
 
     /// Pool of primitive types which are built-in to the C language.
     PrimitiveTypePool m_prims = {};
 
-    /// Pool of pointer types keyed by their pointee.
+    /// Pool of arrays types.
+    ArrayTypePool m_arrays = {};
+
+    /// Pool of pointer types.
     PointerTypePool m_ptrs = {};
 
     /// List of function type signatures declared implicitly by a translation 

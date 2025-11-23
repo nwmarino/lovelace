@@ -89,6 +89,15 @@ std::string FPType::to_string() const {
     }
 }
 
+const ArrayType* ArrayType::get(
+        Context& ctx, const QualType& element, uint32_t size) {
+    auto ty = std::unique_ptr<ArrayType>(new ArrayType(element, size));
+    const ArrayType* pTy = ty.get();
+
+    ctx.m_arrays.push_back(std::move(ty));
+    return pTy;
+}
+
 const PointerType* PointerType::get(Context& ctx, const QualType& pointee) {
     auto ty = std::unique_ptr<PointerType>(new PointerType(pointee));
     const PointerType* pTy = ty.get();

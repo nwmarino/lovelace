@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace scc {
@@ -39,8 +40,9 @@ public:
         Void = 0,
         Integer = 1,
         Float = 2,
-        Pointer = 3,
-        Function = 4,
+        Array = 3,
+        Pointer = 4,
+        Function = 5,
     };
 
 protected:
@@ -161,7 +163,37 @@ public:
     std::string to_string() const override;
 };
 
-/// Represents a C pointer type.
+/// Represents an array type in C.
+class ArrayType final : public Type {
+    friend class Context;
+
+    /// The type of the elements in arrays with this type.
+    QualType m_element;
+
+    /// The static size of arrays with this type.
+    uint32_t m_size;
+
+    ArrayType(const QualType& element, uint32_t size)
+        : Type(Kind::Array), m_element(element), m_size(size) {}
+    
+public:
+    /// Returns the array type with element type \p element and size \p size.
+    static const ArrayType* get(Context& ctx, const QualType& element, 
+                                uint32_t size);
+                        
+    /// Returns the type of element in arrays with this type.
+    const QualType& get_element() const { return m_element; }
+    QualType& get_element() { return m_element; }
+
+    /// Returns the size of arrays with this type.
+    uint32_t get_size();
+
+    std::string to_string() const override {
+        return m_element->to_string() + '[' + std::to_string(m_size) + ']';
+    }
+};
+
+/// Represents a pointer type in C.
 class PointerType final : public Type {
     friend class Context;
 

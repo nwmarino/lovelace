@@ -63,7 +63,7 @@ void Parser::skip(uint32_t n) {
 }
 
 Span Parser::since(const SourceLocation& loc) {
-    return Span { .begin = loc, .end = m_lexer.last().loc };
+    return Span(loc, m_lexer.last().loc);
 }
 
 std::unique_ptr<Scope> Parser::enter_scope() {
@@ -460,7 +460,7 @@ std::unique_ptr<Decl> Parser::parse_function(
     // function and have the same signature defined here.
     const FunctionDecl* prev_fn = dynamic_cast<const FunctionDecl*>(prev);
     if (!prev_fn)
-        Logger::error("symbol with name already exists in scope", since(start));
+        Logger::error("redefinition of '" + name + "'", since(start));
 
     const FunctionType* prev_ty = static_cast<const FunctionType*>(
         prev_fn->get_type().get_type());
@@ -484,13 +484,14 @@ std::unique_ptr<Decl> Parser::parse_function(
     }
 
     if (!return_types_match || !parameter_counts_match || !param_types_match) {
-        Logger::error("conflicting types for '" + name + "'; have " + 
-            prev_fn->get_type().to_string(), since(start));
+        Logger::error("conflicting types for '" + name + "'; have '" + 
+            prev_fn->get_type().to_string() + "'", start);
     }
 
     if (prev_fn->has_body() && body != nullptr)
-        Logger::error("redefinition of '" + name + "'", since(start));
+        Logger::error("redefinition of '" + name + "'", start);
 
+    // TODO: Cleanup. Using const cast here is smelly...
     FunctionDecl* cprev = const_cast<FunctionDecl*>(prev_fn);
     cprev->m_body = std::move(body);
     return nullptr;

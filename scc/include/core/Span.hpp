@@ -35,6 +35,10 @@ struct Span final {
 
     /// The final or ending location.
     SourceLocation end;
+
+    Span() = default;
+    Span(const SourceLocation& loc) : begin(loc), end(loc) {}
+    Span(const SourceLocation& b, const SourceLocation& e) : begin(b), end(e) {}
 };
 
 } // namespace scc
