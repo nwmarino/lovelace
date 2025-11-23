@@ -4,6 +4,7 @@
 //
 
 #include "ast/Context.hpp"
+#include "ast/Decl.hpp"
 #include "ast/Type.hpp"
 
 #include <cassert>
@@ -150,4 +151,17 @@ std::string FunctionType::to_string() const {
     }
 
     return str + ')';
+}
+
+const TypedefType* TypedefType::create(
+        Context& ctx, const TypedefDecl* decl, const QualType& underlying) {
+    auto ty = std::unique_ptr<TypedefType>(new TypedefType(decl, underlying));
+    const TypedefType* pTy = ty.get();
+
+    ctx.m_typedefs.push_back(std::move(ty));
+    return pTy;
+} 
+
+std::string TypedefType::to_string() const {
+    return m_decl->name();
 }

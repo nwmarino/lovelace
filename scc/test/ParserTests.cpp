@@ -7,6 +7,7 @@
 #include "ast/Expr.hpp"
 #include "ast/Parser.hpp"
 #include "ast/Stmt.hpp"
+#include "ast/Type.hpp"
 #include "core/TranslationUnit.hpp"
 
 #include "gtest/gtest.h"
@@ -861,6 +862,28 @@ TEST_F(ParserTests, ParseSwitchDefault) {
 
     auto def = dynamic_cast<const ReturnStmt*>(sw->get_default());
     EXPECT_NE(def, nullptr);
+}
+
+TEST_F(ParserTests, ParseTypedefDecl) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "typedef unsigned long long uint64_t;");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto td = dynamic_cast<const TypedefDecl*>(unit.get_scope()->get("uint64_t"));
+    EXPECT_NE(td, nullptr);
+    EXPECT_EQ(td->name(), "uint64_t");
+    EXPECT_EQ(td->get_type().to_string(), "uint64_t");
+
+    const QualType& ty = td->get_type();
+    
+    const TypedefType* tdt = dynamic_cast<const TypedefType*>(ty.get_type());
+    EXPECT_NE(tdt, nullptr);
+
+    const QualType& underlying = tdt->get_underlying();
+    EXPECT_EQ(underlying.to_string(), "unsigned long long");
 }
 
 /*

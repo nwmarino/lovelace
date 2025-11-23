@@ -26,12 +26,14 @@ class Context final {
     friend class ArrayType;
     friend class PointerType;
     friend class FunctionType;
+    friend class TypedefType;
 
     using BuiltinTypePool = 
         std::unordered_map<BuiltinType::Kind, std::unique_ptr<BuiltinType>>;
     using ArrayTypePool = std::vector<std::unique_ptr<ArrayType>>;
     using PointerTypePool = std::vector<std::unique_ptr<PointerType>>;
-    using FunctionTypeList = std::vector<std::unique_ptr<FunctionType>>;
+    using FunctionTypePool = std::vector<std::unique_ptr<FunctionType>>;
+    using TypedefTypePool = std::vector<std::unique_ptr<TypedefType>>;
 
     /// Pool of types that are built-in to the C language.
     BuiltinTypePool m_bts = {};
@@ -45,7 +47,10 @@ class Context final {
     /// List of function type signatures declared implicitly by a translation 
     /// unit. These are listed rather than mapped since code cannot directly
     /// reference these signatures.
-    FunctionTypeList m_sigs = {};
+    FunctionTypePool m_sigs = {};
+
+    /// Pool of typedef types.
+    TypedefTypePool m_typedefs = {};
 
     Context();
 

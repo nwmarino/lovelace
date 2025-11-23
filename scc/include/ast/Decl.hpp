@@ -41,6 +41,7 @@ public:
         Variable,
         Parameter,
         Function,
+        Typedef,
     };
 
 protected:
@@ -188,26 +189,19 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
-/// Represents a `typedef` type declaration.
+/// Represents a 'typedef' declaration.
 class TypedefDecl final : public Decl {
-    /// The type that this typedef defines. It is owned by the AST context.
-    std::shared_ptr<Type> m_type;
-
 public:
     TypedefDecl(const Span& span, const std::string& name, 
-                std::shared_ptr<Type> type);
+                const QualType& ty);
 
     TypedefDecl(const TypedefDecl&) = delete;
     TypedefDecl& operator = (const TypedefDecl&) = delete;
 
-    ~TypedefDecl() override = default;
-
-    /// Returns the type of this variable.
-    const Type* get_type() const { return m_type.get(); }
-    Type* get_type() { return m_type.get(); }
+    void print(std::ostream& os) const override;
 };
+
+/*
 
 /// Represents a field of a structure.
 class FieldDecl final : public Decl {

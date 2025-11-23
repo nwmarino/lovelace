@@ -331,6 +331,8 @@ bool Parser::parse_type(QualType& ty) {
 }
 
 std::unique_ptr<Decl> Parser::parse_decl() {
+    if (match("typedef")) return parse_typedef();
+
     const SourceLocation start = m_lexer.last().loc;
 
     // Attempt to parse any preceeding storage class.
@@ -570,6 +572,42 @@ std::unique_ptr<Decl> Parser::parse_variable(
 
     m_scope->add(var.get());
     return var;
+}
+
+std::unique_ptr<Decl> Parser::parse_typedef() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'typedef'
+
+    QualType underlying {};
+    if (!parse_type(underlying))
+        Logger::error("expected type after 'typedef'", since(start));
+
+    if (!match(TokenKind::Identifier))
+        Logger::error("expected identifier", since(start));
+
+    std::string name = m_lexer.last().value;
+    next(); // identifier
+
+    if (is_reserved(name))
+        Logger::error("identifier '" + name + "' is reserved", since(start));
+
+    if (match(TokenKind::Semi)) {
+        next(); // ';'
+    } else {
+        Logger::error("expected ';'", since(start));
+    }
+
+    std::unique_ptr<TypedefDecl> decl = std::make_unique<TypedefDecl>(
+        since(start), name, QualType()
+    );
+
+    m_scope->add(decl.get());
+
+    decl->get_type() = QualType(TypedefType::create(
+        *m_context, decl.get(), underlying
+    ));
+
+    return decl;
 }
 
 std::unique_ptr<Expr> Parser::parse_expr() {

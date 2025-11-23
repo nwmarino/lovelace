@@ -24,3 +24,7 @@ FunctionDecl::FunctionDecl(StorageClass storage, const Span& span,
                            std::unique_ptr<Stmt> body)
     : Decl(Kind::Function, storage, span, name, ty), m_params(std::move(params)), 
       m_scope(std::move(scope)), m_body(std::move(body)) {}
+
+TypedefDecl::TypedefDecl(const Span& span, const std::string& name, 
+						 const QualType& ty)
+	: Decl(Kind::Typedef, StorageClass::None, span, name, ty) {}

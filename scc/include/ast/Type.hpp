@@ -27,6 +27,7 @@
 namespace scc {
 
 class Context;
+class TypedefDecl;
 
 /// Base class for all types in the C type system.
 class Type {
@@ -267,6 +268,34 @@ public:
         return m_params[i];
     }
     
+    std::string to_string() const override;
+};
+
+/// Represents the type defined by a 'typedef' declaration.
+class TypedefType final : public Type {
+    friend class Context;
+
+    /// The 'typedef' declaration that defines this type.
+    const TypedefDecl* m_decl;
+
+    /// The underlying type.
+    QualType m_underlying;
+
+    TypedefType(const TypedefDecl* decl, const QualType& underlying)
+        : Type(), m_decl(decl), m_underlying(underlying) {}
+
+public:
+    /// Create and return a new type defined by a 'typedef' declaration.
+    static const TypedefType* create(Context& ctx, const TypedefDecl* decl, 
+                                     const QualType& underlying);
+                               
+    /// Returns the 'typedef' declaration that defines this type.
+    const TypedefDecl* get_decl() const { return m_decl; }
+    
+    /// Returns the underlying type.
+    const QualType& get_underlying() const { return m_underlying; }
+    QualType& get_underlying() { return m_underlying; }
+
     std::string to_string() const override;
 };
 

@@ -106,6 +106,13 @@ void FunctionDecl::print(std::ostream& os) const {
     }
 }
 
+void TypedefDecl::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Typedef ";
+    print_span(os, m_span);
+    os <<  ' ' << m_name << " '" << m_type.to_string() << "'\n";
+}
+
 void CompoundStmt::print(std::ostream& os) const {
     print_indent(os);
     os << "Compound ";

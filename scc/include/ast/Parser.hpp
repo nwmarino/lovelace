@@ -92,6 +92,7 @@ class Parser final {
                                          StorageClass sclass, 
                                          const QualType& ty, 
                                          const std::string& name);
+    std::unique_ptr<Decl> parse_typedef();
 
     std::unique_ptr<Expr> parse_expr();
     std::unique_ptr<Expr> parse_primary();
