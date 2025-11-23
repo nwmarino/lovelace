@@ -275,4 +275,81 @@ TEST_F(ParserTests, ParseCastBasic) {
     EXPECT_EQ(init->get_type().to_string(), "float");
 }
 
+TEST_F(ParserTests, ParseCallNamed) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(); int main() { return foo(); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 2);
+
+    auto foo_decl = unit.get_decl("foo");
+    EXPECT_NE(foo_decl, nullptr);
+
+    auto main_decl = unit.get_decl("main");
+    EXPECT_NE(main_decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(main_decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+    
+    auto compound = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(compound, nullptr);
+    EXPECT_EQ(compound->num_stmts(), 1);
+
+    auto ret = dynamic_cast<const ReturnStmt*>(compound->get_stmt(0));
+    EXPECT_NE(ret, nullptr);
+    EXPECT_TRUE(ret->has_expr());
+
+    auto call = dynamic_cast<const CallExpr*>(ret->get_expr());
+    EXPECT_NE(call, nullptr);
+    EXPECT_FALSE(call->has_args());
+
+    auto callee = dynamic_cast<const RefExpr*>(call->get_callee());
+    EXPECT_NE(callee, nullptr);
+    EXPECT_EQ(callee->get_name(), "foo");
+    EXPECT_EQ(callee->get_decl(), foo_decl);
+}
+
+TEST_F(ParserTests, ParseCallNamedArgs) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(int x); int main() { return foo(1); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 2);
+
+    auto foo_decl = unit.get_decl("foo");
+    EXPECT_NE(foo_decl, nullptr);
+
+    auto main_decl = unit.get_decl("main");
+    EXPECT_NE(main_decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(main_decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+    
+    auto compound = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(compound, nullptr);
+    EXPECT_EQ(compound->num_stmts(), 1);
+
+    auto ret = dynamic_cast<const ReturnStmt*>(compound->get_stmt(0));
+    EXPECT_NE(ret, nullptr);
+    EXPECT_TRUE(ret->has_expr());
+
+    auto call = dynamic_cast<const CallExpr*>(ret->get_expr());
+    EXPECT_NE(call, nullptr);
+    EXPECT_TRUE(call->has_args());
+    EXPECT_EQ(call->num_args(), 1);
+
+    auto callee = dynamic_cast<const RefExpr*>(call->get_callee());
+    EXPECT_NE(callee, nullptr);
+    EXPECT_EQ(callee->get_name(), "foo");
+    EXPECT_EQ(callee->get_decl(), foo_decl);
+
+    auto arg = dynamic_cast<const IntegerLiteral*>(call->get_arg(0));
+    EXPECT_NE(arg, nullptr);
+    EXPECT_EQ(arg->get_value(), 1);
+}
+
 } // namespace scc::test

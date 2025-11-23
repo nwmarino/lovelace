@@ -58,8 +58,22 @@ public:
     }
 
     Decl* get_decl(uint32_t i) {
-        assert(i < num_decls() && "index out of bounds!");
-        return m_decls[i].get();
+        return const_cast<Decl*>(
+            static_cast<const TranslationUnit*>(this)->get_decl(i));
+    }
+
+    /// Returns the top-level declaration named by \p name if it exists, and
+    /// 'nullptr' otherwise.
+    const Decl* get_decl(const std::string& name) const {
+        for (const auto& decl : m_decls)
+            if (decl->name() == name) return decl.get();
+
+        return nullptr;
+    }
+
+    Decl* get_decl(const std::string& name) {
+        return const_cast<Decl*>(
+            static_cast<const TranslationUnit*>(this)->get_decl(name));
     }
 
     void print(std::ostream& os) const;

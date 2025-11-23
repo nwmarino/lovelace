@@ -670,6 +670,38 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
             base = std::unique_ptr<UnaryExpr>(new UnaryExpr(
                 since(start), base->get_type(), op, true, std::move(base)
             ));
+        } else if (match(TokenKind::SetParen)) {
+            next(); // '('
+
+            std::vector<std::unique_ptr<Expr>> args = {};
+
+            if (!match(TokenKind::EndParen))
+                args.reserve(2);
+
+            while (!match(TokenKind::EndParen)) {
+                auto arg = parse_expr();
+                assert(arg != nullptr && 
+                    "could not parse function call argument expression!");
+                
+                args.push_back(std::move(arg));
+
+                if (match(TokenKind::EndParen))
+                    break;
+
+                if (!match(TokenKind::Comma))
+                    Logger::error("missing ',' after function call argument", since(start));
+
+                next(); // ','
+            }
+
+            next(); // ')'
+
+            if (!args.empty())
+                args.shrink_to_fit();
+
+            base = std::unique_ptr<CallExpr>(new CallExpr(
+                since(start), base->get_type(), std::move(base), args
+            ));
         }
         
         // else if [ (subscript)
