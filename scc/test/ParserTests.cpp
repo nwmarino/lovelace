@@ -352,4 +352,77 @@ TEST_F(ParserTests, ParseCallNamedArgs) {
     EXPECT_EQ(arg->get_value(), 1);
 }
 
+TEST_F(ParserTests, ParseParenBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { return (1); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = unit.get_decl(0);
+    EXPECT_NE(decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+    
+    auto compound = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(compound, nullptr);
+    EXPECT_EQ(compound->num_stmts(), 1);
+
+    auto ret = dynamic_cast<const ReturnStmt*>(compound->get_stmt(0));
+    EXPECT_NE(ret, nullptr);
+    EXPECT_TRUE(ret->has_expr());
+
+    auto paren = dynamic_cast<const ParenExpr*>(ret->get_expr());
+    EXPECT_NE(paren, nullptr);
+    EXPECT_NE(paren->get_expr(), nullptr);
+
+    auto integer = dynamic_cast<const IntegerLiteral*>(paren->get_expr());
+    EXPECT_NE(integer, nullptr);
+    EXPECT_EQ(integer->get_value(), 1);
+}
+
+TEST_F(ParserTests, ParseParenReference) {
+        TranslationUnit unit {};
+
+    Parser parser("test", "int main() { int x = 5; return (x); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = unit.get_decl(0);
+    EXPECT_NE(decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+    
+    auto compound = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(compound, nullptr);
+    EXPECT_EQ(compound->num_stmts(), 2);
+
+    auto dstmt = dynamic_cast<const DeclStmt*>(compound->get_stmt(0));
+    EXPECT_NE(dstmt, nullptr);
+    
+    auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
+    EXPECT_NE(var, nullptr);
+    EXPECT_EQ(var->name(), "x");
+    EXPECT_TRUE(var->has_initializer());
+
+    auto ret = dynamic_cast<const ReturnStmt*>(compound->get_stmt(1));
+    EXPECT_NE(ret, nullptr);
+    EXPECT_TRUE(ret->has_expr());
+
+    auto paren = dynamic_cast<const ParenExpr*>(ret->get_expr());
+    EXPECT_NE(paren, nullptr);
+    EXPECT_NE(paren->get_expr(), nullptr);
+
+    auto ref = dynamic_cast<const RefExpr*>(paren->get_expr());
+    EXPECT_NE(ref, nullptr);
+    EXPECT_EQ(ref->get_name(), "x");
+    EXPECT_EQ(ref->get_decl(), var);
+}
+
 } // namespace scc::test

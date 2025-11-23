@@ -12,7 +12,6 @@
 #include "core/Span.hpp"
 #include "lexer/Token.hpp"
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -729,14 +728,6 @@ std::unique_ptr<Expr> Parser::parse_ref() {
     return std::unique_ptr<RefExpr>(new RefExpr(
         since(token.loc), decl->get_type(), decl
     ));
-}
-
-std::unique_ptr<Expr> Parser::parse_call() {
-    return nullptr;
-}
-
-std::unique_ptr<Expr> Parser::parse_cast() {
-    return nullptr;
 }
 
 std::unique_ptr<Expr> Parser::parse_sizeof() {
