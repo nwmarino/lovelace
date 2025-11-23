@@ -35,12 +35,8 @@ public:
         Continue,
         While,
         For,
-        /*
         Case,
         Switch,
-        Goto,
-        Label,
-        */
     };
 
 protected:
@@ -326,19 +322,82 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
+/// Represents a 'case' statement.
 class CaseStmt final : public Stmt {
-    std::unique_ptr<Expr> m_case;
-    std::unique_ptr<Stmt> m_body;
-};
-
-class SwitchStmt final : public Stmt {
+    /// The expression to match for this case.
     std::unique_ptr<Expr> m_match;
-    std::vector<std::unique_ptr<CaseStmt>> m_cases;
+
+    /// The body of this case.
+    std::unique_ptr<Stmt> m_body;
+
+public:
+    CaseStmt(const Span& span, std::unique_ptr<Expr> match, 
+             std::unique_ptr<Stmt> body)
+        : Stmt(Kind::Case, span), m_match(std::move(match)), 
+          m_body(std::move(body)) {}
+
+    CaseStmt(const CaseStmt&) = delete;
+    CaseStmt& operator = (const CaseStmt&) = delete;
+
+    /// Returns the expression to match for this case statement.
+    const Expr* get_match() const { return m_match.get(); }
+    Expr* get_match() { return m_match.get(); }
+    
+    /// Returns the body of this case statement.
+    const Stmt* get_body() const { return m_body.get(); }
+    Stmt* get_body() { return m_body.get(); }
+
+    void print(std::ostream& os) const override;
 };
 
-*/
+/// Represents a 'switch' statement.
+class SwitchStmt final : public Stmt {
+    /// The expression to match for this switch statement.
+    std::unique_ptr<Expr> m_match;
+
+    /// The list of cases in this switch statement.
+    std::vector<std::unique_ptr<CaseStmt>> m_cases;
+
+    /// The default case for this switch statement, if there is one.
+    std::unique_ptr<Stmt> m_default;
+
+public:
+    SwitchStmt(const Span& span, std::unique_ptr<Expr> match, 
+               std::vector<std::unique_ptr<CaseStmt>>& cases, 
+               std::unique_ptr<Stmt> def)
+        : Stmt(Kind::Switch, span), m_match(std::move(match)), 
+          m_cases(std::move(cases)), m_default(std::move(def)) {}
+
+    SwitchStmt(const SwitchStmt&) = delete;
+    SwitchStmt& operator = (const SwitchStmt&) = delete;
+
+    /// Returns the number of cases in this switch statement.
+    uint32_t num_cases() const { return m_cases.size(); }
+
+    /// Returns the case at position \p i of this switch statement.
+    const CaseStmt* get_case(uint32_t i) const {
+        assert(i < num_cases() && "index out of bounds!");
+        return m_cases[i].get();
+    }
+
+    CaseStmt* get_case(uint32_t i) {
+        return const_cast<CaseStmt*>(
+            static_cast<const SwitchStmt*>(this)->get_case(i));
+    }
+
+    /// Returns true if this switch statement has a default case.
+    bool has_default() const { return m_default != nullptr; }
+
+    /// Returns the default statement of this switch statement if there is one,
+    /// and 'nullptr' otherwise.
+    const Stmt* get_default() const { 
+        return has_default() ? m_default.get() : nullptr; 
+    }
+
+    Stmt* get_default() { return has_default() ? m_default.get() : nullptr; }
+
+    void print(std::ostream& os) const override;
+};
 
 } // namespace scc
 

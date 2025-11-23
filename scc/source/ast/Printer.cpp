@@ -196,6 +196,30 @@ void ForStmt::print(std::ostream& os) const {
     --g_indent;
 }
 
+void CaseStmt::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Case ";
+    print_span(os, m_span);
+    os << '\n';
+
+    ++g_indent;
+    m_match->print(os);
+    m_body->print(os);
+    --g_indent;
+}
+
+void SwitchStmt::print(std::ostream& os) const {
+    print_indent(os);
+    os << "Switch ";
+    print_span(os, m_span);
+    os << '\n';
+
+    ++g_indent;
+    for (const auto& c : m_cases) c->print(os);
+    if (has_default()) m_default->print(os);
+    --g_indent;
+}
+
 void IntegerLiteral::print(std::ostream& os) const {
     print_indent(os);
     os << "Integer ";

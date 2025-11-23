@@ -113,6 +113,7 @@ class Parser final {
     std::unique_ptr<Stmt> parse_return();
     std::unique_ptr<Stmt> parse_while();
     std::unique_ptr<Stmt> parse_for();
+    std::unique_ptr<Stmt> parse_switch();
 
 public:
     Parser(const std::string& file, const std::string& source = "");

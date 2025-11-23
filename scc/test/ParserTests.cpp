@@ -792,6 +792,77 @@ TEST_F(ParserTests, ParseTernaryBasic) {
     EXPECT_EQ(fval->get_value(), 1);
 }
 
+TEST_F(ParserTests, ParseSwitchBasic) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; } }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto sw = dynamic_cast<const SwitchStmt*>(body->get_stmt(0));
+    EXPECT_NE(sw, nullptr);
+    EXPECT_EQ(sw->num_cases(), 2);
+    EXPECT_FALSE(sw->has_default());
+
+    auto c1 = dynamic_cast<const CaseStmt*>(sw->get_case(0));
+    EXPECT_NE(c1, nullptr);
+
+    auto c1b = dynamic_cast<const ReturnStmt*>(c1->get_body());
+    EXPECT_NE(c1b, nullptr);
+
+    auto c2 = dynamic_cast<const CaseStmt*>(sw->get_case(1));
+    EXPECT_NE(c1, nullptr);
+
+    auto c2b = dynamic_cast<const ReturnStmt*>(c2->get_body());
+    EXPECT_NE(c1b, nullptr);
+}
+
+TEST_F(ParserTests, ParseSwitchDefault) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; default: return 2; } }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto sw = dynamic_cast<const SwitchStmt*>(body->get_stmt(0));
+    EXPECT_NE(sw, nullptr);
+    EXPECT_EQ(sw->num_cases(), 2);
+    EXPECT_TRUE(sw->has_default());
+
+    auto c1 = dynamic_cast<const CaseStmt*>(sw->get_case(0));
+    EXPECT_NE(c1, nullptr);
+
+    auto c1b = dynamic_cast<const ReturnStmt*>(c1->get_body());
+    EXPECT_NE(c1b, nullptr);
+
+    auto c2 = dynamic_cast<const CaseStmt*>(sw->get_case(1));
+    EXPECT_NE(c1, nullptr);
+
+    auto c2b = dynamic_cast<const ReturnStmt*>(c2->get_body());
+    EXPECT_NE(c1b, nullptr);
+
+    auto def = dynamic_cast<const ReturnStmt*>(sw->get_default());
+    EXPECT_NE(def, nullptr);
+}
+
 /*
 TEST_F(ParserTests, ParseMemberBasic) {
     TranslationUnit unit {};

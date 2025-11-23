@@ -763,7 +763,7 @@ std::unique_ptr<Expr> Parser::parse_unary_prefix() {
 
 std::unique_ptr<Expr> Parser::parse_unary_postfix() {
     std::unique_ptr<Expr> base = parse_primary();
-    assert(base != nullptr && "could not parse unary postfix base expression!");
+    if (!base) Logger::error("expected expression", m_lexer.last().loc);
 
     while (1) {
         const SourceLocation start = m_lexer.last().loc;
@@ -880,8 +880,7 @@ std::unique_ptr<Expr> Parser::parse_sizeof() {
 std::unique_ptr<Expr> Parser::parse_ternary(std::unique_ptr<Expr> base) {
     next(); // '?'
 
-    std::unique_ptr<Expr> tval = nullptr;
-    std::unique_ptr<Expr> fval = nullptr;
+    std::unique_ptr<Expr> tval = nullptr, fval = nullptr;
 
     // Parse the true value: '?' ... ':'
     if (!(tval = parse_expr())) Logger::error("expected expression");
@@ -907,9 +906,7 @@ std::unique_ptr<Expr> Parser::parse_ternary(std::unique_ptr<Expr> base) {
 std::unique_ptr<Stmt> Parser::parse_stmt() {
     if (match(TokenKind::SetBrace)) {
         return parse_compound();
-    }
-
-    if (match("return")) {
+    } else if (match("return")) {
         return parse_return();
     } else if (match("if")) {
         return parse_if();
@@ -917,32 +914,29 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         return parse_while();
     } else if (match("for")) {
         return parse_for();
+    } else if (match("switch")) {
+        return parse_switch();
     } else if (match("break")) {
         const SourceLocation start = m_lexer.last().loc;
         next(); // 'break'
-
-        return std::unique_ptr<BreakStmt>(new BreakStmt(since(start)));
+        return std::make_unique<BreakStmt>(since(start));
     } else if (match("continue")) {
         const SourceLocation start = m_lexer.last().loc;
         next(); // 'continue'
-
-        return std::unique_ptr<ContinueStmt>(new ContinueStmt(since(start)));
+        return std::make_unique<ContinueStmt>(since(start));
     } else if (match(TokenKind::Identifier) && 
       (is_storage_class(m_lexer.last().value) || is_typedef(m_lexer.last().value))) {
-        auto var = parse_decl();
-        assert(var != nullptr && "could not parse variable declaration!");
+        std::unique_ptr<Decl> var = parse_decl();
+        if (!var) Logger::error("expected variable declaration");
 
-        return std::unique_ptr<DeclStmt>(new DeclStmt(
-            var->span(), std::move(var)
-        ));
+        return std::make_unique<DeclStmt>(var->span(), std::move(var));
     }
 
-    auto expr = parse_expr();
-    assert(expr != nullptr && "could not parse expression statement!");
+    // Fallback to an expression statement.
+    std::unique_ptr<Expr> expr = parse_expr();
+    if (!expr) Logger::error("expected expression");
 
-    return std::unique_ptr<ExprStmt>(new ExprStmt(
-        expr->span(), std::move(expr)
-    ));
+    return std::make_unique<ExprStmt>(expr->span(), std::move(expr));
 }
 
 std::unique_ptr<Stmt> Parser::parse_compound() {
@@ -1065,10 +1059,8 @@ std::unique_ptr<Stmt> Parser::parse_for() {
     const SourceLocation start = m_lexer.last().loc;
     next(); // 'while'
 
-    std::unique_ptr<Stmt> init = nullptr;
-    std::unique_ptr<Expr> cond = nullptr;
-    std::unique_ptr<Expr> step = nullptr;
-    std::unique_ptr<Stmt> body = nullptr;
+    std::unique_ptr<Stmt> init = nullptr, body = nullptr;
+    std::unique_ptr<Expr> cond = nullptr, step = nullptr;
 
     if (match(TokenKind::SetParen)) {
         next(); // '('
@@ -1103,11 +1095,94 @@ std::unique_ptr<Stmt> Parser::parse_for() {
     if (!match(TokenKind::Semi))
         if (!(body = parse_stmt())) Logger::error("expected statement");
 
-    return std::unique_ptr<ForStmt>(new ForStmt(
+    return std::make_unique<ForStmt>(
         since(start), 
         std::move(init), 
         std::move(cond), 
         std::move(step), 
         std::move(body)
-    ));
+    );
 }
+
+std::unique_ptr<Stmt> Parser::parse_switch() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'switch'
+
+    std::unique_ptr<Expr> mtch = nullptr;
+    std::unique_ptr<Stmt> def = nullptr;
+    std::vector<std::unique_ptr<CaseStmt>> cases = {};
+
+    if (match(TokenKind::SetParen)) {
+        next(); // '('
+    } else {
+        Logger::error("expected '(' after 'switch'");
+    }
+
+    if (!(mtch = parse_expr())) Logger::error("expected expression");
+
+    if (match(TokenKind::EndParen)) {
+        next(); // ')'
+    } else {
+        Logger::error("expected ')' after 'switch' specifier");
+    }
+
+    if (match(TokenKind::SetBrace)) {
+        next(); // '{'
+    } else {
+        Logger::error("expected '{' after 'switch' specifier");
+    }
+
+    cases.reserve(4);
+    while (!match(TokenKind::EndBrace)) {
+        if (match("case")) {
+            const SourceLocation case_s = m_lexer.last().loc;
+            next(); // 'case'
+
+            std::unique_ptr<Expr> case_m = nullptr;
+            std::unique_ptr<Stmt> case_b = nullptr;
+
+            if (!(case_m = parse_expr()))
+                Logger::error("expected expression after 'case'");
+
+            if (match(TokenKind::Colon)) {
+                next(); // ':'
+            } else {
+                Logger::error("expected ':' after case expression");
+            }
+
+            if (!(case_b = parse_stmt())) Logger::error("expected statement");
+
+            cases.push_back(std::make_unique<CaseStmt>(
+                since(case_s), std::move(case_m), std::move(case_b)
+            ));
+        } else if (match("default")) {
+            if (def) Logger::error("more than one default statement in 'switch'");
+
+            next(); // 'default'
+
+            if (match(TokenKind::Colon)) {
+                next(); // ':'
+            } else {
+                Logger::error("expected ':' after 'default'");
+            }
+
+            if (!(def = parse_stmt())) Logger::error("expected statement");
+        }
+
+        if (match(TokenKind::EndBrace)) break;
+
+        while (match(TokenKind::Semi)) next(); // ';'
+    }
+
+    next(); // '}'   
+
+    if (!cases.empty()) cases.shrink_to_fit();
+    
+    return std::make_unique<SwitchStmt>(
+        since(start),
+        std::move(mtch),
+        cases,
+        std::move(def)
+    );
+}
+
