@@ -207,19 +207,27 @@ void ContinueStmt::print(std::ostream& os) const {
 
 void WhileStmt::print(std::ostream& os) const {
     print_indent(os);
-
     os << "While ";
-
     print_span(os, m_span);
-
     os << '\n';
 
     ++g_indent;
     m_cond->print(os);
+    if (has_body()) m_body->print(os);
+    --g_indent;
+}
 
-    if (has_body())
-        m_body->print(os);
-    
+void ForStmt::print(std::ostream& os) const {
+    print_indent(os);
+    os << "For ";
+    print_span(os, m_span);
+    os << '\n';
+
+    ++g_indent;
+    if (has_init()) m_init->print(os);
+    if (has_cond()) m_cond->print(os);
+    if (has_step()) m_step->print(os);
+    if (has_body()) m_body->print(os);
     --g_indent;
 }
 

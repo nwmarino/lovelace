@@ -238,7 +238,10 @@ public:
 
 /// Represents a 'while' statement.
 class WhileStmt final : public Stmt {
+    /// The condition of the while loop.
     std::unique_ptr<Expr> m_cond;
+
+    /// The body of the while loop, if it has one.
     std::unique_ptr<Stmt> m_body;
 
 public:
@@ -265,14 +268,65 @@ public:
     void print(std::ostream& os) const override;
 };
 
-/*
-
+/// Represents a 'for' statement.
 class ForStmt final : public Stmt {
-    std::unique_ptr<Expr> m_init;
+    /// The initializing statement of the for loop, if there is one.
+    std::unique_ptr<Stmt> m_init;
+
+    /// The stopping condition of the for loop, if there is one.
     std::unique_ptr<Expr> m_cond;
+
+    /// The increment or step expression of the for loop, if there is one.
     std::unique_ptr<Expr> m_step;
+    
+    /// The body of the for loop, if there is one.
     std::unique_ptr<Stmt> m_body;
+
+public:
+    ForStmt(const Span& span, std::unique_ptr<Stmt> init, 
+            std::unique_ptr<Expr> cond, std::unique_ptr<Expr> step,
+            std::unique_ptr<Stmt> body)
+        : Stmt(Kind::For, span), m_init(std::move(init)), m_cond(std::move(cond)),
+        m_step(std::move(step)), m_body(std::move(body)) {}
+
+    ForStmt(const ForStmt&) = delete;
+    ForStmt& operator = (const ForStmt&) = delete;
+
+    /// Returns true if this for loop has an initializing statement.
+    bool has_init() const { return m_init != nullptr; }
+
+    /// Returns the initializing statement of this for loop if it has one, and
+    /// 'nullptr' otherwise.
+    const Stmt* get_init() const { return m_init.get(); }
+    Stmt* get_init() { return m_init.get(); }
+
+    /// Returns true if this for loop has a stopping condition.
+    bool has_cond() const { return m_cond != nullptr; }
+
+    /// Returns the stopping condition of this for loop if it has one, and
+    /// 'nullptr' otherwise.
+    const Expr* get_cond() const { return m_cond.get(); }
+    Expr* get_cond() { return m_cond.get(); }
+
+    /// Returns true if this for loop has a stepping expression.
+    bool has_step() const { return m_step != nullptr; }
+
+    /// Returns the stepping expression of this for loop if it has one, and
+    /// 'nullptr' otherwise.
+    const Expr* get_step() const { return m_step.get(); }
+    Expr* get_step() { return m_step.get(); }
+
+    /// Returns true if this for loop has a body.
+    bool has_body() const { return m_body != nullptr; }
+
+    /// Returns the body of this for loop if it has one, and 'nullptr' otherwise.
+    const Stmt* get_body() const { return m_body.get(); }
+    Stmt* get_body() { return m_body.get(); }
+
+    void print(std::ostream& os) const override;
 };
+
+/*
 
 class CaseStmt final : public Stmt {
     std::unique_ptr<Expr> m_case;

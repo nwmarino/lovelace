@@ -541,4 +541,188 @@ TEST_F(ParserTests, ParseWhileLoop) {
     EXPECT_NE(cont, nullptr);
 }
 
+TEST_F(ParserTests, ParseWhileLoopEmpty) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { while (1); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const WhileStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_FALSE(loop->has_body());
+}
+
+TEST_F(ParserTests, ParseForLoop) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (int i = 0; i < 5; ++i) break; }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_TRUE(loop->has_init());
+    EXPECT_TRUE(loop->has_cond());
+    EXPECT_TRUE(loop->has_step());
+    EXPECT_TRUE(loop->has_body());
+
+    auto init = dynamic_cast<const DeclStmt*>(loop->get_init());
+    EXPECT_NE(init, nullptr);
+
+    auto iter = dynamic_cast<const VariableDecl*>(init->get_decl());
+    EXPECT_NE(iter, nullptr);
+    EXPECT_EQ(iter->name(), "i");
+
+    auto cond = dynamic_cast<const BinaryExpr*>(loop->get_cond());
+    EXPECT_NE(cond, nullptr);
+    EXPECT_EQ(cond->get_operator(), BinaryExpr::LessThan);
+
+    auto step = dynamic_cast<const UnaryExpr*>(loop->get_step());
+    EXPECT_NE(step, nullptr);
+    EXPECT_EQ(step->get_operator(), UnaryExpr::Increment);
+    EXPECT_FALSE(step->is_postfix());
+
+    auto brk = dynamic_cast<const BreakStmt*>(loop->get_body());
+    EXPECT_NE(brk, nullptr);
+}
+
+TEST_F(ParserTests, ParseForLoopEmpty) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (;;); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_FALSE(loop->has_init());
+    EXPECT_FALSE(loop->has_cond());
+    EXPECT_FALSE(loop->has_step());
+    EXPECT_FALSE(loop->has_body());
+}
+
+TEST_F(ParserTests, ParseForLoopNoInit) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (;5;1) {} }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_FALSE(loop->has_init());
+    EXPECT_TRUE(loop->has_cond());
+    EXPECT_TRUE(loop->has_step());
+    EXPECT_TRUE(loop->has_body());
+}
+
+TEST_F(ParserTests, ParseForLoopNoCond) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (int i = 0;;++i) {} }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_TRUE(loop->has_init());
+    EXPECT_FALSE(loop->has_cond());
+    EXPECT_TRUE(loop->has_step());
+    EXPECT_TRUE(loop->has_body());
+}
+
+TEST_F(ParserTests, ParseForLoopNoStep) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (int i = 0; i < 5;) {} }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_TRUE(loop->has_init());
+    EXPECT_TRUE(loop->has_cond());
+    EXPECT_FALSE(loop->has_step());
+    EXPECT_TRUE(loop->has_body());
+}
+
+TEST_F(ParserTests, ParseForLoopNoBody) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int main() { for (int i = 0; i < 5; ++i); }");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_EQ(body->num_stmts(), 1);
+
+    auto loop = dynamic_cast<const ForStmt*>(body->get_stmt(0));
+    EXPECT_NE(loop, nullptr);
+    EXPECT_TRUE(loop->has_init());
+    EXPECT_TRUE(loop->has_cond());
+    EXPECT_TRUE(loop->has_step());
+    EXPECT_FALSE(loop->has_body());
+}
+
 } // namespace scc::test

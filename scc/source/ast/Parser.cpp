@@ -865,6 +865,8 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         return parse_if();
     } else if (match("while")) {
         return parse_while();
+    } else if (match("for")) {
+        return parse_for();
     } else if (match("break")) {
         const SourceLocation start = m_lexer.last().loc;
         next(); // 'break'
@@ -1006,5 +1008,56 @@ std::unique_ptr<Stmt> Parser::parse_while() {
 
     return std::unique_ptr<WhileStmt>(new WhileStmt(
         since(start), std::move(cond), std::move(body)
+    ));
+}
+
+std::unique_ptr<Stmt> Parser::parse_for() {
+    const SourceLocation start = m_lexer.last().loc;
+    next(); // 'while'
+
+    std::unique_ptr<Stmt> init = nullptr;
+    std::unique_ptr<Expr> cond = nullptr;
+    std::unique_ptr<Expr> step = nullptr;
+    std::unique_ptr<Stmt> body = nullptr;
+
+    if (match(TokenKind::SetParen)) {
+        next(); // '('
+    } else {
+        Logger::error("expected '(' after 'for'", since(start));
+    }
+
+    // Parse the 'for' initializer: for (... ';'
+    if (!match(TokenKind::Semi))
+        if (!(init = parse_stmt())) Logger::error("expected statement");
+
+    // Eat any semicolon after the initializer.
+    if (match(TokenKind::Semi)) next(); // ';'
+
+    // Parse the 'for' stop condition: ';' ... ';'
+    if (!match(TokenKind::Semi))
+        if (!(cond = parse_expr())) Logger::error("expected expresion");
+
+    // Eat any semicolon after the stop condition.
+    if (match(TokenKind::Semi)) next(); // ';'
+
+    // Parse the 'for' step: ';' ... ')'
+    if (!match(TokenKind::EndParen))
+        if (!(step = parse_expr())) Logger::error("expected expression");
+
+    if (match(TokenKind::EndParen)) {
+        next(); // ')'
+    } else {
+        Logger::error("expected ')' after 'for' specifier");
+    }
+
+    if (!match(TokenKind::Semi))
+        if (!(body = parse_stmt())) Logger::error("expected statement");
+
+    return std::unique_ptr<ForStmt>(new ForStmt(
+        since(start), 
+        std::move(init), 
+        std::move(cond), 
+        std::move(step), 
+        std::move(body)
     ));
 }
