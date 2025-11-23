@@ -26,6 +26,7 @@ Parser::Parser(const std::string& file, const std::string& source)
 void Parser::parse(TranslationUnit& unit) {
     next();
 
+    m_unit = &unit;
     m_context = &unit.m_context;
 
     auto scope = enter_scope();
@@ -33,8 +34,10 @@ void Parser::parse(TranslationUnit& unit) {
 
     while (!m_lexer.is_eof()) {
         auto decl = parse_decl();
-        assert(decl != nullptr && "could not parse declaration!");
-        unit.m_decls.push_back(std::move(decl));
+        //assert(decl != nullptr && "could not parse declaration!");
+
+        if (decl != nullptr)
+            unit.m_decls.push_back(std::move(decl));
     }
 
     m_context = nullptr;
@@ -436,17 +439,61 @@ std::unique_ptr<Decl> Parser::parse_function(
 
     exit_scope();
 
-    auto function = std::unique_ptr<FunctionDecl>(new FunctionDecl(
-        sclass, 
-        since(start), 
-        name, 
-        QualType(function_type), 
-        params, 
-        std::move(scope), 
-        std::move(body)));
+    // Check for a previous declaration with the same name in the parent scope.
+    const Decl* prev = m_scope->get(name);
+    if (!prev) {
+        // No previous declaration, so we can define this function as is.
+        auto function = std::unique_ptr<FunctionDecl>(new FunctionDecl(
+            sclass, 
+            since(start), 
+            name, 
+            QualType(function_type), 
+            params, 
+            std::move(scope), 
+            std::move(body)));
 
-    m_scope->add(function.get());
-    return function;
+        m_scope->add(function.get());
+        return function;
+    }
+
+    // A previous declaration exists, so now we have to check it to be both a
+    // function and have the same signature defined here.
+    const FunctionDecl* prev_fn = dynamic_cast<const FunctionDecl*>(prev);
+    if (!prev_fn)
+        Logger::error("symbol with name already exists in scope", since(start));
+
+    const FunctionType* prev_ty = static_cast<const FunctionType*>(
+        prev_fn->get_type().get_type());
+
+    if (prev->storage_class() != sclass) {
+        Logger::error("conflicting storage classes for '" + name + "'", 
+            since(start));
+    }
+
+    bool return_types_match = prev_ty->get_return_type() == ty;
+    bool parameter_counts_match = prev_fn->num_params() == params.size();
+    bool param_types_match = true;
+
+    if (parameter_counts_match) {
+        for (uint32_t i = 0; i < params.size(); ++i) {
+            if (params[i]->get_type() != prev_ty->get_param_type(i)) {
+                param_types_match = false;
+                break;
+            }
+        }
+    }
+
+    if (!return_types_match || !parameter_counts_match || !param_types_match) {
+        Logger::error("conflicting types for '" + name + "'; have " + 
+            prev_fn->get_type().to_string(), since(start));
+    }
+
+    if (prev_fn->has_body() && body != nullptr)
+        Logger::error("redefinition of '" + name + "'", since(start));
+
+    FunctionDecl* cprev = const_cast<FunctionDecl*>(prev_fn);
+    cprev->m_body = std::move(body);
+    return nullptr;
 }
 
 std::unique_ptr<Decl> Parser::parse_variable(

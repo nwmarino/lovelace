@@ -95,6 +95,9 @@ public:
     /// Returns true if this compound has any statements in it.
     bool has_stmts() const { return !m_stmts.empty(); }
 
+    /// Returns true if this compound is empty, i.e. has no statements.
+    bool empty() const { return m_stmts.empty(); }
+
     /// Returns the statement at position \p i of this compound statement.
     const Stmt* get_stmt(uint32_t i) const {
         assert(i < num_stmts() && "index out of bounds!");

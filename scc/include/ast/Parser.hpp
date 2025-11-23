@@ -27,6 +27,7 @@ namespace scc {
 class Parser final {
     std::string m_file;
     Lexer m_lexer;
+    TranslationUnit* m_unit = nullptr;
     Context* m_context = nullptr;
     Scope* m_scope = nullptr;
 

@@ -9,6 +9,7 @@
 #include "ast/Stmt.hpp"
 #include "core/TranslationUnit.hpp"
 
+#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 
 namespace scc::test {
@@ -385,7 +386,7 @@ TEST_F(ParserTests, ParseParenBasic) {
 }
 
 TEST_F(ParserTests, ParseParenReference) {
-        TranslationUnit unit {};
+    TranslationUnit unit {};
 
     Parser parser("test", "int main() { int x = 5; return (x); }");
     parser.parse(unit);
@@ -423,6 +424,67 @@ TEST_F(ParserTests, ParseParenReference) {
     EXPECT_NE(ref, nullptr);
     EXPECT_EQ(ref->get_name(), "x");
     EXPECT_EQ(ref->get_decl(), var);
+}
+
+TEST_F(ParserTests, ParseFunctionRedefine) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(); int foo() { return 1; }");
+    EXPECT_NO_FATAL_FAILURE(parser.parse(unit));
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = unit.get_decl(0);
+    EXPECT_NE(decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_EQ(fn->name(), "foo");
+    EXPECT_TRUE(fn->has_body());
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_FALSE(body->empty());
+}
+
+TEST_F(ParserTests, ParseFunctionRedefineInvalid) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(); int foo(int x) { return 1; }");
+    ASSERT_DEATH(parser.parse(unit), "");
+}
+
+TEST_F(ParserTests, ParseFunctionDoubleDefinition) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo() { return 0; } int foo() { return 1; }");
+    ASSERT_DEATH(parser.parse(unit), "");
+}
+
+TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "int foo(int x); int foo(int x) { return 1; }");
+    EXPECT_NO_FATAL_FAILURE(parser.parse(unit));
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = unit.get_decl(0);
+    EXPECT_NE(decl, nullptr);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    EXPECT_NE(fn, nullptr);
+    EXPECT_EQ(fn->name(), "foo");
+    EXPECT_TRUE(fn->has_params());
+    EXPECT_TRUE(fn->has_body());
+
+    auto param = dynamic_cast<const ParameterDecl*>(fn->get_param(0));
+    EXPECT_NE(param, nullptr);
+    EXPECT_EQ(param->name(), "x");
+
+    auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
+    EXPECT_NE(body, nullptr);
+    EXPECT_FALSE(body->empty());
 }
 
 } // namespace scc::test
