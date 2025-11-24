@@ -16,10 +16,13 @@
 #include "core/Span.hpp"
 
 #include <cassert>
-#include <memory>
 #include <vector>
 
 namespace scc {
+
+using std::ostream;
+using std::string;
+using std::vector;
 
 /// Base class for all expression nodes in the abstract syntax tree.
 class Expr {
@@ -47,14 +50,14 @@ protected:
     const Kind m_kind;
 
     /// The span of source code that this expression covers.
-    const Span m_span;
+    Span m_span;
 
     /// The type of this expression.
     QualType m_type;
 
 public:
-    Expr(Kind kind, const Span& span, const QualType& ty)
-        : m_kind(kind), m_span(span), m_type(ty) {}
+    explicit Expr(Kind kind, const Span& span, const QualType& type)
+        : m_kind(kind), m_span(span), m_type(type) {}
 
     Expr(const Expr&) = delete;
     Expr& operator = (const Expr&) = delete;
@@ -65,14 +68,15 @@ public:
     Kind kind() const { return m_kind; }
 
     /// Returns the span of source code this expression covers.
-    const Span& span() const { return m_span; }
+    const Span& get_span() const { return m_span; }
+    Span& get_span() { return m_span; }
 
     /// Returns the type of this expression.
     const QualType& get_type() const { return m_type; }
     QualType& get_type() { return m_type; }
 
     /// Pretty-print this expression node to the output stream \p os.
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(ostream& os) const = 0;
 };
 
 /// Represents integer literal expressions, e.g. '0' and '1'.
@@ -90,7 +94,7 @@ public:
     /// Returns the value of this literal as an integer.
     int64_t get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. '0.1' and '3.14'.
@@ -99,8 +103,8 @@ class FPLiteral final : public Expr {
     double m_value;
 
 public:
-    FPLiteral(const Span& span, const QualType& ty, double value)
-        : Expr(Kind::FPLiteral, span, ty), m_value(value) {}
+    FPLiteral(const Span& span, const QualType& type, double value)
+        : Expr(Kind::FPLiteral, span, type), m_value(value) {}
 
     FPLiteral(const FPLiteral&) = delete;
     FPLiteral& operator = (const FPLiteral&) = delete;
@@ -117,8 +121,8 @@ class CharLiteral final : public Expr {
     char m_value;
 
 public:
-    CharLiteral(const Span& span, const QualType& ty, char value)
-        : Expr(Kind::CharLiteral, span, ty), m_value(value) {}
+    CharLiteral(const Span& span, const QualType& type, char value)
+        : Expr(Kind::CharLiteral, span, type), m_value(value) {}
 
     CharLiteral(const CharLiteral&) = delete;
     CharLiteral& operator = (const CharLiteral&) = delete;
@@ -126,26 +130,25 @@ public:
     /// Returns the value of this literal as a character.
     char get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. "Hello" and "World!".
 class StringLiteral final : public Expr {
     /// The string value of this literal.
-    std::string m_value;
+    string m_value;
 
 public:
-    StringLiteral(const Span& span, const QualType& ty, 
-                  const std::string& value)
-        : Expr(Kind::StringLiteral, span, ty), m_value(value) {}
+    StringLiteral(const Span& span, const QualType& type, const string& value)
+        : Expr(Kind::StringLiteral, span, type), m_value(value) {}
 
     StringLiteral(const StringLiteral&) = delete;
     StringLiteral& operator = (const StringLiteral&) = delete;
 
     /// Returns the value of this literal as a string.
-    const std::string& get_value() const { return m_value; }
+    const string& get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents binary operations between two nested expressions.
@@ -186,39 +189,41 @@ public:
     };
 
     /// Returns a stringified version of the operator \p op.
-    static std::string to_string(Op op);
+    static string to_string(Op op);
 
 private:
     /// The operator of this binary expression.
     Op m_operator;
 
     /// The left hand side expression of this operation.
-    std::unique_ptr<Expr> m_left;
+    Expr* m_left;
 
     /// The right hand side expression of this operation.
-    std::unique_ptr<Expr> m_right;
+    Expr* m_right;
 
 public:
-    BinaryExpr(const Span& span, const QualType& ty, Op op, 
-               std::unique_ptr<Expr> left, std::unique_ptr<Expr> right)
-        : Expr(Kind::Binary, span, ty), m_operator(op), m_left(std::move(left)), 
-          m_right(std::move(right)) {}
+    BinaryExpr(const Span& span, const QualType& type, Op op, Expr* left, 
+               Expr* right)
+        : Expr(Kind::Binary, span, type), m_operator(op), m_left(left), 
+          m_right(right) {}
 
     BinaryExpr(const BinaryExpr&) = delete;
     BinaryExpr& operator = (const BinaryExpr&) = delete;
+
+    ~BinaryExpr();
 
     /// Returns the operator of this binary expression.
     Op get_operator() const { return m_operator; }
 
     /// Returns the left hand side expression of this operator.
-    const Expr* get_lhs() const { return m_left.get(); }
-    Expr* get_lhs() { return m_left.get(); }
+    const Expr* get_lhs() const { return m_left; }
+    Expr* get_lhs() { return m_left; }
 
     /// Returns the right hand side expression of this operator.
-    const Expr* get_rhs() const { return m_right.get(); }
-    Expr* get_rhs() { return m_right.get(); }
+    const Expr* get_rhs() const { return m_right; }
+    Expr* get_rhs() { return m_right; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents unary operations over a nested expression.
@@ -237,9 +242,7 @@ public:
     };
 
     /// Returns true if the operator \p op can work as a prefix.
-    static bool is_prefix_op(Op op) {
-        return op != Unknown;
-    }
+    static bool is_prefix_op(Op op) { return op != Unknown; }
 
     /// Returns true if the operator \p op can work as a postfix.
     static bool is_postfix_op(Op op) {
@@ -247,7 +250,7 @@ public:
     }
 
     /// Returns a stringified version of the operator \p op.
-    static std::string to_string(Op op);
+    static string to_string(Op op);
 
 private:
     /// The operator of this unary expression.
@@ -258,16 +261,18 @@ private:
     bool m_postfix;
 
     /// The nested expression this operates on.
-    std::unique_ptr<Expr> m_expr;
+    Expr* m_expr;
 
 public:
-    UnaryExpr(const Span& span, const QualType& ty, Op op, bool postfix, 
-              std::unique_ptr<Expr> expr)
-        : Expr(Kind::Unary, span, ty), m_operator(op), m_postfix(postfix),
-          m_expr(std::move(expr)) {}
+    UnaryExpr(const Span& span, const QualType& type, Op op, bool postfix, 
+              Expr* expr)
+        : Expr(Kind::Unary, span, type), m_operator(op), m_postfix(postfix),
+          m_expr(expr) {}
 
     UnaryExpr(const UnaryExpr&) = delete;
     UnaryExpr& operator = (const UnaryExpr&) = delete;
+    
+    ~UnaryExpr();
 
     /// Returns the operator of this unary expression.
     Op get_operator() const { return m_operator; }
@@ -279,78 +284,77 @@ public:
     bool is_postfix() const { return m_postfix; }
 
     /// Returns the expression that this unary operation works on.
-    const Expr* get_expr() const { return m_expr.get(); }
-    Expr* get_expr() { return m_expr.get(); }
+    const Expr* get_expr() const { return m_expr; }
+    Expr* get_expr() { return m_expr; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents an expression enclosed with parentheses '(, )'.
 class ParenExpr final : public Expr {
     /// The nested expression.
-    std::unique_ptr<Expr> m_expr;
+    Expr* m_expr;
 
 public:
-    ParenExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> expr)
-        : Expr(Kind::Paren, span, ty), m_expr(std::move(expr)) {}
+    ParenExpr(const Span& span, const QualType& type, Expr* expr)
+        : Expr(Kind::Paren, span, type), m_expr(expr) {}
 
     ParenExpr(const ParenExpr&) = delete;
     ParenExpr& operator = (const ParenExpr&) = delete;
 
-    /// Returns the nested expression.
-    const Expr* get_expr() const { return m_expr.get(); }
-    Expr* get_expr() { return m_expr.get(); }
+    ~ParenExpr();
 
-    void print(std::ostream& os) const override;
+    /// Returns the nested expression.
+    const Expr* get_expr() const { return m_expr; }
+    Expr* get_expr() { return m_expr; }
+
+    void print(ostream& os) const override;
 };
 
 /// Represents a valued reference to some declaration.
 class RefExpr final : public Expr {
     /// The declaration that this expression references.
-    const Decl* m_decl;
+    const ValueDecl* m_decl;
 
 public:
-    RefExpr(const Span& span, const QualType& ty, const Decl* decl)
-        : Expr(Kind::Ref, span, ty), m_decl(decl) {}
+    RefExpr(const Span& span, const QualType& type, const ValueDecl* decl)
+        : Expr(Kind::Ref, span, type), m_decl(decl) {}
 
     RefExpr(const RefExpr&) = delete;
     RefExpr& operator = (const RefExpr&) = delete;
 
     /// Returns the declaration that this expression references.
-    const Decl* get_decl() const { return m_decl; }
+    const ValueDecl* get_decl() const { return m_decl; }
 
     /// Set the declaration this expression references to \p decl.
-    void set_decl(const Decl* decl) { m_decl = decl; }
+    void set_decl(const ValueDecl* decl) { m_decl = decl; }
 
     /// Returns the name of the declaration that this expression references.
-    const std::string& get_name() const { 
+    const string& get_name() const { 
         assert(m_decl != nullptr && "declaration not set!");
-        return m_decl->name(); 
+        return m_decl->get_name(); 
     }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a call to some function declaration.
 class CallExpr final : public Expr {
     /// The base or callee expression of this function call.
-    std::unique_ptr<Expr> m_callee;
+    Expr* m_callee;
     
     /// The argument expression to this function call.
-    std::vector<std::unique_ptr<Expr>> m_args;
+    vector<Expr*> m_args;
 
 public:
-    CallExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> callee, 
-             std::vector<std::unique_ptr<Expr>>& args)
-        : Expr(Kind::Call, span, ty), m_callee(std::move(callee)), 
-          m_args(std::move(args)) {}
+    CallExpr(const Span& span, const QualType& type, Expr* callee, 
+             const vector<Expr*>& args)
+        : Expr(Kind::Call, span, type), m_callee(callee), m_args(args) {}
 
     CallExpr(const CallExpr&) = delete;
     CallExpr& operator = (const CallExpr&) = delete;
 
-    /// Returns the base or callee expression of this function call.
-    const Expr* get_callee() const { return m_callee.get(); }
-    Expr* get_callee() { return m_callee.get(); }
+    ~CallExpr();
 
     /// Returns the number of arguments in this function call.
     uint32_t num_args() const { return m_args.size(); }
@@ -358,10 +362,17 @@ public:
     /// Returns true if this function call has any arguments.
     bool has_args() const { return !m_args.empty(); }
 
+    /// Returns the base or callee expression of this function call.
+    const Expr* get_callee() const { return m_callee; }
+    Expr* get_callee() { return m_callee; }
+
+    const vector<Expr*>& get_args() const { return m_args; }
+    vector<Expr*>& get_args() { return m_args; }
+
     /// Returns the argument expression at position \p i of this function call.
     const Expr* get_arg(uint32_t i) const {
         assert(i < num_args() && "index out of bounds!");
-        return m_args[i].get();
+        return m_args[i];
     }
 
     Expr* get_arg(uint32_t i) {
@@ -369,7 +380,7 @@ public:
             static_cast<const CallExpr*>(this)->get_arg(i)); 
     }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a C-style type casting expression. This node can represent both
@@ -377,20 +388,22 @@ public:
 /// compiler.
 class CastExpr final : public Expr {
     /// The expression to type cast.
-    std::unique_ptr<Expr> m_expr;
+    Expr* m_expr;
 
 public:
-    CastExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> expr)
-        : Expr(Kind::Cast, span, ty), m_expr(std::move(expr)) {}
+    CastExpr(const Span& span, const QualType& type, Expr* expr)
+        : Expr(Kind::Cast, span, type), m_expr(expr) {}
 
     CastExpr(const CastExpr&) = delete;
     CastExpr& operator = (const CastExpr&) = delete;
 
-    /// Returns the expression that this type cast works on.
-    const Expr* get_expr() const { return m_expr.get(); }
-    Expr* get_expr() { return m_expr.get(); }
+    ~CastExpr();
 
-    void print(std::ostream& os) const override;
+    /// Returns the expression that this type cast works on.
+    const Expr* get_expr() const { return m_expr; }
+    Expr* get_expr() { return m_expr; }
+
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'sizeof' compile-time expression over some type.
@@ -399,8 +412,8 @@ class SizeofExpr final : public Expr {
     QualType m_target;
 
 public:
-    SizeofExpr(const Span& span, const QualType& ty, const QualType& target)
-        : Expr(Kind::Sizeof, span, ty), m_target(target) {}
+    SizeofExpr(const Span& span, const QualType& type, const QualType& target)
+        : Expr(Kind::Sizeof, span, type), m_target(target) {}
 
     SizeofExpr(const SizeofExpr&) = delete;
     SizeofExpr& operator = (const SizeofExpr&) = delete;
@@ -409,34 +422,35 @@ public:
     const QualType& get_target() const { return m_target; }
     QualType& get_target() { return m_target; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a '[]' subscript expression.
 class SubscriptExpr final : public Expr {
     /// The base expression to access.
-    std::unique_ptr<Expr> m_base;
+    Expr* m_base;
 
     /// The index to access the base expression at, i.e. the expression
     /// enclosed by braces '[, ]'.
-    std::unique_ptr<Expr> m_index;
+    Expr* m_index;
 
 public:
-    SubscriptExpr(const Span& span, const QualType& ty, 
-                  std::unique_ptr<Expr> base, std::unique_ptr<Expr> index)
-        : Expr(Kind::Subscript, span, ty), m_base(std::move(base)), 
-          m_index(std::move(index)) {}
+    SubscriptExpr(const Span& span, const QualType& type, Expr* base, 
+                  Expr* index)
+        : Expr(Kind::Subscript, span, type), m_base(base), m_index(index) {}
 
     SubscriptExpr(const SubscriptExpr&) = delete;
     SubscriptExpr& operator = (const SubscriptExpr&) = delete;
 
+    ~SubscriptExpr();
+
     /// Returns the base expression of this subscript.
-    const Expr* get_base() const { return m_base.get(); }
-    Expr* get_base() { return m_base.get(); }
+    const Expr* get_base() const { return m_base; }
+    Expr* get_base() { return m_base; }
 
     /// Returns the index expression of this subscript.
-    const Expr* get_index() const { return m_index.get(); }
-    Expr* get_index() { return m_index.get(); }
+    const Expr* get_index() const { return m_index; }
+    Expr* get_index() { return m_index; }
 
     void print(std::ostream& os) const override;
 };
@@ -444,72 +458,76 @@ public:
 /// Represents a '.' or '->' member access expression.
 class MemberExpr final : public Expr {
     /// The base expression to access.
-    std::unique_ptr<Expr> m_base;
+    Expr* m_base;
 
     /// The member declaration to access.
-    const Decl* m_member;
+    const ValueDecl* m_member;
 
     /// If this is an arrow member access, i.e. one using the '->' operator 
     /// instead of the '.' operator.
     bool m_arrow;
 
 public:
-    MemberExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> base,
-               const Decl* member, bool arrow)
-        : Expr(Kind::Member, span, ty), m_base(std::move(base)),
+    MemberExpr(const Span& span, const QualType& type, Expr* base,
+               const ValueDecl* member, bool arrow)
+        : Expr(Kind::Member, span, type), m_base(std::move(base)),
           m_member(member), m_arrow(arrow) {}
 
     MemberExpr(const MemberExpr&) = delete;
     MemberExpr& operator = (const MemberExpr&) = delete;
 
+    ~MemberExpr();
+
     /// Returns the base expression of this member access.
-    const Expr* get_base() const { return m_base.get(); }
-    Expr* get_base() { return m_base.get(); }
+    const Expr* get_base() const { return m_base; }
+    Expr* get_base() { return m_base; }
 
     /// Returns the declaration that this member access references.
-    const Decl* get_member() const { return m_member; }
+    const ValueDecl* get_member() const { return m_member; }
 
     /// Returns true if this is an arrow '->' member access.
     bool is_arrow() const { return m_arrow; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a '?' ternary selection expression.
 class TernaryExpr final : public Expr {
     /// The condition expression of the ternary operator.
-    std::unique_ptr<Expr> m_cond;
+    Expr* m_cond;
     
     /// The expression to use if the condition is true.
-    std::unique_ptr<Expr> m_tval;
+    Expr* m_tval;
 
     /// The expression to use if the condition is false.
-    std::unique_ptr<Expr> m_fval;
+    Expr* m_fval;
 
 public:
-    TernaryExpr(const Span& span, const QualType& ty, std::unique_ptr<Expr> cond,
-                std::unique_ptr<Expr> tval, std::unique_ptr<Expr> fval)
-        : Expr(Kind::Ternary, span, ty), m_cond(std::move(cond)), 
-          m_tval(std::move(tval)), m_fval(std::move(fval)) {}
+    TernaryExpr(const Span& span, const QualType& type, Expr* cond, Expr* tval, 
+                Expr* fval)
+        : Expr(Kind::Ternary, span, type), m_cond(cond), m_tval(tval), 
+          m_fval(fval) {}
 
     TernaryExpr(const TernaryExpr&) = delete;
     TernaryExpr& operator = (const TernaryExpr&) = delete;
 
+    ~TernaryExpr();
+
     /// Returns the condition expression of this operator.
-    const Expr* get_cond() const { return m_cond.get(); }
-    Expr* get_cond() { return m_cond.get(); }
+    const Expr* get_cond() const { return m_cond; }
+    Expr* get_cond() { return m_cond; }
 
     /// Returns the expression to be used if the condition of this operator
     /// is true.
-    const Expr* get_true_value() const { return m_tval.get(); }
-    Expr* get_true_value() { return m_tval.get(); }
+    const Expr* get_true_value() const { return m_tval; }
+    Expr* get_true_value() { return m_tval; }
 
     /// Returns the expression to be used if the condition of this operator
     /// is false.
-    const Expr* get_false_value() const { return m_fval.get(); }
-    Expr* get_false_value() { return m_fval.get(); }
+    const Expr* get_false_value() const { return m_fval; }
+    Expr* get_false_value() { return m_fval; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 } // namespace scc

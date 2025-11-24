@@ -16,10 +16,12 @@
 
 #include <cassert>
 #include <cstdint>
-#include <memory>
 #include <vector>
 
 namespace scc {
+
+using std::ostream;
+using std::vector;
 
 /// Base class for all statement nodes in the abstract syntax tree.
 class Stmt {
@@ -44,7 +46,7 @@ protected:
     const Kind m_kind;
 
     /// The span of source code that this statement covers.
-    const Span m_span;
+    Span m_span;
 
 public:
     Stmt(Kind kind, const Span& span) : m_kind(kind), m_span(span) {}
@@ -55,49 +57,44 @@ public:
     virtual ~Stmt() = default;
 
     /// Returns the kind of statement this is.
-    Kind kind() const { return m_kind; }
+    Kind get_kind() const { return m_kind; }
 
     /// Returns the span of source code this statement covers.
-    const Span& span() const { return m_span; }
+    const Span& get_span() const { return m_span; }
+    Span& get_span() { return m_span; }
 
     /// Pretty-print this expression node to the output stream \p os.
-    virtual void print(std::ostream& os) const = 0;
+    virtual void print(ostream& os) const = 0;
 };
 
-/// Represents a scoped list of statements enclosed by curly braces '{, }'.
+/// Represents a list of statements enclosed by curly braces '{, }'.
 class CompoundStmt final : public Stmt {
-    /// The scope of this compound statement.
-    std::unique_ptr<Scope> m_scope;
-
     /// The statements in this compound statement.
-    std::vector<std::unique_ptr<Stmt>> m_stmts;
+    vector<Stmt*> m_stmts;
 
 public:
-    CompoundStmt(const Span& span, std::unique_ptr<Scope> scope, 
-                 std::vector<std::unique_ptr<Stmt>>& stmts)
-        : Stmt(Kind::Compound, span), m_scope(std::move(scope)), 
-          m_stmts(std::move(stmts)) {}
+    CompoundStmt(const Span& span, const vector<Stmt*>& stmts)
+        : Stmt(Kind::Compound, span), m_stmts(stmts) {}
 
     CompoundStmt(const CompoundStmt&) = delete;
     CompoundStmt& operator = (const CompoundStmt&) = delete;
 
-    /// Returns the scope node of this compound statement.
-    const Scope* get_scope() const { return m_scope.get(); }
-    Scope* get_scope() { return m_scope.get(); }
+    ~CompoundStmt();
 
     /// Returns the number of statements in this compound statement.
     uint32_t num_stmts() const { return m_stmts.size(); }
 
-    /// Returns true if this compound has any statements in it.
-    bool has_stmts() const { return !m_stmts.empty(); }
-
     /// Returns true if this compound is empty, i.e. has no statements.
     bool empty() const { return m_stmts.empty(); }
+
+    /// Returns the statements in this compound.
+    const vector<Stmt*>& get_stmts() const { return m_stmts; }
+    vector<Stmt*>& get_stmts() { return m_stmts; }
 
     /// Returns the statement at position \p i of this compound statement.
     const Stmt* get_stmt(uint32_t i) const {
         assert(i < num_stmts() && "index out of bounds!");
-        return m_stmts[i].get();
+        return m_stmts[i];
     }
 
     Stmt* get_stmt(uint32_t i) {
@@ -105,109 +102,120 @@ public:
             static_cast<const CompoundStmt*>(this)->get_stmt(i));
     }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
-/// Represents an inline declaration as part of a statement. This is generally
-/// only used for local variable definitions.
+/// Represents a series of inline declaration as part of a statement.
 class DeclStmt final : public Stmt {
-    /// The nested declaration in this statement.
-    std::unique_ptr<Decl> m_decl;
+    /// The nested declarations in this statement.
+    vector<const Decl*> m_decls;
 
 public:
-    DeclStmt(const Span& span, std::unique_ptr<Decl> decl)
-        : Stmt(Kind::Declaration, span), m_decl(std::move(decl)) {}
+    DeclStmt(const Span& span, const vector<const Decl*>& decls)
+        : Stmt(Kind::Declaration, span), m_decls(decls) {}
         
     DeclStmt(const DeclStmt&) = delete;
     DeclStmt& operator = (const DeclStmt&) = delete;
 
-    /// Returns the declaration that is part of this statement.
-    const Decl* get_decl() const { return m_decl.get(); }
-    Decl* get_decl() { return m_decl.get(); }
+    /// Returns the number of declarations in this statement.
+    uint32_t num_decls() const { return m_decls.size(); }
 
-    void print(std::ostream& os) const override;
+    /// Returns the list of declarations in this statement.
+    const vector<const Decl*>& get_decls() const { return m_decls; }
+    vector<const Decl*>& get_decls() { return m_decls; }
+
+    /// Returns the first declaration that is part of this statement.
+    const Decl* get_decl() const { 
+        return m_decls.empty() ? nullptr : m_decls.front();  
+    }
+
+    void print(ostream& os) const override;
 };
 
 /// Represents an inline expression as part of a statement. This generally 
 /// represents expressions that are standalone.
 class ExprStmt final : public Stmt {
     /// The nested expression of this statement.
-    std::unique_ptr<Expr> m_expr;
+    Expr* m_expr;
   
 public:
-    ExprStmt(const Span& span, std::unique_ptr<Expr> expr)
-        : Stmt(Kind::Expression, span), m_expr(std::move(expr)) {}
+    ExprStmt(const Span& span, Expr* expr)
+        : Stmt(Kind::Expression, span), m_expr(expr) {}
 
     ExprStmt(const ExprStmt&) = delete;
     ExprStmt& operator = (const ExprStmt&) = delete;
 
-    /// Returns the expression that is part of this statement.
-    const Expr* get_expr() const { return m_expr.get(); }
-    Expr* get_expr() { return m_expr.get(); }
+    ExprStmt();
 
-    void print(std::ostream& os) const override;
+    /// Returns the expression that is part of this statement.
+    const Expr* get_expr() const { return m_expr; }
+    Expr* get_expr() { return m_expr; }
+
+    void print(ostream& os) const override;
 };
 
 /// Represents an 'if' statement.
 class IfStmt final : public Stmt {
     /// The condition of this if statement.
-    std::unique_ptr<Expr> m_cond;
+    Expr* m_cond;
 
     /// The then clause of this if statement.
-    std::unique_ptr<Stmt> m_then;
+    Stmt* m_then;
 
     /// The else clause of this if statement, if there is one.
-    std::unique_ptr<Stmt> m_else;
+    Stmt* m_else;
 
 public:
-    IfStmt(const Span& span, std::unique_ptr<Expr> cond, 
-           std::unique_ptr<Stmt> then, std::unique_ptr<Stmt> els)
-        : Stmt(Stmt::If, span), m_cond(std::move(cond)), m_then(std::move(then)),
-          m_else(std::move(els)) {}
+    IfStmt(const Span& span, Expr* cond, Stmt* then, Stmt* els)
+        : Stmt(Stmt::If, span), m_cond(cond), m_then(then), m_else(els) {}
 
     IfStmt(const IfStmt&) = delete;
     IfStmt& operator = (const IfStmt&) = delete;
 
+    ~IfStmt();
+
     /// Returns the condition expression of this if statement.
-    const Expr* get_cond() const { return m_cond.get(); }
-    Expr* get_cond() { return m_cond.get(); }
+    const Expr* get_cond() const { return m_cond; }
+    Expr* get_cond() { return m_cond; }
 
     /// Returns the then clause of this if statement.
-    const Stmt* get_then() const { return m_then.get(); }
-    Stmt* get_then() { return m_then.get(); }
+    const Stmt* get_then() const { return m_then; }
+    Stmt* get_then() { return m_then; }
 
     /// Returns true if this if statement contains an else clause.
     bool has_else() const { return m_else != nullptr; }
 
     /// Returns the else clause of this if statement, if there is one, and
     /// `nullptr` otherwise.
-    const Stmt* get_else() const { return has_else() ? m_else.get() : nullptr; }
-    Stmt* get_else() { return has_else() ? m_else.get() : nullptr; }
+    const Stmt* get_else() const { return m_else; }
+    Stmt* get_else() { return m_else; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'return' statement.
 class ReturnStmt final : public Stmt {
     /// The expression that this statement returns, if there is one.
-    std::unique_ptr<Expr> m_expr;
+    Expr* m_expr;
 
 public:
-    ReturnStmt(const Span& span, std::unique_ptr<Expr> expr)
-        : Stmt(Kind::Return, span), m_expr(std::move(expr)) {}
+    ReturnStmt(const Span& span, Expr* expr)
+        : Stmt(Kind::Return, span), m_expr(expr) {}
 
     ReturnStmt(const ReturnStmt&) = delete;
     ReturnStmt& operator = (const ReturnStmt&) = delete;
+
+    ~ReturnStmt();
 
     /// Returns true if this return statement returns a value.
     bool has_expr() const { return m_expr != nullptr; }
 
     /// Returns the expression that this statement returns, if there is one,
     /// and 'nullptr' otherwise.
-    const Expr* get_expr() const { return has_expr() ? m_expr.get() : nullptr; }
-    Expr* get_expr() { return has_expr() ? m_expr.get() : nullptr; }
+    const Expr* get_expr() const { return m_expr; }
+    Expr* get_expr() { return  m_expr; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'break' statement.
@@ -218,7 +226,7 @@ public:
     BreakStmt(const BreakStmt&) = delete;
     BreakStmt& operator = (const BreakStmt&) = delete;
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'continue' statement.
@@ -229,147 +237,151 @@ public:
     ContinueStmt(const ContinueStmt&) = delete;
     ContinueStmt& operator = (const ContinueStmt&) = delete;
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'while' statement.
 class WhileStmt final : public Stmt {
     /// The condition of the while loop.
-    std::unique_ptr<Expr> m_cond;
+    Expr* m_cond;
 
     /// The body of the while loop, if it has one.
-    std::unique_ptr<Stmt> m_body;
+    Stmt* m_body;
 
 public:
-    WhileStmt(const Span& span, std::unique_ptr<Expr> cond, 
-              std::unique_ptr<Stmt> body)
-        : Stmt(Kind::While, span), m_cond(std::move(cond)), 
-          m_body(std::move(body)) {}
+    WhileStmt(const Span& span, Expr* cond, Stmt* body)
+        : Stmt(Kind::While, span), m_cond(cond), m_body(body) {}
 
     WhileStmt(const WhileStmt&) = delete;
     WhileStmt& operator = (const WhileStmt&) = delete;
 
+    ~WhileStmt();
+
     /// Returns the condition expression of this while statement.
-    const Expr* get_cond() const { return m_cond.get(); }
-    Expr* get_cond() { return m_cond.get(); }
+    const Expr* get_cond() const { return m_cond; }
+    Expr* get_cond() { return m_cond; }
     
     /// Returns true if this while statement has body.
     bool has_body() const { return m_body != nullptr; }
 
     /// Returns the body of this while statement if it has one, and 'nullptr'
     /// otherwise.
-    const Stmt* get_body() const { return has_body() ? m_body.get() : nullptr; }
-    Stmt* get_body() { return has_body() ? m_body.get() : nullptr; }
+    const Stmt* get_body() const { return m_body; }
+    Stmt* get_body() { return m_body; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'for' statement.
 class ForStmt final : public Stmt {
     /// The initializing statement of the for loop, if there is one.
-    std::unique_ptr<Stmt> m_init;
+    Stmt* m_init;
 
     /// The stopping condition of the for loop, if there is one.
-    std::unique_ptr<Expr> m_cond;
+    Expr* m_cond;
 
     /// The increment or step expression of the for loop, if there is one.
-    std::unique_ptr<Expr> m_step;
+    Expr* m_step;
     
     /// The body of the for loop, if there is one.
-    std::unique_ptr<Stmt> m_body;
+    Stmt* m_body;
 
 public:
-    ForStmt(const Span& span, std::unique_ptr<Stmt> init, 
-            std::unique_ptr<Expr> cond, std::unique_ptr<Expr> step,
-            std::unique_ptr<Stmt> body)
-        : Stmt(Kind::For, span), m_init(std::move(init)), m_cond(std::move(cond)),
-        m_step(std::move(step)), m_body(std::move(body)) {}
+    ForStmt(const Span& span, Stmt* init, Expr* cond, Expr* step, Stmt* body)
+        : Stmt(Kind::For, span), m_init(init), m_cond(cond), m_step(step), 
+          m_body(body) {}
 
     ForStmt(const ForStmt&) = delete;
     ForStmt& operator = (const ForStmt&) = delete;
+
+    ~ForStmt();
 
     /// Returns true if this for loop has an initializing statement.
     bool has_init() const { return m_init != nullptr; }
 
     /// Returns the initializing statement of this for loop if it has one, and
     /// 'nullptr' otherwise.
-    const Stmt* get_init() const { return m_init.get(); }
-    Stmt* get_init() { return m_init.get(); }
+    const Stmt* get_init() const { return m_init; }
+    Stmt* get_init() { return m_init; }
 
     /// Returns true if this for loop has a stopping condition.
     bool has_cond() const { return m_cond != nullptr; }
 
     /// Returns the stopping condition of this for loop if it has one, and
     /// 'nullptr' otherwise.
-    const Expr* get_cond() const { return m_cond.get(); }
-    Expr* get_cond() { return m_cond.get(); }
+    const Expr* get_cond() const { return m_cond; }
+    Expr* get_cond() { return m_cond; }
 
     /// Returns true if this for loop has a stepping expression.
     bool has_step() const { return m_step != nullptr; }
 
     /// Returns the stepping expression of this for loop if it has one, and
     /// 'nullptr' otherwise.
-    const Expr* get_step() const { return m_step.get(); }
-    Expr* get_step() { return m_step.get(); }
+    const Expr* get_step() const { return m_step; }
+    Expr* get_step() { return m_step; }
 
     /// Returns true if this for loop has a body.
     bool has_body() const { return m_body != nullptr; }
 
     /// Returns the body of this for loop if it has one, and 'nullptr' otherwise.
-    const Stmt* get_body() const { return m_body.get(); }
-    Stmt* get_body() { return m_body.get(); }
+    const Stmt* get_body() const { return m_body; }
+    Stmt* get_body() { return m_body; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'case' statement.
 class CaseStmt final : public Stmt {
     /// The expression to match for this case.
-    std::unique_ptr<Expr> m_match;
+    Expr* m_match;
 
-    /// The body of this case.
-    std::unique_ptr<Stmt> m_body;
+    /// The body of this case, if it has one.
+    Stmt* m_body;
 
 public:
-    CaseStmt(const Span& span, std::unique_ptr<Expr> match, 
-             std::unique_ptr<Stmt> body)
-        : Stmt(Kind::Case, span), m_match(std::move(match)), 
-          m_body(std::move(body)) {}
+    CaseStmt(const Span& span, Expr* match, Stmt* body)
+        : Stmt(Kind::Case, span), m_match(match), m_body(body) {}
 
     CaseStmt(const CaseStmt&) = delete;
     CaseStmt& operator = (const CaseStmt&) = delete;
 
+    ~CaseStmt();
+
     /// Returns the expression to match for this case statement.
-    const Expr* get_match() const { return m_match.get(); }
-    Expr* get_match() { return m_match.get(); }
+    const Expr* get_match() const { return m_match; }
+    Expr* get_match() { return m_match; }
+
+    /// Returns true if this case has a body.
+    bool has_body() const { return m_body != nullptr; }
     
     /// Returns the body of this case statement.
-    const Stmt* get_body() const { return m_body.get(); }
-    Stmt* get_body() { return m_body.get(); }
+    const Stmt* get_body() const { return m_body; }
+    Stmt* get_body() { return m_body; }
 
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 /// Represents a 'switch' statement.
 class SwitchStmt final : public Stmt {
     /// The expression to match for this switch statement.
-    std::unique_ptr<Expr> m_match;
+    Expr* m_match;
 
     /// The list of cases in this switch statement.
-    std::vector<std::unique_ptr<CaseStmt>> m_cases;
+    vector<CaseStmt*> m_cases;
 
     /// The default case for this switch statement, if there is one.
-    std::unique_ptr<Stmt> m_default;
+    Stmt* m_default;
 
 public:
-    SwitchStmt(const Span& span, std::unique_ptr<Expr> match, 
-               std::vector<std::unique_ptr<CaseStmt>>& cases, 
-               std::unique_ptr<Stmt> def)
-        : Stmt(Kind::Switch, span), m_match(std::move(match)), 
-          m_cases(std::move(cases)), m_default(std::move(def)) {}
+    SwitchStmt(const Span& span, Expr* match, const vector<CaseStmt*>& cases, 
+               Stmt* def)
+        : Stmt(Kind::Switch, span), m_match(match), m_cases(cases), 
+          m_default(def) {}
 
     SwitchStmt(const SwitchStmt&) = delete;
     SwitchStmt& operator = (const SwitchStmt&) = delete;
+    
+    ~SwitchStmt();
 
     /// Returns the number of cases in this switch statement.
     uint32_t num_cases() const { return m_cases.size(); }
@@ -377,7 +389,7 @@ public:
     /// Returns the case at position \p i of this switch statement.
     const CaseStmt* get_case(uint32_t i) const {
         assert(i < num_cases() && "index out of bounds!");
-        return m_cases[i].get();
+        return m_cases[i];
     }
 
     CaseStmt* get_case(uint32_t i) {
@@ -390,13 +402,10 @@ public:
 
     /// Returns the default statement of this switch statement if there is one,
     /// and 'nullptr' otherwise.
-    const Stmt* get_default() const { 
-        return has_default() ? m_default.get() : nullptr; 
-    }
+    const Stmt* get_default() const { return m_default; }
+    Stmt* get_default() { return m_default; }
 
-    Stmt* get_default() { return has_default() ? m_default.get() : nullptr; }
-
-    void print(std::ostream& os) const override;
+    void print(ostream& os) const override;
 };
 
 } // namespace scc
