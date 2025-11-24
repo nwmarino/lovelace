@@ -16,9 +16,6 @@
 
 #include "core/Span.hpp"
 
-#include <cstdint>
-#include <string>
-
 namespace scc {
 
 /// Different kinds of recognized C tokens.
@@ -187,7 +184,7 @@ struct Token final {
     
     /// The value of this token. This only applies to literals and identfiers,
     /// and only loosely asserts them as being valid for their kind.
-    std::string value;
+    string value;
 };
 
 } // namespace scc

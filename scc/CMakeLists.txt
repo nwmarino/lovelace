@@ -1,12 +1,14 @@
 set(SCC_SOURCES
     source/scc.cpp
-    source/ast/TypeContext.cpp
+    source/ast/Decl.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
     source/ast/Printer.cpp
     source/ast/QualType.cpp
     source/ast/Scope.cpp
+    source/ast/Stmt.cpp
     source/ast/Type.cpp
+    source/ast/TypeContext.cpp
     source/core/Logger.cpp
     source/core/Tools.cpp
     source/lexer/Lexer.cpp

@@ -189,7 +189,7 @@ public:
     };
 
     /// Returns a stringified version of the operator \p op.
-    static string to_string(Op op);
+    static const char* to_string(Op op);
 
 private:
     /// The operator of this binary expression.
@@ -250,7 +250,7 @@ public:
     }
 
     /// Returns a stringified version of the operator \p op.
-    static string to_string(Op op);
+    static const char* to_string(Op op);
 
 private:
     /// The operator of this unary expression.

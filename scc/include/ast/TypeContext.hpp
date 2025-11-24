@@ -13,11 +13,13 @@
 
 #include "ast/Type.hpp"
 
-#include <memory>
 #include <unordered_map>
 #include <vector>
 
 namespace scc {
+
+using std::unordered_map;
+using std::vector;
 
 class TypeContext final {
     friend class TranslationUnit;
@@ -29,14 +31,13 @@ class TypeContext final {
     friend class StructType;
     friend class EnumType;
 
-    using BuiltinTypePool = 
-        std::unordered_map<BuiltinType::Kind, std::unique_ptr<BuiltinType>>;
-    using ArrayTypePool = std::vector<std::unique_ptr<ArrayType>>;
-    using PointerTypePool = std::vector<std::unique_ptr<PointerType>>;
-    using FunctionTypePool = std::vector<std::unique_ptr<FunctionType>>;
-    using TypedefTypePool = std::vector<std::unique_ptr<TypedefType>>;
-    using StructTypePool = std::vector<std::unique_ptr<StructType>>;
-    using EnumTypePool = std::vector<std::unique_ptr<EnumType>>;
+    using BuiltinTypePool = unordered_map<BuiltinType::Kind, BuiltinType*>;
+    using ArrayTypePool = vector<ArrayType*>;
+    using PointerTypePool = vector<PointerType*>;
+    using FunctionTypePool = vector<FunctionType*>;
+    using TypedefTypePool = vector<TypedefType*>;
+    using StructTypePool = vector<StructType*>;
+    using EnumTypePool = vector<EnumType*>;
 
     /// Pool of types that are built-in to the C language.
     BuiltinTypePool m_bts = {};

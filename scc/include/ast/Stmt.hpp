@@ -145,7 +145,7 @@ public:
     ExprStmt(const ExprStmt&) = delete;
     ExprStmt& operator = (const ExprStmt&) = delete;
 
-    ExprStmt();
+    ~ExprStmt();
 
     /// Returns the expression that is part of this statement.
     const Expr* get_expr() const { return m_expr; }

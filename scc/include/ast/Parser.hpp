@@ -14,22 +14,21 @@
 #include "ast/Decl.hpp"
 #include "ast/Expr.hpp"
 #include "ast/QualType.hpp"
-#include "ast/Scope.hpp"
-#include "core/TranslationUnit.hpp"
+#include "ast/TypeContext.hpp"
 #include "lexer/Lexer.hpp"
 #include "lexer/Token.hpp"
 
-#include <memory>
 #include <string>
 
 namespace scc {
 
+using std::string;
+
 class Parser final {
-    std::string m_file;
+    string m_file;
     Lexer m_lexer;
-    TranslationUnit* m_unit = nullptr;
-    Context* m_context = nullptr;
-    Scope* m_scope = nullptr;
+    TypeContext* m_tctx = nullptr;
+    DeclContext* m_dctx = nullptr;
 
     /// Attempt to match the kind of the current token with \p kind. Returns
     /// true if the match is a success, and false otherwise. 
@@ -50,12 +49,6 @@ class Parser final {
     /// and \p loc as a starting point.
     Span since(const SourceLocation& loc);
 
-    /// Enter a new arbitrary scope.
-    std::unique_ptr<Scope> enter_scope();
-
-    /// Exit the current scope, and move up to its parent, if there is one.
-    void exit_scope();
-
     /// Returns the equivelant binary operator for the token kind \p kind.
     BinaryExpr::Op get_binary_operator(TokenKind kind) const;
 
@@ -67,66 +60,59 @@ class Parser final {
     int32_t get_binary_operator_precedence(TokenKind kind) const;
 
     /// Returns true if \p ident is a reserved C keyword.
-    bool is_reserved(const std::string& ident) const;
+    bool is_reserved(const string& ident) const;
 
     /// Returns true if \p ident is a keyword reserved for storage classes.
-    bool is_storage_class(const std::string& ident) const;
+    bool is_storage_class(const string& ident) const;
 
     /// Returns true if \p ident corresponds to some known type at the current
     /// state of the parser.
-    bool is_typedef(const std::string& ident) const;
+    bool is_typedef(const string& ident) const;
 
     /// Attemot to parse a storage class identifier.
     StorageClass parse_storage_class();
 
     /// Attempt to parse a possible qualified type. Returns true if the parse
-    /// was successful and a type could be parsed, and false otherwise.
+    /// was successful and a typesu could be parsed, and false otherwise.
     bool parse_type(QualType& ty);
 
-    std::unique_ptr<Decl> parse_decl();
-    std::unique_ptr<Decl> parse_function(const SourceLocation& start, 
-                                         StorageClass sclass, 
-                                         const QualType& ty, 
-                                         const std::string& name);
-    std::unique_ptr<Decl> parse_variable(const SourceLocation& start, 
-                                         StorageClass sclass, 
-                                         const QualType& ty, 
-                                         const std::string& name);
-    std::unique_ptr<Decl> parse_typedef();
-    std::unique_ptr<Decl> parse_struct();
-    std::unique_ptr<Decl> parse_enum();
+    Decl* parse_decl();
+    Decl* parse_function(const SourceLocation& start, StorageClass sclass, 
+                         const QualType& ty, const string& name);
+    Decl* parse_variable(const SourceLocation& start, StorageClass sclass, 
+                         const QualType& ty, const string& name);
+    Decl* parse_typedef();
+    Decl* parse_struct();
+    Decl* parse_enum();
 
-    std::unique_ptr<Expr> parse_expr();
-    std::unique_ptr<Expr> parse_primary();
-    std::unique_ptr<Expr> parse_integer();
-    std::unique_ptr<Expr> parse_float();
-    std::unique_ptr<Expr> parse_character();
-    std::unique_ptr<Expr> parse_string();
-    std::unique_ptr<Expr> parse_binary(std::unique_ptr<Expr> base, 
-                                       int32_t precedence);
-    std::unique_ptr<Expr> parse_unary_prefix();
-    std::unique_ptr<Expr> parse_unary_postfix();
-    std::unique_ptr<Expr> parse_ref();
-    std::unique_ptr<Expr> parse_sizeof();
-    std::unique_ptr<Expr> parse_ternary(std::unique_ptr<Expr> base);
+    Expr* parse_expr();
+    Expr* parse_primary();
+    Expr* parse_integer();
+    Expr* parse_float();
+    Expr* parse_character();
+    Expr* parse_string();
+    Expr* parse_binary(Expr* base, int32_t precedence);
+    Expr* parse_unary_prefix();
+    Expr* parse_unary_postfix();
+    Expr* parse_ref();
+    Expr* parse_sizeof();
+    Expr* parse_ternary(Expr* base);
 
-    std::unique_ptr<Stmt> parse_stmt();
-    std::unique_ptr<Stmt> parse_compound();
-    std::unique_ptr<Stmt> parse_if();
-    std::unique_ptr<Stmt> parse_return();
-    std::unique_ptr<Stmt> parse_while();
-    std::unique_ptr<Stmt> parse_for();
-    std::unique_ptr<Stmt> parse_switch();
+    Stmt* parse_stmt();
+    Stmt* parse_compound();
+    Stmt* parse_if();
+    Stmt* parse_return();
+    Stmt* parse_while();
+    Stmt* parse_for();
+    Stmt* parse_switch();
 
 public:
-    Parser(const std::string& file, const std::string& source = "");
+    Parser(const string& file, const string& source = "");
 
     Parser(const Parser&) = delete;
     Parser& operator = (const Parser&) = delete;
 
-    ~Parser() = default;
-
-    void parse(TranslationUnit& unit);
+    TranslationUnitDecl* parse();
 };
 
 } // namespace scc

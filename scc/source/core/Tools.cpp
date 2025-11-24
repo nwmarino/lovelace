@@ -10,13 +10,13 @@
 
 using namespace scc;
 
-std::string scc::read_file(const std::string& path) {
+string scc::read_file(const string& path) {
     std::ifstream file(path, std::ios::ate);
     if (!file || !file.is_open())
         Logger::error("failed to open file: " + path);
 
     uint32_t size = file.tellg();
-    std::string contents;
+    string contents;
     contents.resize(size);
     file.seekg(std::ios::beg);
 

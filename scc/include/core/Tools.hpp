@@ -15,8 +15,10 @@
 
 namespace scc {
     
+using std::string;
+
 /// Reads and returns the entirety of the contents of the file at \p path.
-std::string read_file(const std::string& path);
+string read_file(const string& path);
 
 } // namespace scc
 

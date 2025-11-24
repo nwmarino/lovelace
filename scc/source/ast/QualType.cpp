@@ -16,8 +16,8 @@ bool QualType::operator != (const QualType& other) const {
     return *m_type != *other.get_type() || m_quals != other.m_quals;
 }
 
-std::string QualType::to_string() const {
-    std::string str = "";
+string QualType::to_string() const {
+    string str = "";
     if (is_const())
         str += "const ";
 

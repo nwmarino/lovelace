@@ -21,7 +21,7 @@ static bool is_whitespace(char c) {
     return c == ' ' || c == '\t';
 }
 
-Lexer::Lexer(const std::string& file, const std::string& source)
+Lexer::Lexer(const string& file, const string& source)
     : m_buf(source.empty() ? read_file(file) : source), m_loc(file, 1, 1) {}
 
 const Token& Lexer::lex() {

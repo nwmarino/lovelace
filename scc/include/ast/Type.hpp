@@ -26,6 +26,9 @@
 
 namespace scc {
 
+using std::string;
+using std::vector;
+
 class TypeContext;
 
 class EnumDecl;
@@ -82,7 +85,7 @@ public:
     virtual bool is_pointer() const { return false; }
 
     /// Returns a stringified version of this type.
-    virtual std::string to_string() const = 0;
+    virtual string to_string() const = 0;
 };
 
 /// Represents fundamental types built-in to C.
@@ -169,7 +172,7 @@ public:
 
     bool is_floating_point() const override { return m_kind >= Float; }
 
-    std::string to_string() const override;
+    string to_string() const override;
 };
 
 /// Represents an array type in C.
@@ -197,7 +200,7 @@ public:
     /// Returns the size of arrays with this type.
     uint32_t get_size();
 
-    std::string to_string() const override {
+    string to_string() const override {
         return m_element.to_string() + '[' + std::to_string(m_size) + ']';
     }
 };
@@ -220,7 +223,7 @@ public:
     const QualType& get_pointee() const { return m_pointee; }
     QualType& get_pointee() { return m_pointee; }
 
-    std::string to_string() const override { 
+    string to_string() const override { 
         return m_pointee.to_string() + '*'; 
     }
 };
@@ -233,16 +236,16 @@ class FunctionType final : public Type {
     QualType m_ret;
 
     /// The list of parameter types of the underlying function.
-    std::vector<QualType> m_params;
+    vector<QualType> m_params;
 
-    FunctionType(const QualType& ret, const std::vector<QualType>& params)
+    FunctionType(const QualType& ret, const vector<QualType>& params)
         : Type(), m_ret(ret), m_params(params) {}
 
 public:
     /// Returns a function signature type that returns type \p ret, and has
     /// parameter types \p params.
     static const FunctionType* get(TypeContext& ctx, const QualType& ret, 
-                                   const std::vector<QualType>& params);
+                                   const vector<QualType>& params);
 
     /// Returns the type that this function returns.
     const QualType& get_return_type() const { return m_ret; }
@@ -251,14 +254,14 @@ public:
     /// Returns true if this function returns void, or nothing.
     bool returns_void() const { return m_ret->is_void(); }
 
-    /// Returns the list of parameter types for this function.
-    const std::vector<QualType>& params() const { return m_params; }
-    std::vector<QualType>& params() { return m_params; }
-
     uint32_t num_params() const { return m_params.size(); }
 
     /// Returns true if this function has any parameter types.
     bool has_params() const { return !m_params.empty(); }
+
+    /// Returns the list of parameter types for this function.
+    const vector<QualType>& get_params() const { return m_params; }
+    vector<QualType>& get_params() { return m_params; }
 
     /// Returns the parameter type at position \p i.
     const QualType& get_param_type(uint32_t i) const {
@@ -271,7 +274,7 @@ public:
         return m_params[i];
     }
     
-    std::string to_string() const override;
+    string to_string() const override;
 };
 
 /// Represents the type defined by a 'typedef' declaration.
@@ -300,7 +303,7 @@ public:
     const QualType& get_underlying() const { return m_underlying; }
     QualType& get_underlying() { return m_underlying; }
 
-    std::string to_string() const override;
+    string to_string() const override;
 };
 
 /// Represents the type defined by a 'struct' declaration.
@@ -311,16 +314,16 @@ class StructType final : public Type {
     const RecordDecl* m_decl;
 
     /// The types of the fields in the structure that defines this type.
-    std::vector<QualType> m_fields;
+    vector<QualType> m_fields;
 
-    StructType(const RecordDecl* decl, const std::vector<QualType>& fields)
+    StructType(const RecordDecl* decl, const vector<QualType>& fields)
         : Type(), m_decl(decl), m_fields(fields) {}
 
 public:
     /// Create and return a new type defined by a 'struct' declaration \p decl
     /// and field types \p fields.
     static const StructType* create(TypeContext& ctx, const RecordDecl* decl, 
-                                    const std::vector<QualType>& fields);
+                                    const vector<QualType>& fields);
 
     /// Returns the 'struct' declaration that defines this type.
     const RecordDecl* get_decl() const { return m_decl; }
@@ -339,7 +342,7 @@ public:
         return m_fields[i];
     }
 
-    std::string to_string() const override;
+    string to_string() const override;
 };
 
 /// Represents the type defined by an 'enum' declaration.
@@ -358,7 +361,7 @@ public:
     /// Returns the 'enum' declaration that defines this type.
     const EnumDecl* get_decl() const { return m_decl; }
 
-    std::string to_string() const override;
+    string to_string() const override;
 };
 
 } // namespace scc

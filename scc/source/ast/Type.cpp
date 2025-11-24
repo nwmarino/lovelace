@@ -3,71 +3,70 @@
 // All rights reserved.
 //
 
-#include "ast/Context.hpp"
 #include "ast/Decl.hpp"
 #include "ast/Type.hpp"
+#include "ast/TypeContext.hpp"
 
 #include <cassert>
-#include <memory>
 
 using namespace scc;
 
 Type::id_t Type::s_id = 0;
 
-const BuiltinType* BuiltinType::get_void_type(Context& ctx) {
-    return ctx.m_bts[Void].get();
+const BuiltinType* BuiltinType::get_void_type(TypeContext& ctx) {
+    return ctx.m_bts[Void];
 }
 
-const BuiltinType* BuiltinType::get_uchar_type(Context& ctx) {
-    return ctx.m_bts[UChar].get();
+const BuiltinType* BuiltinType::get_uchar_type(TypeContext& ctx) {
+    return ctx.m_bts[UChar];
 }
 
-const BuiltinType* BuiltinType::get_char_type(Context& ctx) {
-    return ctx.m_bts[Char].get();
+const BuiltinType* BuiltinType::get_char_type(TypeContext& ctx) {
+    return ctx.m_bts[Char];
 }
 
-const BuiltinType* BuiltinType::get_ushort_type(Context& ctx) {
-    return ctx.m_bts[UShort].get();
+const BuiltinType* BuiltinType::get_ushort_type(TypeContext& ctx) {
+    return ctx.m_bts[UShort];
 }
 
-const BuiltinType* BuiltinType::get_short_type(Context& ctx) {
-    return ctx.m_bts[Short].get();
+const BuiltinType* BuiltinType::get_short_type(TypeContext& ctx) {
+    return ctx.m_bts[Short];
 }
 
-const BuiltinType* BuiltinType::get_uint_type(Context& ctx) {
-    return ctx.m_bts[UInt].get();
+const BuiltinType* BuiltinType::get_uint_type(TypeContext& ctx) {
+    return ctx.m_bts[UInt];
 }
 
-const BuiltinType* BuiltinType::get_int_type(Context& ctx) {
-    return ctx.m_bts[Int].get();
+const BuiltinType* BuiltinType::get_int_type(TypeContext& ctx) {
+    return ctx.m_bts[Int];
 }
 
-const BuiltinType* BuiltinType::get_ulong_type(Context& ctx) {
-    return ctx.m_bts[ULong].get();
+const BuiltinType* BuiltinType::get_ulong_type(TypeContext& ctx) {
+    return ctx.m_bts[ULong];
 }
 
-const BuiltinType* BuiltinType::get_long_type(Context& ctx) {
-    return ctx.m_bts[Long].get();
+const BuiltinType* BuiltinType::get_long_type(TypeContext& ctx) {
+    return ctx.m_bts[Long];
 }
 
-const BuiltinType* BuiltinType::get_ulonglong_type(Context& ctx) {
-    return ctx.m_bts[ULongLong].get();
+const BuiltinType* BuiltinType::get_ulonglong_type(TypeContext& ctx) {
+    return ctx.m_bts[ULongLong];
 }
 
-const BuiltinType* BuiltinType::get_longlong_type(Context& ctx) {
-    return ctx.m_bts[LongLong].get();
+const BuiltinType* BuiltinType::get_longlong_type(TypeContext& ctx) {
+    return ctx.m_bts[LongLong];
 }
 
-const BuiltinType* BuiltinType::get_float_type(Context& ctx) {
-    return ctx.m_bts[Float].get();
+const BuiltinType* BuiltinType::get_float_type(TypeContext& ctx) {
+    return ctx.m_bts[Float];
 }
 
-const BuiltinType* BuiltinType::get_double_type(Context& ctx) {
-    return ctx.m_bts[Double].get();
+const BuiltinType* BuiltinType::get_double_type(TypeContext& ctx) {
+    return ctx.m_bts[Double];
 }
 
-const BuiltinType* BuiltinType::get_longdouble_type(Context& ctx) {
-    return ctx.m_bts[LongDouble].get();
+const BuiltinType* BuiltinType::get_longdouble_type(TypeContext& ctx) {
+    return ctx.m_bts[LongDouble];
 }
 
 bool BuiltinType::is_signed_integer() const {
@@ -96,7 +95,7 @@ bool BuiltinType::is_unsigned_integer() const {
     }
 }
 
-std::string BuiltinType::to_string() const {
+string BuiltinType::to_string() const {
     switch (m_kind) {
     case Void:          return "void";
     case Char:          return "char";
@@ -116,32 +115,26 @@ std::string BuiltinType::to_string() const {
 }
 
 const ArrayType* ArrayType::get(
-        Context& ctx, const QualType& element, uint32_t size) {
-    auto ty = std::unique_ptr<ArrayType>(new ArrayType(element, size));
-    const ArrayType* pTy = ty.get();
-
-    ctx.m_arrays.push_back(std::move(ty));
-    return pTy;
+        TypeContext& ctx, const QualType& element, uint32_t size) {
+    ArrayType* ty = new ArrayType(element, size);
+    ctx.m_arrays.push_back(ty);
+    return ty;
 }
 
-const PointerType* PointerType::get(Context& ctx, const QualType& pointee) {
-    auto ty = std::unique_ptr<PointerType>(new PointerType(pointee));
-    const PointerType* pTy = ty.get();
-
-    ctx.m_ptrs.push_back(std::move(ty));
-    return pTy;
+const PointerType* PointerType::get(TypeContext& ctx, const QualType& pointee) {
+    PointerType* ty = new PointerType(pointee);
+    ctx.m_ptrs.push_back(ty);
+    return ty;
 }
 
 const FunctionType* FunctionType::get(
-        Context& ctx, const QualType& ret, const std::vector<QualType>& params) {
-    auto ty = std::unique_ptr<FunctionType>(new FunctionType(ret, params));
-    const FunctionType* pTy = ty.get();
-
+        TypeContext& ctx, const QualType& ret, const vector<QualType>& params) {
+    FunctionType* ty = new FunctionType(ret, params);
     ctx.m_sigs.push_back(std::move(ty));
-    return pTy;
+    return ty;
 }
 
-std::string FunctionType::to_string() const {
+string FunctionType::to_string() const {
     std::string str = m_ret.to_string() + " (";
 
     for (uint32_t i = 0, e = num_params(); i < e; ++i) {
@@ -154,40 +147,34 @@ std::string FunctionType::to_string() const {
 }
 
 const TypedefType* TypedefType::create(
-        Context& ctx, const TypedefDecl* decl, const QualType& underlying) {
-    auto ty = std::unique_ptr<TypedefType>(new TypedefType(decl, underlying));
-    const TypedefType* pTy = ty.get();
-
-    ctx.m_typedefs.push_back(std::move(ty));
-    return pTy;
+        TypeContext& ctx, const TypedefDecl* decl, const QualType& underlying) {
+    TypedefType* ty = new TypedefType(decl, underlying);
+    ctx.m_typedefs.push_back(ty);
+    return ty;
 }
 
-std::string TypedefType::to_string() const {
-    return m_decl->name();
+string TypedefType::to_string() const {
+    return m_decl->get_name();
 }
 
 const StructType* StructType::create(
-        Context& ctx, const RecordDecl* decl, 
+        TypeContext& ctx, const RecordDecl* decl, 
         const std::vector<QualType>& fields) {
-    auto ty = std::unique_ptr<StructType>(new StructType(decl, fields));
-    const StructType* pTy = ty.get();
-
-    ctx.m_structs.push_back(std::move(ty));
-    return pTy;
+    StructType* ty = new StructType(decl, fields);
+    ctx.m_structs.push_back(ty);
+    return ty;
 }
 
-std::string StructType::to_string() const {
-    return m_decl->name();
+string StructType::to_string() const {
+    return m_decl->get_name();
 }
 
-const EnumType* EnumType::create(Context& ctx, const EnumDecl* decl) {
-    auto ty = std::unique_ptr<EnumType>(new EnumType(decl));
-    const EnumType* pTy = ty.get();
-
-    ctx.m_enums.push_back(std::move(ty));
-    return pTy;
+const EnumType* EnumType::create(TypeContext& ctx, const EnumDecl* decl) {
+    EnumType* ty = new EnumType(decl);
+    ctx.m_enums.push_back(ty);
+    return ty;
 }
 
-std::string EnumType::to_string() const {
-    return m_decl->name();
+string EnumType::to_string() const {
+    return m_decl->get_name();
 }

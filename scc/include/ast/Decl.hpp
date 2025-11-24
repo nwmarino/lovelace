@@ -174,15 +174,15 @@ public:
 /// Represents a variable declaration, either global or local.
 class VariableDecl final : public ValueDecl {
     /// The storage class of this variable.
-    StorageClass m_sclass;
+    StorageClass m_storage;
 
     /// The initializing expression of this variable, if there is one.
-    Expr* m_init = nullptr;
+    Expr* m_init;
 
 public:
     VariableDecl(const Span& span, const string& name, const QualType& type, 
                  StorageClass sclass, Expr* init)
-        : ValueDecl(Kind::Variable, span, name, type), m_sclass(sclass), 
+        : ValueDecl(Kind::Variable, span, name, type), m_storage(sclass), 
           m_init(init) {}
 
     VariableDecl(const VariableDecl&) = delete;
@@ -191,7 +191,7 @@ public:
     ~VariableDecl();
 
     /// Returns the storage class of this variable.
-    StorageClass get_storage_class() const { return m_sclass; }
+    StorageClass get_storage_class() const { return m_storage; }
 
     /// Returns true if this variable has an initializing expression.
     bool has_init() const { return m_init != nullptr; }
@@ -218,7 +218,7 @@ public:
 /// Represents a function declaration.
 class FunctionDecl final : public DeclContext, public ValueDecl {
     /// The storage class of this function.
-    StorageClass m_sclass;
+    StorageClass m_storage;
 
     /// The body of this function, if there is one.
     Stmt* m_body;
@@ -227,12 +227,15 @@ public:
     FunctionDecl(DeclContext* dctx, const Span& span, const string& name, 
                  const QualType& type, StorageClass sclass, Stmt* body)
         : DeclContext(dctx), ValueDecl(Kind::Function, span, name, type), 
-          m_sclass(sclass), m_body(body) {}
+          m_storage(sclass), m_body(body) {}
 
     FunctionDecl(const FunctionDecl&) = delete;
     FunctionDecl& operator = (const FunctionDecl&) = delete;
 
-    FunctionDecl();
+    ~FunctionDecl();
+
+    /// Returns the storage class of this function.
+    StorageClass get_storage_class() const { return m_storage; }
 
     /// Returns the number of parameters this function has.
     uint32_t num_params() const { 

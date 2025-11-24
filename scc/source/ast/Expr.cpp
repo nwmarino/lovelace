@@ -7,7 +7,13 @@
 
 using namespace scc;
 
-std::string BinaryExpr::to_string(Op op) {
+BinaryExpr::~BinaryExpr() {
+    delete m_left;
+    delete m_right;
+    m_left = m_right = nullptr;
+}
+
+const char* BinaryExpr::to_string(Op op) {
     switch (op) {
     case Unknown:           return "";
     case Assign:            return "=";
@@ -42,7 +48,12 @@ std::string BinaryExpr::to_string(Op op) {
     }
 }
 
-std::string UnaryExpr::to_string(Op op) {
+UnaryExpr::~UnaryExpr() {
+    delete m_expr;
+    m_expr = nullptr;
+}
+
+const char* UnaryExpr::to_string(Op op) {
     switch (op) {
     case Unknown:       return "";
     case Not:           return "~";
@@ -53,4 +64,42 @@ std::string UnaryExpr::to_string(Op op) {
     case Increment:     return "++";
     case Decrement:     return "--";
     }
+}
+
+ParenExpr::~ParenExpr() {
+    delete m_expr;
+    m_expr = nullptr;
+}
+
+CallExpr::~CallExpr() {
+    delete m_callee;
+    m_callee = nullptr;
+
+    for (auto arg : m_args)
+        delete arg;
+
+    m_args.clear();
+}
+
+CastExpr::~CastExpr() {
+    delete m_expr;
+    m_expr = nullptr;
+}
+
+SubscriptExpr::~SubscriptExpr() {
+    delete m_base;
+    delete m_index;
+    m_base = m_index = nullptr;
+}
+
+MemberExpr::~MemberExpr() {
+    delete m_base;
+    m_base = nullptr;
+}
+
+TernaryExpr::~TernaryExpr() {
+    delete m_cond;
+    delete m_tval;
+    delete m_fval;
+    m_cond = m_tval = m_fval = nullptr;
 }

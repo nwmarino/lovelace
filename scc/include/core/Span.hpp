@@ -16,10 +16,12 @@
 
 namespace scc {
 
+using std::string;
+
 /// Represents a location in source code.
 struct SourceLocation final {
     /// The path of the file that holds the corresponding source.
-    std::string path;
+    string path;
 
     /// The line this location refers to.
     uint32_t line;

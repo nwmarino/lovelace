@@ -16,11 +16,14 @@
 
 namespace scc {
 
-class Decl;
+using std::string;
+using std::unordered_map;
+
+class NamedDecl;
 
 class Scope final {
 public:
-    using SymbolTable = std::unordered_map<std::string, Decl*>;
+    using SymbolTable = unordered_map<string, NamedDecl*>;
 
 private:
     /// The parent node to this scope, if it exists.
@@ -38,8 +41,6 @@ public:
     Scope(const Scope&) = delete;
     Scope& operator = (const Scope&) = delete;
 
-    ~Scope() = default;
-
     /// Returns the parent scope of this scope, if it exists.
     const Scope* get_parent() const { return m_parent; }
     Scope* get_parent() { return m_parent; }
@@ -52,15 +53,15 @@ public:
 
     /// Add a new declaration \p decl to this scope. This function will fails 
     /// if a symbol with the same name as \p decl already exists in this scope.
-    void add(Decl* decl);
+    void add(NamedDecl* decl);
 
     /// Returns the declaration with named by \p name if it exists in this
     /// scope or any parent scope. Returns `nullptr` if a symbol couldn't be
     /// found.
-    Decl* get(const std::string& name) const;
+    NamedDecl* get(const string& name) const;
 
     /// Returns true if a declaration named by \p name exists in this scope.
-    bool contains(const std::string& name) const {
+    bool contains(const string& name) const {
         return get(name) != nullptr;
     }
 };

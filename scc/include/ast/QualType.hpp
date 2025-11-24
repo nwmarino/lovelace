@@ -19,6 +19,8 @@
 
 namespace scc {
 
+using std::string;
+
 class Type;
 
 /// Represents the use of a possibly qualified type.
@@ -94,7 +96,7 @@ public:
     }
 
     /// Returns a stringified version of this type.
-    std::string to_string() const;
+    string to_string() const;
 };
 
 } // namespace scc

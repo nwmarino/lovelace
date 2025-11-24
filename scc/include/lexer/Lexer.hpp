@@ -12,23 +12,22 @@
 //
 
 #include "lexer/Token.hpp"
-#include "core/Span.hpp"
 
 #include <cassert>
-#include <cstdint>
-#include <string>
 #include <vector>
 
 namespace scc {
+
+using std::vector;
 
 class Lexer final {
     friend class Parser;
 
     /// The buffer of source code this lexer is working on.
-    std::string m_buf;
+    string m_buf;
 
     /// The history of tokens lexed by this lexer instance.
-    std::vector<Token> m_history = {};
+    vector<Token> m_history = {};
 
     /// The current location of source code this lexer is at.
     SourceLocation m_loc;
@@ -59,12 +58,10 @@ class Lexer final {
 public:
     /// Create a new lexer, representing source file \p file. Providing a
     /// \p source argument will override any source contained in \p file.   
-    Lexer(const std::string& file, const std::string& source = "");
+    Lexer(const string& file, const string& source = "");
 
     Lexer(const Lexer&) = delete;
     Lexer& operator = (const Lexer&) = delete;
-
-    ~Lexer() = default;
 
     /// Returns the token created by this lexer \p n tokens ago.
     const Token& last(uint32_t n = 0) const {

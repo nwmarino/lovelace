@@ -11,13 +11,15 @@
 
 using namespace scc;
 
-std::ostream* Logger::s_output = nullptr;
+using std::vector;
+
+ostream* Logger::s_output = nullptr;
 bool Logger::s_color = false;
 
 /// Returns the source code designated by \p span line-by-line.
-static std::vector<std::string> source(const Span& span) {
-    std::vector<std::string> lines { span.end.line - span.begin.line };
-    std::string full = read_file(span.begin.path);
+static vector<string> source(const Span& span) {
+    vector<string> lines { span.end.line - span.begin.line };
+    string full = read_file(span.begin.path);
 
     uint64_t line = 1;
     uint64_t start = 0;
@@ -40,7 +42,7 @@ static std::vector<std::string> source(const Span& span) {
 void Logger::log_source(const Span& span) {
     uint32_t line_len = std::to_string(span.begin.line).length();
 
-    *s_output << std::string(line_len + 2, ' ') << "┌─[" << span.begin.path 
+    *s_output << string(line_len + 2, ' ') << "┌─[" << span.begin.path 
               << ':' << span.begin.line << "]\n";
 
     uint32_t line_n = span.begin.line;
@@ -48,22 +50,22 @@ void Logger::log_source(const Span& span) {
         
         if (Logger::s_color) {
             *s_output << "\e[38;5;240m" << line_n++ << "\033[0m" 
-                      << std::string(line_len + 2 - std::to_string(line_n).length(), ' ') 
+                      << string(line_len + 2 - std::to_string(line_n).length(), ' ') 
                       << "│ " << line << '\n';
         } else {
             *s_output << line_n++ << ' ' << line << '\n';
         }
     }
 
-    *s_output << std::string(line_len + 2, ' ') << "╰──\n";
+    *s_output << string(line_len + 2, ' ') << "╰──\n";
 }
 
-void Logger::init(std::ostream& output) {
+void Logger::init(ostream& output) {
     Logger::s_output = &output;
     Logger::s_color = s_output == &std::cout || s_output == &std::cerr;
 }
 
-void Logger::info(const std::string& msg) {
+void Logger::info(const string& msg) {
     if (!s_output) 
         return;
 
@@ -78,7 +80,7 @@ void Logger::info(const std::string& msg) {
     *s_output << msg << '\n';
 }
 
-void Logger::info(const std::string& msg, const Span& span) {
+void Logger::info(const string& msg, const Span& span) {
     if (!s_output) 
         return;
 
@@ -92,7 +94,7 @@ void Logger::info(const std::string& msg, const Span& span) {
     log_source(span);
 }
 
-void Logger::warn(const std::string& msg) {
+void Logger::warn(const string& msg) {
     if (!s_output) 
         return;
 
@@ -107,7 +109,7 @@ void Logger::warn(const std::string& msg) {
     *s_output << msg << '\n';
 }
 
-void Logger::warn(const std::string& msg, const Span &span) {
+void Logger::warn(const string& msg, const Span &span) {
     if (!s_output) 
         return;
 
@@ -121,7 +123,7 @@ void Logger::warn(const std::string& msg, const Span &span) {
     log_source(span);
 }
 
-void Logger::error(const std::string& msg) noexcept {
+void Logger::error(const string& msg) noexcept {
     if (s_output) {
         *s_output << "scc: ";
         
@@ -137,7 +139,7 @@ void Logger::error(const std::string& msg) noexcept {
     std::exit(1);
 }
 
-void Logger::error(const std::string& msg, const Span &span) noexcept {
+void Logger::error(const string& msg, const Span &span) noexcept {
     if (s_output) {
         if (Logger::s_color) {
             *s_output << "\033[1;31m ˣ\033[0m ";

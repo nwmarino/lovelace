@@ -19,11 +19,14 @@
 
 namespace scc {
 
+using std::ostream;
+using std::string;
+
 class Logger {
 private:
     /// The output stream where log messages are written. This must be
     /// initialized by driver code using the static \c init function.
-    static std::ostream* s_output;
+    static ostream* s_output;
 
     /// Whether to use ANSI color codes in log messages. This is determined
     /// by the capabilities of the output stream \c s_output.
@@ -38,30 +41,30 @@ public:
     /// Initialize the loggler with output stream \p output. If no output 
     /// stream is provided, but the function is still called, then messages 
     /// will be automatically directed to cerr.
-    static void init(std::ostream& output = std::cerr);
+    static void init(ostream& output = std::cerr);
 
     /// Log an informative message \p msg to the output stream.
-    static void info(const std::string& msg);
+    static void info(const string& msg);
 
     /// Log an informative message \p msg to the output stream with a reference 
     /// to a span of source designated by \p span.
-    static void info(const std::string& msg, const Span& span);
+    static void info(const string& msg, const Span& span);
 
     /// Log a warning message \p msg to the output stream.
-    static void warn(const std::string& msg);
+    static void warn(const string& msg);
 
     /// Log a warning message \p msg to the output stream with a reference
     /// to a span of source designated by \p span.
-    static void warn(const std::string& msg, const Span &span);
+    static void warn(const string& msg, const Span &span);
 
     /// Log an error message \p msg to the output stream.
     __attribute__((noreturn))
-    static void error(const std::string& msg) noexcept;
+    static void error(const string& msg) noexcept;
 
     /// Log an error message \p msg to the output stream with a reference to a
     /// span of source designed by \p span.
     __attribute__((noreturn))
-    static void error(const std::string& msg, const Span &span) noexcept;
+    static void error(const string& msg, const Span &span) noexcept;
 };
 
 } // namespace scc

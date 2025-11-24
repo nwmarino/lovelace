@@ -10,8 +10,7 @@ using namespace scc;
 
 TypeContext::TypeContext() {
     for (uint32_t i = BuiltinType::Void; i < BuiltinType::LongDouble; ++i) {
-        m_bts[static_cast<BuiltinType::Kind>(i)] = 
-            std::unique_ptr<BuiltinType>(new BuiltinType(
-                static_cast<BuiltinType::Kind>(i)));
+        m_bts[static_cast<BuiltinType::Kind>(i)] = new BuiltinType(
+            static_cast<BuiltinType::Kind>(i)); 
     }
 }
