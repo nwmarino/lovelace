@@ -167,7 +167,7 @@ std::string TypedefType::to_string() const {
 }
 
 const StructType* StructType::create(
-        Context& ctx, const StructDecl* decl, 
+        Context& ctx, const RecordDecl* decl, 
         const std::vector<QualType>& fields) {
     auto ty = std::unique_ptr<StructType>(new StructType(decl, fields));
     const StructType* pTy = ty.get();

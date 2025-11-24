@@ -908,20 +908,38 @@ TEST_F(ParserTests, ParseStructDecl) {
 
     EXPECT_EQ(unit.num_decls(), 1);
 
-    auto decl = dynamic_cast<const StructDecl*>(unit.get_scope()->get("Box"));
+    auto decl = dynamic_cast<const RecordDecl*>(unit.get_scope()->get("Box"));
     EXPECT_NE(decl, nullptr);
     EXPECT_EQ(decl->name(), "Box");
-    EXPECT_EQ(decl->num_fields(), 2);
+    EXPECT_EQ(decl->num_decls(), 2);
 
-    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_field(0));
+    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_decl(0));
     EXPECT_NE(f1, nullptr);
     EXPECT_EQ(f1->name(), "x");
     EXPECT_EQ(f1->get_type().to_string(), "long long");
 
-    auto f2 = dynamic_cast<const FieldDecl*>(decl->get_field(1));
+    auto f2 = dynamic_cast<const FieldDecl*>(decl->get_decl(1));
     EXPECT_NE(f2, nullptr);
     EXPECT_EQ(f2->name(), "y");
     EXPECT_EQ(f2->get_type().to_string(), "const int");
+}
+
+TEST_F(ParserTests, ParseStructPtrComposition) {
+    TranslationUnit unit {};
+
+    Parser parser("test", "struct A { struct B* b; };");
+    parser.parse(unit);
+
+    EXPECT_EQ(unit.num_decls(), 1);
+
+    auto decl = dynamic_cast<const RecordDecl*>(unit.get_scope()->get("A"));
+    EXPECT_NE(decl, nullptr);
+    EXPECT_EQ(decl->num_decls(), 1);
+
+    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_decl(0));
+    EXPECT_NE(f1, nullptr);
+    EXPECT_EQ(f1->name(), "b");
+    EXPECT_EQ(f1->get_type().to_string(), "struct B*");
 }
 
 TEST_F(ParserTests, ParseEnumDecl) {

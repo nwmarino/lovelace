@@ -120,14 +120,15 @@ void FieldDecl::print(std::ostream& os) const {
     os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
 }
 
-void StructDecl::print(std::ostream& os) const {
+void RecordDecl::print(std::ostream& os) const {
     print_indent(os);
-    os << "Struct ";
+    os << "Record ";
     print_span(os, m_span);
-    os << ' ' << m_name << " '" << m_type.to_string() << "'\n";
+    os << ' ' << (is_struct() ? "struct " : "union ") << m_name << " '" 
+       << m_type.to_string() << "'\n";
 
     ++g_indent;
-    for (const auto& field : m_fields) field->print(os);
+    for (const auto& decl : m_decls) decl->print(os);
     --g_indent;
 }
 

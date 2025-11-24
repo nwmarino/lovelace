@@ -9,11 +9,11 @@
 //
 // This header file declares classes to represent the visible types in C.
 //
-// Type instances are managed by the Context class, which is also the only
+// Type instances are managed by the TypeContext class, which is also the only
 // class able to create type instances.
 //
 // Expression nodes and the like can hold onto const pointer borrows which are
-// received from the Context. Should the types have qualifiers, the nodes can
+// received from the TypeContext. Should the types have qualifiers, the nodes can
 // hold onto valued instances of QualType.
 //
 
@@ -26,14 +26,15 @@
 
 namespace scc {
 
-class Context;
-class StructDecl;
+class TypeContext;
+
 class EnumDecl;
+class RecordDecl;
 class TypedefDecl;
 
 /// Base class for all types in the C type system.
 class Type {
-    friend class Context;
+    friend class TypeContext;
 
 public:
     using id_t = uint32_t;
@@ -86,7 +87,7 @@ public:
 
 /// Represents fundamental types built-in to C.
 class BuiltinType final : public Type {
-    friend class Context;
+    friend class TypeContext;
     
 public:
     /// Possible kinds of built-in types.
@@ -115,46 +116,46 @@ private:
 
 public:
     /// Returns the 'void' type.
-    static const BuiltinType* get_void_type(Context& ctx);
+    static const BuiltinType* get_void_type(TypeContext& ctx);
 
     /// Returns the 'unsigned char' type.
-    static const BuiltinType* get_uchar_type(Context& ctx);
+    static const BuiltinType* get_uchar_type(TypeContext& ctx);
 
     /// Returns the 'char' or 'signed char' type.
-    static const BuiltinType* get_char_type(Context& ctx);
+    static const BuiltinType* get_char_type(TypeContext& ctx);
 
     /// Returns the 'unsigned short' type.
-    static const BuiltinType* get_ushort_type(Context& ctx);
+    static const BuiltinType* get_ushort_type(TypeContext& ctx);
 
     /// Returns the 'short' or 'signed short' type.
-    static const BuiltinType* get_short_type(Context& ctx);
+    static const BuiltinType* get_short_type(TypeContext& ctx);
 
     /// Returns the 'unsigned int' type.
-    static const BuiltinType* get_uint_type(Context& ctx);
+    static const BuiltinType* get_uint_type(TypeContext& ctx);
 
     /// Returns the 'signed int' or 'int' type.
-    static const BuiltinType* get_int_type(Context& ctx);
+    static const BuiltinType* get_int_type(TypeContext& ctx);
 
     /// Returns the 'unsigned long' type.
-    static const BuiltinType* get_ulong_type(Context& ctx);
+    static const BuiltinType* get_ulong_type(TypeContext& ctx);
 
     /// Returns the 'signed long' or 'long' type.
-    static const BuiltinType* get_long_type(Context& ctx);
+    static const BuiltinType* get_long_type(TypeContext& ctx);
 
     /// Returns the 'unsigned long long' type.
-    static const BuiltinType* get_ulonglong_type(Context& ctx);
+    static const BuiltinType* get_ulonglong_type(TypeContext& ctx);
 
     /// Returns the 'signed long long' or 'long long' type.
-    static const BuiltinType* get_longlong_type(Context& ctx);
+    static const BuiltinType* get_longlong_type(TypeContext& ctx);
 
     /// Returns the 'float' type.
-    static const BuiltinType* get_float_type(Context& ctx);
+    static const BuiltinType* get_float_type(TypeContext& ctx);
 
     /// Returns the 'double' type.
-    static const BuiltinType* get_double_type(Context& ctx);
+    static const BuiltinType* get_double_type(TypeContext& ctx);
 
     /// Returns the 'long double' type.
-    static const BuiltinType* get_longdouble_type(Context& ctx);
+    static const BuiltinType* get_longdouble_type(TypeContext& ctx);
 
     bool is_void() const override { return m_kind == Void; }
 
@@ -173,7 +174,7 @@ public:
 
 /// Represents an array type in C.
 class ArrayType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The type of the elements in arrays with this type.
     QualType m_element;
@@ -186,7 +187,7 @@ class ArrayType final : public Type {
     
 public:
     /// Returns the array type with element type \p element and size \p size.
-    static const ArrayType* get(Context& ctx, const QualType& element, 
+    static const ArrayType* get(TypeContext& ctx, const QualType& element, 
                                 uint32_t size);
                         
     /// Returns the type of element in arrays with this type.
@@ -203,7 +204,7 @@ public:
 
 /// Represents a pointer type in C.
 class PointerType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The pointee type of this pointer. For example, for 'int*', the pointee
     /// is an integral type 'int'.
@@ -213,7 +214,7 @@ class PointerType final : public Type {
 
 public:
     /// Returns the pointer type that points to type \p pointee.
-    static const PointerType* get(Context& ctx, const QualType& pointee);
+    static const PointerType* get(TypeContext& ctx, const QualType& pointee);
 
     /// Returns the type that this pointer type is pointing to.
     const QualType& get_pointee() const { return m_pointee; }
@@ -226,7 +227,7 @@ public:
 
 /// Represents the signature type implicitly defined by a function declaration.
 class FunctionType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The type that the underlying function returns.
     QualType m_ret;
@@ -240,7 +241,7 @@ class FunctionType final : public Type {
 public:
     /// Returns a function signature type that returns type \p ret, and has
     /// parameter types \p params.
-    static const FunctionType* get(Context& ctx, const QualType& ret, 
+    static const FunctionType* get(TypeContext& ctx, const QualType& ret, 
                                    const std::vector<QualType>& params);
 
     /// Returns the type that this function returns.
@@ -275,7 +276,7 @@ public:
 
 /// Represents the type defined by a 'typedef' declaration.
 class TypedefType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The 'typedef' declaration that defines this type.
     const TypedefDecl* m_decl;
@@ -289,7 +290,7 @@ class TypedefType final : public Type {
 public:
     /// Create and return a new type defined by a 'typedef' declaration \p decl
     /// with the underlying type \p underlying.
-    static const TypedefType* create(Context& ctx, const TypedefDecl* decl, 
+    static const TypedefType* create(TypeContext& ctx, const TypedefDecl* decl, 
                                      const QualType& underlying);
                                
     /// Returns the 'typedef' declaration that defines this type.
@@ -304,25 +305,25 @@ public:
 
 /// Represents the type defined by a 'struct' declaration.
 class StructType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The 'struct' declaration that defines this type.
-    const StructDecl* m_decl;
+    const RecordDecl* m_decl;
 
     /// The types of the fields in the structure that defines this type.
     std::vector<QualType> m_fields;
 
-    StructType(const StructDecl* decl, const std::vector<QualType>& fields)
+    StructType(const RecordDecl* decl, const std::vector<QualType>& fields)
         : Type(), m_decl(decl), m_fields(fields) {}
 
 public:
     /// Create and return a new type defined by a 'struct' declaration \p decl
     /// and field types \p fields.
-    static const StructType* create(Context& ctx, const StructDecl* decl, 
+    static const StructType* create(TypeContext& ctx, const RecordDecl* decl, 
                                     const std::vector<QualType>& fields);
 
     /// Returns the 'struct' declaration that defines this type.
-    const StructDecl* get_decl() const { return m_decl; }
+    const RecordDecl* get_decl() const { return m_decl; }
 
     /// Returns the number of fields in this type.
     uint32_t num_fields() const { return m_fields.size(); }
@@ -343,7 +344,7 @@ public:
 
 /// Represents the type defined by an 'enum' declaration.
 class EnumType final : public Type {
-    friend class Context;
+    friend class TypeContext;
 
     /// The 'enum' declaration that defines this type.
     const EnumDecl* m_decl;
@@ -352,7 +353,7 @@ class EnumType final : public Type {
 
 public:
     /// Create and return a new type defined by an 'enum' declaration \p decl.
-    static const EnumType* create(Context& ctx, const EnumDecl* decl);
+    static const EnumType* create(TypeContext& ctx, const EnumDecl* decl);
 
     /// Returns the 'enum' declaration that defines this type.
     const EnumDecl* get_decl() const { return m_decl; }

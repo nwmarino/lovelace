@@ -3,12 +3,12 @@
 // All rights reserved.
 //
 
-#include "ast/Context.hpp"
 #include "ast/Type.hpp"
+#include "ast/TypeContext.hpp"
 
 using namespace scc;
 
-Context::Context() {
+TypeContext::TypeContext() {
     for (uint32_t i = BuiltinType::Void; i < BuiltinType::LongDouble; ++i) {
         m_bts[static_cast<BuiltinType::Kind>(i)] = 
             std::unique_ptr<BuiltinType>(new BuiltinType(

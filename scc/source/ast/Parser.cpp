@@ -631,7 +631,7 @@ std::unique_ptr<Decl> Parser::parse_struct() {
     const SourceLocation start = m_lexer.last().loc;
     next(); // 'enum'
 
-    std::vector<std::unique_ptr<FieldDecl>> fields = {};
+    std::vector<std::unique_ptr<Decl>> decls = {};
    
     if (!match(TokenKind::Identifier))
         Logger::error("expected identifier after 'struct'", since(start));
@@ -648,7 +648,8 @@ std::unique_ptr<Decl> Parser::parse_struct() {
         Logger::error("expected '{'", since(start));
     }
 
-    if (!match(TokenKind::EndBrace)) fields.reserve(2);
+    if (!match(TokenKind::EndBrace)) 
+        decls.reserve(2);
 
     while (!match(TokenKind::EndBrace)) {
         const SourceLocation fstart = m_lexer.last().loc;
@@ -670,7 +671,7 @@ std::unique_ptr<Decl> Parser::parse_struct() {
             since(fstart), fname, fty
         );
 
-        fields.push_back(std::move(field));
+        decls.push_back(std::move(field));
 
         if (match(TokenKind::EndBrace)) break;
 
@@ -682,17 +683,17 @@ std::unique_ptr<Decl> Parser::parse_struct() {
 
     next(); // '}'
 
-    if (!fields.empty()) fields.shrink_to_fit();
+    if (!decls.empty()) decls.shrink_to_fit();
 
-    std::unique_ptr<StructDecl> decl = std::make_unique<StructDecl>(
-        since(start), name, QualType(), fields
+    std::unique_ptr<RecordDecl> decl = std::make_unique<RecordDecl>(
+        since(start), name, QualType(), decls, true
     );
 
     m_scope->add(decl.get());
 
-    std::vector<QualType> field_types(fields.size(), QualType());
-    for (uint32_t i = 0; i < fields.size(); ++i)
-        field_types[i] = decl->get_field(i)->get_type();
+    std::vector<QualType> field_types(decls.size(), QualType());
+    for (uint32_t i = 0; i < decls.size(); ++i)
+        if (decl->is_field()) field_types[i] = decl->get_decl(i)->get_type();
 
     decl->get_type() = QualType(StructType::create(
         *m_context, decl.get(), field_types

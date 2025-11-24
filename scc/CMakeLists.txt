@@ -1,7 +1,6 @@
 set(SCC_SOURCES
     source/scc.cpp
-    source/ast/Context.cpp
-    source/ast/Decl.cpp
+    source/ast/TypeContext.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
     source/ast/Printer.cpp
@@ -29,8 +28,7 @@ target_compile_features(scc PUBLIC cxx_std_20)
 enable_testing()
 
 add_executable(scc_test
-    source/ast/Context.cpp
-    source/ast/Decl.cpp
+    source/ast/TypeContext.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
     source/ast/Printer.cpp

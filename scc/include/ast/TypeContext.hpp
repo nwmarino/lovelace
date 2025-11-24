@@ -3,13 +3,12 @@
 // All rights reserved.
 //
 
-#ifndef SCC_CONTEXT_H_
-#define SCC_CONTEXT_H_
+#ifndef SCC_TYPE_CONTEXT_H_
+#define SCC_TYPE_CONTEXT_H_
 
 //
-// This header file declares the Context class, an important structure for
-// managing types and top-level declarations of a translation unit and its
-// abstract syntax tree.
+// This header file declares the TypeContext class, an important structure for
+// managing the types of a translation unit and its abstract syntax tree.
 //
 
 #include "ast/Type.hpp"
@@ -20,7 +19,7 @@
 
 namespace scc {
 
-class Context final {
+class TypeContext final {
     friend class TranslationUnit;
     friend class BuiltinType;
     friend class ArrayType;
@@ -62,15 +61,15 @@ class Context final {
     /// Pool of enum types.
     EnumTypePool m_enums = {};
 
-    Context();
+    TypeContext();
 
 public:
-    Context(const Context&) = delete;
-    Context& operator = (const Context&) = delete;
+    TypeContext(const TypeContext&) = delete;
+    TypeContext& operator = (const TypeContext&) = delete;
 
-    ~Context() = default;
+    ~TypeContext() = default;
 };
 
 } // namespace scc
 
-#endif // SCC_CONTEXT_H_
+#endif // SCC_TYPE_CONTEXT_H_
