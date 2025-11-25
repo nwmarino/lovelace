@@ -67,12 +67,18 @@ public:
     const SourceLocation& get_ending_loc() const { return m_span.end; }
     SourceLocation& get_ending_loc() { return m_span.end; }
 
+    /// Accept some visitor class \p visitor to access this node.
+    virtual void accept(Visitor& visitor) = 0;
+
     /// Pretty-print this expression node to the output stream \p os.
     virtual void print(ostream& os) const = 0;
 };
 
 /// Represents a list of statements enclosed by curly braces '{, }'.
 class CompoundStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The statements in this compound statement.
     vector<Stmt*> m_stmts;
 
@@ -109,11 +115,16 @@ public:
             static_cast<const CompoundStmt*>(this)->get_stmt(i));
     }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a series of inline declaration as part of a statement.
 class DeclStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The nested declarations in this statement.
     vector<const Decl*> m_decls;
 
@@ -136,12 +147,17 @@ public:
         return m_decls.empty() ? nullptr : m_decls.front();  
     }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents an inline expression as part of a statement. This generally 
 /// represents expressions that are standalone.
 class ExprStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The nested expression of this statement.
     Expr* m_expr;
   
@@ -158,11 +174,16 @@ public:
     const Expr* get_expr() const { return m_expr; }
     Expr* get_expr() { return m_expr; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents an 'if' statement.
 class IfStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The condition of this if statement.
     Expr* m_cond;
 
@@ -197,11 +218,16 @@ public:
     const Stmt* get_else() const { return m_else; }
     Stmt* get_else() { return m_else; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'return' statement.
 class ReturnStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The expression that this statement returns, if there is one.
     Expr* m_expr;
 
@@ -222,33 +248,48 @@ public:
     const Expr* get_expr() const { return m_expr; }
     Expr* get_expr() { return  m_expr; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'break' statement.
 class BreakStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     BreakStmt(const SourceSpan& span) : Stmt(Kind::Break, span) {}
 
     BreakStmt(const BreakStmt&) = delete;
     BreakStmt& operator = (const BreakStmt&) = delete;
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'continue' statement.
 class ContinueStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     ContinueStmt(const SourceSpan& span) : Stmt(Kind::Continue, span) {}
 
     ContinueStmt(const ContinueStmt&) = delete;
     ContinueStmt& operator = (const ContinueStmt&) = delete;
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'while' statement.
 class WhileStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The condition of the while loop.
     Expr* m_cond;
 
@@ -276,11 +317,16 @@ public:
     const Stmt* get_body() const { return m_body; }
     Stmt* get_body() { return m_body; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'for' statement.
 class ForStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The initializing statement of the for loop, if there is one.
     Stmt* m_init;
 
@@ -335,11 +381,16 @@ public:
     const Stmt* get_body() const { return m_body; }
     Stmt* get_body() { return m_body; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'case' statement.
 class CaseStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+
     /// The expression to match for this case.
     Expr* m_match;
 
@@ -366,11 +417,16 @@ public:
     const Stmt* get_body() const { return m_body; }
     Stmt* get_body() { return m_body; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'switch' statement.
 class SwitchStmt final : public Stmt {
+    friend class Sema;
+    friend class Codegen;
+    
     /// The expression to match for this switch statement.
     Expr* m_match;
 
@@ -412,6 +468,8 @@ public:
     /// and 'nullptr' otherwise.
     const Stmt* get_default() const { return m_default; }
     Stmt* get_default() { return m_default; }
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
 
     void print(ostream& os) const override;
 };

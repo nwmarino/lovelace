@@ -14,6 +14,7 @@
 #include "ast/QualType.hpp"
 #include "ast/Scope.hpp"
 #include "ast/Type.hpp"
+#include "ast/Visitor.hpp"
 #include "core/SourceSpan.hpp"
 
 #include <cassert>
@@ -83,6 +84,9 @@ public:
     /// Returns the location in source code that this declaration ends at.
     const SourceLocation& get_ending_loc() const { return m_span.end; }
     SourceLocation& get_ending_loc() { return m_span.end; }
+
+    /// Accept some visitor class \p visitor to access this node.
+    virtual void accept(Visitor& visitor) = 0;
 
     /// Pretty-print this declaration node to the output stream \p os.
     virtual void print(ostream& os) const = 0;
@@ -187,6 +191,9 @@ public:
 
 /// Represents a translation unit declaration (a source file).
 class TranslationUnitDecl final : public DeclContext, public Decl {
+    friend class Sema;
+    friend class Codegen;
+
     /// The context of types for this translation unit.
     TypeContext* m_tctx;
 
@@ -202,11 +209,16 @@ public:
     const TypeContext& get_context() const { return *m_tctx; }
     TypeContext& get_context() { return *m_tctx; }
 
-    void print(ostream& os) const;
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
+    void print(ostream& os) const override;
 };
 
 /// Represents a variable declaration, either global or local.
 class VariableDecl final : public ValueDecl {
+    friend class Sema;
+    friend class Codegen;
+
     /// The storage class of this variable.
     StorageClass m_storage;
 
@@ -240,11 +252,16 @@ public:
     const Expr* get_init() const { return m_init; }
     Expr* get_init() { return m_init; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a parameter declaration within a function parameter list.
 class ParameterDecl final : public ValueDecl {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     ParameterDecl(DeclContext* dctx, const SourceSpan& span, 
                   const string& name, const QualType& type)
@@ -253,11 +270,16 @@ public:
     ParameterDecl(const ParameterDecl&) = delete;
     ParameterDecl& operator = (const ParameterDecl&) = delete;
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a function declaration.
 class FunctionDecl final : public DeclContext, public ValueDecl {
+    friend class Sema;
+    friend class Codegen;
+
     /// The storage class of this function.
     StorageClass m_storage;
 
@@ -351,11 +373,16 @@ public:
     /// Set the body of this function to \p body.
     void set_body(Stmt* body) { m_body = body; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a field in a 'struct' declaration.
 class FieldDecl final : public ValueDecl {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     FieldDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
               const QualType& type)
@@ -363,6 +390,8 @@ public:
 
     FieldDecl(const FieldDecl&) = delete;
     FieldDecl& operator = (const FieldDecl&) = delete;
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
 
     void print(ostream& os) const override;
 };
@@ -389,6 +418,9 @@ public:
 
 /// Represents a 'typedef' declaration.
 class TypedefDecl final : public TypeDecl {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     TypedefDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
                 const Type* type)
@@ -396,6 +428,8 @@ public:
 
     TypedefDecl(const TypedefDecl&) = delete;
     TypedefDecl& operator = (const TypedefDecl&) = delete;
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
 
     void print(ostream& os) const override;
 };
@@ -428,6 +462,9 @@ public:
 
 /// Represents a 'struct' or 'union' declaration.
 class RecordDecl final : public TagTypeDecl {
+    friend class Sema;
+    friend class Codegen;
+
     /// The fields of this record. These are borrowed from the DeclContext
     /// super class.
     vector<FieldDecl*> m_fields = {};
@@ -485,11 +522,16 @@ public:
             static_cast<const RecordDecl*>(this)->get_field(name));
     }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a variant of an enumeration.
 class EnumVariantDecl final : public ValueDecl {
+    friend class Sema;
+    friend class Codegen;
+
     /// The value of this variant.
     const int32_t m_value;
 
@@ -505,11 +547,16 @@ public:
     /// Returns the value of this variant.
     int32_t get_value() const { return m_value; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents an 'enum' declaration.
 class EnumDecl final : public TagTypeDecl {
+    friend class Sema;
+    friend class Codegen;
+    
     /// The variants of this enum.
     vector<EnumVariantDecl*> m_variants = {};
 
@@ -561,6 +608,8 @@ public:
         return const_cast<EnumVariantDecl*>(
             static_cast<const EnumDecl*>(this)->get_variant(name));
     }
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
 
     void print(ostream& os) const override;
 };

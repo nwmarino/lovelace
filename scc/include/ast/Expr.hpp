@@ -13,6 +13,7 @@
 
 #include "ast/Decl.hpp"
 #include "ast/QualType.hpp"
+#include "ast/Visitor.hpp"
 #include "core/SourceSpan.hpp"
 
 #include <cassert>
@@ -83,12 +84,18 @@ public:
     const QualType& get_type() const { return m_type; }
     QualType& get_type() { return m_type; }
 
+    /// Accept some visitor class \p visitor to access this node.
+    virtual void accept(Visitor& visitor) = 0;
+
     /// Pretty-print this expression node to the output stream \p os.
     virtual void print(ostream& os) const = 0;
 };
 
 /// Represents integer literal expressions, e.g. '0' and '1'.
 class IntegerLiteral final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The integer value of this literal.
     int64_t m_value;
 
@@ -102,11 +109,16 @@ public:
     /// Returns the value of this literal as an integer.
     int64_t get_value() const { return m_value; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. '0.1' and '3.14'.
 class FPLiteral final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The floating point value of this literal.
     double m_value;
 
@@ -120,11 +132,16 @@ public:
     /// Returns the value of this literal as a floating point.
     double get_value() const { return m_value; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(std::ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. 'a' and 'b'.
 class CharLiteral final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The character value of this literal.
     char m_value;
 
@@ -138,11 +155,16 @@ public:
     /// Returns the value of this literal as a character.
     char get_value() const { return m_value; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents floating point literal expressions, e.g. "Hello" and "World!".
 class StringLiteral final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The string value of this literal.
     string m_value;
 
@@ -156,11 +178,16 @@ public:
     /// Returns the value of this literal as a string.
     const string& get_value() const { return m_value; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents binary operations between two nested expressions.
 class BinaryExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     /// Possible kinds of binary operations.
     enum Op : uint32_t {
@@ -231,11 +258,16 @@ public:
     const Expr* get_rhs() const { return m_right; }
     Expr* get_rhs() { return m_right; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents unary operations over a nested expression.
 class UnaryExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
 public:
     /// Possible kinds of unary operators.
     enum Op : uint32_t {
@@ -295,11 +327,16 @@ public:
     const Expr* get_expr() const { return m_expr; }
     Expr* get_expr() { return m_expr; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents an expression enclosed with parentheses '(, )'.
 class ParenExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The nested expression.
     Expr* m_expr;
 
@@ -316,11 +353,16 @@ public:
     const Expr* get_expr() const { return m_expr; }
     Expr* get_expr() { return m_expr; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a valued reference to some declaration.
 class RefExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The declaration that this expression references.
     const ValueDecl* m_decl;
 
@@ -343,11 +385,16 @@ public:
         return m_decl->get_name(); 
     }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a call to some function declaration.
 class CallExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The base or callee expression of this function call.
     Expr* m_callee;
     
@@ -388,6 +435,8 @@ public:
             static_cast<const CallExpr*>(this)->get_arg(i)); 
     }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
@@ -395,6 +444,9 @@ public:
 /// explicit casts defined by source code, and ones implicitly injected by the
 /// compiler.
 class CastExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The expression to type cast.
     Expr* m_expr;
 
@@ -411,11 +463,16 @@ public:
     const Expr* get_expr() const { return m_expr; }
     Expr* get_expr() { return m_expr; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a 'sizeof' compile-time expression over some type.
 class SizeofExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The type to evaluate the size of.
     QualType m_target;
 
@@ -430,11 +487,16 @@ public:
     const QualType& get_target() const { return m_target; }
     QualType& get_target() { return m_target; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a '[]' subscript expression.
 class SubscriptExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The base expression to access.
     Expr* m_base;
 
@@ -460,11 +522,16 @@ public:
     const Expr* get_index() const { return m_index; }
     Expr* get_index() { return m_index; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(std::ostream& os) const override;
 };
 
 /// Represents a '.' or '->' member access expression.
 class MemberExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+
     /// The base expression to access.
     Expr* m_base;
 
@@ -496,11 +563,16 @@ public:
     /// Returns true if this is an arrow '->' member access.
     bool is_arrow() const { return m_arrow; }
 
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a '?' ternary selection expression.
 class TernaryExpr final : public Expr {
+    friend class Sema;
+    friend class Codegen;
+    
     /// The condition expression of the ternary operator.
     Expr* m_cond;
     
@@ -534,6 +606,8 @@ public:
     /// is false.
     const Expr* get_false_value() const { return m_fval; }
     Expr* get_false_value() { return m_fval; }
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
 
     void print(ostream& os) const override;
 };

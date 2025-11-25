@@ -7,3 +7,4 @@ Features *planned* but not yet implemented:
 - `auto` functions
 - Automatic array sizing
 - Variaditic functions
+- Do..while loops
