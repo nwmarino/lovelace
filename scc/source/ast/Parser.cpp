@@ -8,40 +8,34 @@
 #include "ast/Expr.hpp"
 #include "ast/Stmt.hpp"
 #include "ast/Type.hpp"
+#include "ast/TypeContext.hpp"
 #include "core/Logger.hpp"
-#include "core/Span.hpp"
+#include "core/SourceSpan.hpp"
 #include "lexer/Token.hpp"
 
-#include <memory>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 using namespace scc;
 
-Parser::Parser(const std::string& file, const std::string& source) 
+using std::unordered_set;
+
+Parser::Parser(const string& file, const string& source) 
     : m_file(file), m_lexer(file, source) {}
 
-void Parser::parse(TranslationUnit& unit) {
+TranslationUnitDecl* Parser::parse() {
     next();
 
-    m_unit = &unit;
-    m_context = &unit.m_context;
+    m_unit = new TranslationUnitDecl(m_file);
+    m_tctx = &m_unit->get_context();
+    m_dctx = m_unit;
 
-    auto scope = enter_scope();
-    unit.m_scope = std::move(scope);
+    while (!m_lexer.is_eof())
+        parse_decl();
 
-    while (!m_lexer.is_eof()) {
-        auto decl = parse_decl();
-        //assert(decl != nullptr && "could not parse declaration!");
-
-        if (decl != nullptr)
-            unit.m_decls.push_back(std::move(decl));
-    }
-
-    m_context = nullptr;
-    m_scope = nullptr;
+    m_tctx = nullptr;
+    m_dctx = nullptr;
+    return m_unit;
 }
 
 bool Parser::match(TokenKind kind) const {
@@ -53,6 +47,15 @@ bool Parser::match(const char* kw) const {
     return token.kind == TokenKind::Identifier && kw == token.value;
 }
 
+bool Parser::expect(TokenKind kind) {
+    const Token& token = m_lexer.last();
+    
+    if (token.kind == kind) {
+        next();
+        return true;
+    } else return false;
+}
+
 void Parser::next() {
     m_lexer.lex();
 }
@@ -62,19 +65,8 @@ void Parser::skip(uint32_t n) {
         m_lexer.lex();
 }
 
-Span Parser::since(const SourceLocation& loc) {
-    return Span(loc, m_lexer.last().loc);
-}
-
-std::unique_ptr<Scope> Parser::enter_scope() {
-    auto scope = std::unique_ptr<Scope>(new Scope(m_scope));
-    m_scope = scope.get();
-    return scope;
-}
-
-void Parser::exit_scope() {
-    if (m_scope != nullptr)
-        m_scope = m_scope->get_parent();
+SourceSpan Parser::since(const SourceLocation& loc) const {
+    return SourceSpan(loc, m_lexer.last().loc);
 }
 
 BinaryExpr::Op Parser::get_binary_operator(TokenKind kind) const {
@@ -210,8 +202,8 @@ int32_t Parser::get_binary_operator_precedence(TokenKind kind) const {
     }
 }
 
-bool Parser::is_reserved(const std::string& ident) const {
-    static std::unordered_set<std::string> keywords = {
+bool Parser::is_reserved(const string& ident) const {
+    static unordered_set<string> keywords = {
         "auto", "break", "case", "char",
         "const", "continue", "default", "do",
         "double", "else", "enum", "extern",
@@ -225,18 +217,24 @@ bool Parser::is_reserved(const std::string& ident) const {
     return keywords.contains(ident);
 }
 
-bool Parser::is_storage_class(const std::string& ident) const {
-    static std::unordered_set<std::string> keywords = {
+void Parser::check_reserved(
+        const SourceLocation& loc, const string& ident) const {
+    if (is_reserved(ident))
+        Logger::error("identifier '" + ident + "' is reserved", since(loc));
+}
+
+bool Parser::is_storage_class(const string& ident) const {
+    static unordered_set<string> keywords = {
         "auto", "extern", "register", "static",
     };
 
     return keywords.contains(ident);
 }
 
-bool Parser::is_typedef(const std::string& ident) const {
+bool Parser::is_typedef(const string& ident) const {
     // No named types yet, so only have to consider primitives.
 
-    static std::unordered_set<std::string> keywords = {
+    static unordered_set<string> keywords = {
         "auto", "char", "const", "double",
         "enum", "float", "int", "long",
         "short", "signed", "struct", "typedef",
@@ -246,18 +244,30 @@ bool Parser::is_typedef(const std::string& ident) const {
     return keywords.contains(ident);
 }
 
+TagTypeDecl::TagKind Parser::get_tag_kind(const string& ident) const {
+    if (ident == "struct") {
+        return TagTypeDecl::Struct;
+    } else if (ident == "union") {
+        return TagTypeDecl::Union;
+    } else if (ident == "enum") {
+        return TagTypeDecl::Enum;
+    }
+
+    assert(false && "identifier is not a tag keyword!");
+}
+
 StorageClass Parser::parse_storage_class() {
     if (!match(TokenKind::Identifier))
         return StorageClass::None;
 
-    static std::unordered_map<std::string, StorageClass> classes = {
+    static unordered_map<string, StorageClass> classes = {
         { "auto", StorageClass::Auto },
         { "extern", StorageClass::Extern },
         { "register", StorageClass::Register },
         { "static", StorageClass::Static },
     };
 
-    const std::string value = m_lexer.last().value;
+    const string value = m_lexer.last().value;
     if (classes.contains(value)) {
         next();
         return classes[value];
@@ -266,109 +276,141 @@ StorageClass Parser::parse_storage_class() {
     return StorageClass::None;
 }
 
-bool Parser::parse_type(QualType& ty) {
-    if (!match(TokenKind::Identifier))
-        return false;
-
-    const SourceLocation start = m_lexer.last().loc;
+void Parser::parse_type(QualType& type) {
+    SourceLocation start = curr().loc;
     
     if (match("const")) {
-        ty.with_const();
+        type.with_const();
         next();
     } else if (match("volatile")) {
-        ty.with_volatile();
+        type.with_volatile();
         next();
     }
 
     if (match("volatile")) {
-        if (ty.is_volatile()) {
+        if (type.is_volatile()) {
             Logger::warn("type already qualified with 'volatile', ignoring", 
                 since(m_lexer.last(1).loc));
         } else {
-            ty.with_volatile();
+            type.with_volatile();
         }
 
         next();
     }
 
-    std::string base = "";
+    if (!match(TokenKind::Identifier))
+        Logger::error("expected identifier", since(start));
 
-    while (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
-        base += m_lexer.last().value + ' ';
-        next();
-    }
+    const Type* unqual = nullptr;
+    if (is_tag(curr().value)) {
+        string tag = curr().value;
+        next(); // tag
 
-    if (!base.empty())
-        base = base.substr(0, base.size() - 1);
+        if (!match(TokenKind::Identifier))
+            Logger::error("expected identifier", since(start));
 
-    std::unordered_map<std::string, const Type*> primitives = {
-        { "void", BuiltinType::get_void_type(*m_context) },
-        { "char", BuiltinType::get_char_type(*m_context) },
-        { "unsigned char", BuiltinType::get_uchar_type(*m_context) },
-        { "short", BuiltinType::get_short_type(*m_context) },
-        { "unsigned short", BuiltinType::get_ushort_type(*m_context) },
-        { "int", BuiltinType::get_int_type(*m_context) },
-        { "unsigned int", BuiltinType::get_uint_type(*m_context) },
-        { "long", BuiltinType::get_long_type(*m_context) },
-        { "unsigned long", BuiltinType::get_ulong_type(*m_context) },
-        { "long long", BuiltinType::get_longlong_type(*m_context) },
-        { "unsigned long long", BuiltinType::get_ulonglong_type(*m_context) },
-        { "float", BuiltinType::get_float_type(*m_context) },
-        { "double", BuiltinType::get_double_type(*m_context) },
-        { "long double", BuiltinType::get_longdouble_type(*m_context) },
-    };
+        string tag_name = curr().value;
+        next(); // identifier
 
-    const Type* pType = nullptr;
-    if (!base.empty()) {
+        if (tag_name == "enum")
+            Logger::error("cannot forward declare 'enum'", since(start));
+
+        RecordDecl* tag_decl = static_cast<RecordDecl*>(m_dctx->get_tag(tag_name));
+        if (!tag_decl) {
+            TagTypeDecl::TagKind kind = get_tag_kind(tag);
+
+            tag_decl = new RecordDecl(
+                m_unit, 
+                since(start), 
+                tag_name, 
+                nullptr, 
+                kind);
+
+            tag_decl->set_type(RecordType::create(*m_tctx, tag_decl));
+            unqual = tag_decl->get_type();
+        }
+    } else if (is_reserved(curr().value)) {
+        string base = "";
+        while (match(TokenKind::Identifier) && is_typedef(curr().value)) {
+            base += curr().value + ' ';
+            next();
+        }
+
+        if (!base.empty())
+            base = base.substr(0, base.size() - 1);
+
+        unordered_map<string, const Type*> primitives = {
+            { "void", BuiltinType::get_void_type(*m_tctx) },
+            { "char", BuiltinType::get_char_type(*m_tctx) },
+            { "unsigned char", BuiltinType::get_uchar_type(*m_tctx) },
+            { "short", BuiltinType::get_short_type(*m_tctx) },
+            { "unsigned short", BuiltinType::get_ushort_type(*m_tctx) },
+            { "int", BuiltinType::get_int_type(*m_tctx) },
+            { "unsigned int", BuiltinType::get_uint_type(*m_tctx) },
+            { "long", BuiltinType::get_long_type(*m_tctx) },
+            { "unsigned long", BuiltinType::get_ulong_type(*m_tctx) },
+            { "long long", BuiltinType::get_longlong_type(*m_tctx) },
+            { "unsigned long long", BuiltinType::get_ulonglong_type(*m_tctx) },
+            { "float", BuiltinType::get_float_type(*m_tctx) },
+            { "double", BuiltinType::get_double_type(*m_tctx) },
+            { "long double", BuiltinType::get_longdouble_type(*m_tctx) },
+        };
+
         if (primitives.count(base) != 0) {
-            pType = primitives.at(base);
+            unqual = primitives[base];
         } else {
             Logger::error("expected type", since(start));
         }
     } else {
-        const Decl* decl = m_scope->get(m_lexer.last().value);
-        if (!decl) Logger::error("expected type", since(start));
+        // Type identifier is some typedef.
+        NamedDecl* nd = m_dctx->get_decl(curr().value);
+        if (!nd)
+            Logger::error("unresolved type: '" + curr().value + "'", since(start));
 
-        pType = decl->get_type().get_type();
+        TypeDecl* td = dynamic_cast<TypeDecl*>(nd);
+        if (!td)
+            Logger::error("expected type", since(start));
+
+        unqual = td->get_type();
         next(); // identifier
     }
 
     while (match(TokenKind::Star)) {
-        pType = PointerType::get(*m_context, pType);
+        unqual = PointerType::get(*m_tctx, unqual);
         next();
     }
 
-    ty.set_type(pType);
-    return true;
+    type.set_type(unqual);
 }
 
-std::unique_ptr<Decl> Parser::parse_decl() {
+Decl* Parser::parse_decl() {
     if (match("typedef")) {
         return parse_typedef();
-    } else if (match("struct")) {
-        return parse_struct();
+    } else if (match("struct") || match("union")) {
+        return parse_record();
     } else if (match("enum")) {
         return parse_enum();
     }
 
-    const SourceLocation start = m_lexer.last().loc;
+    SourceLocation start = m_lexer.last().loc;
+    StorageClass storage = None;
+    string name;
+    QualType type;
 
     // Attempt to parse any preceeding storage class.
-    StorageClass sclass = parse_storage_class();
+    storage = parse_storage_class();
 
     // Attempt to parse a declaration type.
-    QualType ty {};
-    if (sclass != StorageClass::Auto && !parse_type(ty))
-        Logger::error("expected type", since(start));
+    if (storage != StorageClass::Auto)
+        parse_type(type);
     
     if (!match(TokenKind::Identifier))
-        Logger::error("missing identifier after declaration type", since(start));
+        Logger::error("missing identifier", since(start));
 
-    const std::string name = m_lexer.last().value;
+    name = m_lexer.last().value;
     next(); // identifier
 
-    if (is_reserved(name))
-        Logger::error("identifier '" + name + "' is reserved", since(start));
+    check_reserved(start, name);
 
     if (match(TokenKind::Semi) || match(TokenKind::Eq) || match(TokenKind::SetBrack)) {
         // The identifier is followed by a ';' or '=' or '[', which means its a 
@@ -379,436 +421,401 @@ std::unique_ptr<Decl> Parser::parse_decl() {
         // <type> <ident> = ...
         //       or
         // <type> <ident>[...]
-        return parse_variable(start, sclass, ty, name);
+        return parse_variable(start, storage, type, name);
     } else if (match(TokenKind::SetParen)) {
         // The identifier is followed by a '(', which means its the beginning
         // of a function parameter list.
 
         // TEMPORARY: Disallow auto classed functions.
-        if (sclass == StorageClass::Auto)
+        if (storage == StorageClass::Auto)
             Logger::error("function cannot be marked with 'auto' keyword", since(start));
 
-        return parse_function(start, sclass, ty, name);
+        return parse_function(start, storage, type, name);
     } else {
         // No declaration pattern matches.
         Logger::error("expected declaration after identifier", since(start));
     }
 }
 
-std::unique_ptr<Decl> Parser::parse_function(
-        const SourceLocation& start, StorageClass sclass, const QualType& ty, 
-        const std::string& name) {
+Decl* Parser::parse_function(
+        const SourceLocation& start, StorageClass storage, 
+        QualType ret_type, const string& name) {
     next(); // '('
 
-    std::unique_ptr<Scope> scope = enter_scope();
-    std::vector<std::unique_ptr<ParameterDecl>> params = {};
+    FunctionDecl* decl = nullptr;
+    bool existing = false;
+
+    if (NamedDecl* nd = m_dctx->get_decl(name)) {
+        decl = dynamic_cast<FunctionDecl*>(nd);
+        if (!decl)
+            Logger::error("redefiniton of '" + name + "'", since(start));
+
+        if (decl->get_storage_class() != storage)
+            Logger::error("conflicting storage classes for '" + name + "'", 
+                since(start));
+
+        existing = true;
+    } else {
+        decl = new FunctionDecl(m_dctx, start, name, QualType(), storage);
+    }
+
+    m_dctx = decl;
+
+    vector<ParameterDecl*> params = {};
 
     // Reserve some space if there are going to be parameters.
-    if (!match(TokenKind::EndParen)) params.reserve(6);
+    if (!match(TokenKind::EndParen)) 
+        params.reserve(6);
 
     while (!match(TokenKind::EndParen)) {
-        const SourceLocation pstart = m_lexer.last().loc;
+        SourceLocation p_start = m_lexer.last().loc;
+        string p_name;
+        QualType p_type;
 
-        QualType pty {};
-        if (!parse_type(pty))
-            Logger::error("expected function parameter type");
+        parse_type(p_type);
 
         if (!match(TokenKind::Identifier))
-            Logger::error("missing identifier after parameter type", since(start));
+            Logger::error("expected identifier", since(start));
 
-        std::string pname = m_lexer.last().value;
+        p_name = m_lexer.last().value;
         next(); // identifier
 
-        if (is_reserved(pname))
-            Logger::error("identifier '" + pname + "' is reserved", since(start));
+        check_reserved(p_start, p_name);
 
-        while (match(TokenKind::SetBrack)) {
-            next(); // '['
-
+        while (expect(TokenKind::SetBrack)) {
             // TODO: Support automatic array size checks.
             if (!match(TokenKind::Integer))
-                Logger::error("missing array size literal after '['", since(start));
+                Logger::error("expected integer after '['", since(start));
 
+            // TODO: Switch to signed and check for invalid negative sizes.
             uint32_t size = std::stoul(m_lexer.last().value);
             next(); // size
 
-            if (!match(TokenKind::EndBrack))
-                Logger::error("missing ']' after array size");
+            if (!expect(TokenKind::EndBrack))
+                Logger::error("expected ']'");
 
-            next(); // ']'
-
-            pty = QualType(
-                ArrayType::get(*m_context, pty, size)
-            );
+            p_type = QualType(ArrayType::get(*m_tctx, p_type, size));
         }
 
-        auto param = std::unique_ptr<ParameterDecl>(
-            new ParameterDecl(since(pstart), pname, pty));
-        
-        scope->add(param.get());
-        params.push_back(std::move(param));
+        params.push_back(new ParameterDecl(m_dctx, p_start, p_name, p_type));
 
         if (match(TokenKind::EndParen))
             break;
 
-        if (!match(TokenKind::Comma))
-            Logger::error("expected ',' after function parameter", since(start));
-
-        next(); // ','
+        if (!expect(TokenKind::Comma))
+            Logger::error("expected ','", since(start));
     }
 
     next(); // ')'
 
-    // Since we reserved extra space if there was at least one parameter, we
-    // can shrink it now since it won't ever change.
-    if (!params.empty())
-        params.shrink_to_fit();
+    if (existing) {
+        // If this is a redeclaration of a function, then we need to check that
+        // the type signatures match.
 
-    std::vector<QualType> param_types(params.size(), QualType {});
-    for (uint32_t i = 0; i < params.size(); ++i)
-        param_types[i] = params[i]->get_type();
+        const FunctionType* f_type = static_cast<const FunctionType*>(
+            decl->get_type().get_type());
 
-    const FunctionType* function_type = 
-        FunctionType::get(*m_context, ty, param_types);
+        if (f_type->get_return_type() != ret_type)
+            Logger::error("conflicting types for '" + name + "'; have '" + 
+                decl->get_type().to_string() + "'", start);
 
-    std::unique_ptr<Stmt> body = nullptr;
+        if (decl->num_params() != params.size())
+            Logger::error("conflicting types for '" + name + "'; have '" + 
+                decl->get_type().to_string() + "'", start);
+        
+        for (uint32_t i = 0; i < params.size(); ++i) {
+            if (f_type->get_param_type(i) != params[i]->get_type())
+                Logger::error("conflicting types for '" + name + "'; have '" + 
+                    decl->get_type().to_string() + "'", start);
+        }
+
+        // The parameter set already exists, so we can delete the new one.
+        // TODO: Potentially update the source locations to the new parameters.
+        for (ParameterDecl* param : params)
+            delete param;
+
+        params.clear();
+    } else {
+        // Since we reserved extra space if there was at least one parameter, 
+        // we can shrink it now since it won't ever change.
+        if (!params.empty())
+            params.shrink_to_fit();
+
+        vector<QualType> p_types(params.size(), QualType());
+        for (uint32_t i = 0; i < params.size(); ++i)
+            p_types[i] = params[i]->get_type();
+
+        decl->set_params(params);
+        decl->get_type().set_type(FunctionType::get(*m_tctx, ret_type, p_types));
+    }
+
     if (match(TokenKind::Semi)) {
         next(); // ';'
-    } else {
-        body = parse_stmt();
-        assert(body != nullptr && "could not parse function body!");
-    }
-
-    exit_scope();
-
-    // Check for a previous declaration with the same name in the parent scope.
-    const Decl* prev = m_scope->get(name);
-    if (!prev) {
-        // No previous declaration, so we can define this function as is.
-        auto function = std::unique_ptr<FunctionDecl>(new FunctionDecl(
-            sclass, 
-            since(start), 
-            name, 
-            QualType(function_type), 
-            params, 
-            std::move(scope), 
-            std::move(body)));
-
-        m_scope->add(function.get());
-        return function;
-    }
-
-    // A previous declaration exists, so now we have to check it to be both a
-    // function and have the same signature defined here.
-    const FunctionDecl* prev_fn = dynamic_cast<const FunctionDecl*>(prev);
-    if (!prev_fn)
+    } else if (existing && decl->has_body()) {
         Logger::error("redefinition of '" + name + "'", since(start));
-
-    const FunctionType* prev_ty = static_cast<const FunctionType*>(
-        prev_fn->get_type().get_type());
-
-    if (prev->storage_class() != sclass) {
-        Logger::error("conflicting storage classes for '" + name + "'", 
-            since(start));
+    } else {
+        Stmt* body = parse_stmt();
+        if (!body)
+            Logger::error("expected statement", since(start));
+        
+        decl->set_body(body);
     }
 
-    bool return_types_match = prev_ty->get_return_type() == ty;
-    bool parameter_counts_match = prev_fn->num_params() == params.size();
-    bool param_types_match = true;
-
-    if (parameter_counts_match) {
-        for (uint32_t i = 0; i < params.size(); ++i) {
-            if (params[i]->get_type() != prev_ty->get_param_type(i)) {
-                param_types_match = false;
-                break;
-            }
-        }
-    }
-
-    if (!return_types_match || !parameter_counts_match || !param_types_match) {
-        Logger::error("conflicting types for '" + name + "'; have '" + 
-            prev_fn->get_type().to_string() + "'", start);
-    }
-
-    if (prev_fn->has_body() && body != nullptr)
-        Logger::error("redefinition of '" + name + "'", start);
-
-    // TODO: Cleanup. Using const cast here is smelly...
-    FunctionDecl* cprev = const_cast<FunctionDecl*>(prev_fn);
-    cprev->m_body = std::move(body);
-    return nullptr;
+    m_dctx = m_dctx->get_parent();
+    return decl;
 }
 
-std::unique_ptr<Decl> Parser::parse_variable(
-        const SourceLocation& start, StorageClass sclass, const QualType& ty, 
-        const std::string& name) {
-    QualType var_type = ty;
-
+Decl* Parser::parse_variable(
+        const SourceLocation& start, StorageClass storage, QualType type, 
+        const string& name) {
     while (match(TokenKind::SetBrack)) {
         next(); // '['
 
         // TODO: Support automatic array size checks.
         if (!match(TokenKind::Integer))
-            Logger::error("missing array size literal after '['", since(start));
+            Logger::error("expected integer", since(start));
 
         uint32_t size = std::stoul(m_lexer.last().value);
-        next(); // size
+        next(); // integer
 
-        if (!match(TokenKind::EndBrack))
-            Logger::error("missing ']' after array size");
+        if (!expect(TokenKind::EndBrack))
+            Logger::error("expected ']'");
 
-        next(); // ']'
-
-        var_type = QualType(
-            ArrayType::get(*m_context, var_type, size)
-        );
+        type = QualType(ArrayType::get(*m_tctx, type, size));
     }
 
-    std::unique_ptr<Expr> init = nullptr;
-    if (match(TokenKind::Eq)) {
-        next(); // '='
-        init = parse_expr();
-        assert(init != nullptr && "could not parse variable initializer!");
+    Expr* init = nullptr;
+    if (expect(TokenKind::Eq)) {
+        if (!(init = parse_expr()))
+            Logger::error("expected expression", since(start));
     }
 
-    if (sclass == StorageClass::Auto) {
+    if (storage == StorageClass::Auto) {
         if (!init)
-            Logger::error("variable marked 'auto' but requires initializer");
+            Logger::error("variable marked 'auto' but missing initializer");
 
-        if (ty.get_type() != nullptr)
+        if (type.get_type() != nullptr)
             Logger::error("variable marked 'auto', but type provided");
+
+        type = init->get_type();
     }
 
-    auto var = std::unique_ptr<VariableDecl>(new VariableDecl(
-        sclass, 
-        since(start), 
-        name, 
-        sclass == StorageClass::Auto ? init->get_type() : var_type, 
-        std::move(init)
-    ));
-
-    m_scope->add(var.get());
-    return var;
+    return new VariableDecl(m_dctx, start, name, type, storage, init);
 }
 
-std::unique_ptr<Decl> Parser::parse_typedef() {
-    const SourceLocation start = m_lexer.last().loc;
+Decl* Parser::parse_typedef() {
+    SourceLocation start = m_lexer.last().loc;
+    QualType underlying;
+    string name;
+
     next(); // 'typedef'
 
-    QualType underlying {};
-    if (!parse_type(underlying))
-        Logger::error("expected type after 'typedef'", since(start));
+    parse_type(underlying);
 
     if (!match(TokenKind::Identifier))
         Logger::error("expected identifier", since(start));
 
-    std::string name = m_lexer.last().value;
+    name = m_lexer.last().value;
     next(); // identifier
 
-    if (is_reserved(name))
-        Logger::error("identifier '" + name + "' is reserved", since(start));
+    check_reserved(start, name);
 
-    if (match(TokenKind::Semi)) {
-        next(); // ';'
-    } else {
+    if (!expect(TokenKind::Semi))
         Logger::error("expected ';'", since(start));
-    }
 
-    std::unique_ptr<TypedefDecl> decl = std::make_unique<TypedefDecl>(
-        since(start), name, QualType()
-    );
-
-    m_scope->add(decl.get());
-
-    decl->get_type() = QualType(TypedefType::create(
-        *m_context, decl.get(), underlying
-    ));
-
+    TypedefDecl* decl = new TypedefDecl(m_dctx, start, name, nullptr);
+    decl->set_type(TypedefType::create(*m_tctx, decl, underlying));
     return decl;
 }
 
-std::unique_ptr<Decl> Parser::parse_struct() {
-    const SourceLocation start = m_lexer.last().loc;
-    next(); // 'enum'
+Decl* Parser::parse_record() {
+    RecordDecl* decl = nullptr;
+    SourceLocation start = curr().loc;
+    string name = "";
+    vector<FieldDecl*> fields = {};
+    bool is_struct = match("struct");
+    bool empty = true;
+    bool existing = false;
 
-    std::vector<std::unique_ptr<Decl>> decls = {};
-   
-    if (!match(TokenKind::Identifier))
-        Logger::error("expected identifier after 'struct'", since(start));
-
-    const std::string name = m_lexer.last().value;
-    next(); // identifier
-
-    if (is_reserved(name))
-        Logger::error("identifier '" + name + "' is reserved", since(start));
-
-    if (match(TokenKind::SetBrace)) {
-        next(); // '{'
-    } else {
-        Logger::error("expected '{'", since(start));
-    }
-
-    if (!match(TokenKind::EndBrace)) 
-        decls.reserve(2);
-
-    while (!match(TokenKind::EndBrace)) {
-        const SourceLocation fstart = m_lexer.last().loc;
-
-        QualType fty {};
-        if (!parse_type(fty))
-            Logger::error("expected type", since(fstart));
-
-        if (!match(TokenKind::Identifier))
-            Logger::error("expected identifier", since(fstart));
-
-        const std::string fname = m_lexer.last().value;
-        next(); // identifier
-
-        if (is_reserved(fname))
-            Logger::error("identifier '" + fname + "' is reserved", since(start));
-
-        std::unique_ptr<FieldDecl> field = std::make_unique<FieldDecl>(
-            since(fstart), fname, fty
-        );
-
-        decls.push_back(std::move(field));
-
-        if (match(TokenKind::EndBrace)) break;
-
-        if (!match(TokenKind::Semi))
-            Logger::error("expected ';'", since(fstart));
-
-        while(match(TokenKind::Semi)) next(); // ';'
-    }
-
-    next(); // '}'
-
-    if (!decls.empty()) decls.shrink_to_fit();
-
-    std::unique_ptr<RecordDecl> decl = std::make_unique<RecordDecl>(
-        since(start), name, QualType(), decls, true
-    );
-
-    m_scope->add(decl.get());
-
-    std::vector<QualType> field_types(decls.size(), QualType());
-    for (uint32_t i = 0; i < decls.size(); ++i)
-        if (decl->is_field()) field_types[i] = decl->get_decl(i)->get_type();
-
-    decl->get_type() = QualType(StructType::create(
-        *m_context, decl.get(), field_types
-    ));
-
-    return decl;
-}
-
-std::unique_ptr<Decl> Parser::parse_enum() {
-    const SourceLocation start = m_lexer.last().loc;
-    next(); // 'enum'
-
-    std::string name = "";
-    std::vector<std::unique_ptr<VariantDecl>> variants = {};
+    next(); // 'struct' || 'union'
    
     if (match(TokenKind::Identifier)) {
-        name = m_lexer.last().value;
+        name = curr().value;
+        check_reserved(start, name);
         next(); // identifier
-
-        if (is_reserved(name))
-            Logger::error("identifier '" + name + "' is reserved", since(start));
     }
 
-    if (match(TokenKind::SetBrace)) {
-        next(); // '{'
+    // Check for an existing tag declaration with the same name.
+    if (TagTypeDecl* nd = m_unit->get_tag(name)) {
+        if (!(decl = dynamic_cast<RecordDecl*>(nd)))
+            Logger::error("redefiniton of '" + name + "'", since(start));
+
+        // There is an existing record with the same name, so we have to run
+        // some special logic to see if theres no conflicts.
+        existing = true;
     } else {
-        Logger::error("expected '{'", since(start));
+        decl = new RecordDecl(
+            m_unit, 
+            start, 
+            name, 
+            nullptr, 
+            is_struct ? TagTypeDecl::Struct : TagTypeDecl::Union);
     }
 
-    if (!match(TokenKind::EndBrace)) variants.reserve(4);
+    m_dctx = decl;
+
+    // If the struct is opened with a '{', it should get closed at some point.
+    if (expect(TokenKind::SetBrace)) {
+        if (existing && !decl->empty())
+            Logger::error("redefinition of '" + name + "'", since(start));
+
+        fields.reserve(4);
+
+        while (!match(TokenKind::EndBrace)) {
+            SourceLocation f_start = curr().loc;
+            string f_name;
+            QualType f_type;
+
+            parse_type(f_type);
+
+            if (!match(TokenKind::Identifier))
+                Logger::error("expected identifier", since(f_start));
+
+            // Parse the field name and check that it's not reserved.
+            f_name = curr().value;
+            check_reserved(f_start, f_name);
+            next(); // identifier
+
+            fields.push_back(new FieldDecl(m_dctx, f_start, f_name, f_type));
+
+            if (match(TokenKind::EndBrace)) 
+                break;
+
+            if (!expect(TokenKind::Semi))
+                Logger::error("expected ';'", since(f_start));
+        }
+
+        if (!expect(TokenKind::EndBrace))
+            Logger::error("expected '}'", since(start));
+    }
+    
+    if (!expect(TokenKind::Semi))
+        Logger::error("expected ';'", since(start));
+
+    if (!fields.empty()) {
+        fields.shrink_to_fit();
+        
+        decl->set_fields(fields);
+        decl->set_type(RecordType::create(*m_tctx, decl));
+    }
+
+    m_dctx = m_dctx->get_parent();
+    return decl;
+}
+
+Decl* Parser::parse_enum() {
+    SourceLocation start = curr().loc;
+    string name = "";
+    vector<EnumVariantDecl*> variants = {};
+    EnumDecl* decl = nullptr;
+
+    next(); // 'enum'
+   
+    if (match(TokenKind::Identifier)) {
+        name = curr().value;
+        check_reserved(start, name);
+        next(); // identifier
+    }
+
+    // Check for redefinition of an existing symbol, if this isn't an unnamed
+    // enum.
+    if (!name.empty() && m_dctx->get_decl(name))
+        Logger::error("redefinition of '" + name + "'", since(start));
+
+    decl = new EnumDecl(m_dctx, start, name, nullptr);
+    decl->set_type(EnumType::create(*m_tctx, decl));
+
+    m_dctx = decl;
+
+    // Enums do not support forward declarations.
+    if (!expect(TokenKind::SetBrace))
+        Logger::error("expected '{'", since(start));
+
+    if (!match(TokenKind::EndBrace)) 
+        variants.reserve(4);
 
     int32_t value = 0;
     while (!match(TokenKind::EndBrace)) {
-        const SourceLocation vstart = m_lexer.last().loc;
+        SourceLocation v_start = curr().loc;
+        string v_name;
 
         if (!match(TokenKind::Identifier))
-            Logger::error("expected identifier", since(vstart));
+            Logger::error("expected identifier", since(v_start));
 
-        const std::string vname = m_lexer.last().value;
+        v_name = curr().value;
+        check_reserved(v_start, v_name);
         next(); // identifier
 
-        if (is_reserved(vname))
-            Logger::error("identifier '" + vname + "' is reserved", since(start));
-
-        if (match(TokenKind::Eq)) {
-            next(); // '='
-
-            bool neg = match(TokenKind::Minus);
-            if (neg)
-                next(); // '-'
+        if (expect(TokenKind::Eq)) {
+            bool neg = expect(TokenKind::Minus);
 
             if (match(TokenKind::Integer)) {
-                value = std::stod(m_lexer.last().value);
+                value = std::stod(curr().value);
                 next(); // integer
             } else {
-                Logger::error("expected integer after '='", since(vstart));
+                Logger::error("expected integer after '='", since(v_start));
             }
 
             if (neg)
                 value = -value;
         }
 
-        std::unique_ptr<VariantDecl> variant = std::make_unique<VariantDecl>(
-            since(vstart),
-            vname,
-            QualType(BuiltinType::get_int_type(*m_context)),
+        variants.push_back(new EnumVariantDecl(
+            m_dctx, 
+            v_start, 
+            v_name, 
+            name.empty() ? BuiltinType::get_int_type(*m_tctx) : decl->get_type(), 
             value++
-        );
+        ));
 
-        m_scope->add(variant.get());
-        variants.push_back(std::move(variant));
+        if (match(TokenKind::EndBrace)) 
+            break;
 
-        if (match(TokenKind::EndBrace)) break;
-
-        if (match(TokenKind::Comma)) {
-            next(); // ','
-        } else {
-            Logger::error("expected ','", since(vstart));
-        }
+        if (!expect(TokenKind::Comma))
+            Logger::error("expected ','", since(v_start));
     }
 
     next(); // '}'
 
-    if (!variants.empty()) variants.shrink_to_fit();
-
-    std::unique_ptr<EnumDecl> decl = std::make_unique<EnumDecl>(
-        since(start), name, QualType(), variants
-    );
-
-    if (!name.empty()) {
-        m_scope->add(decl.get());
-
-        decl->get_type() = QualType(EnumType::create(*m_context, decl.get()));
-
-        // Retroactively match all the variant types with the new enum type.
-        for (uint32_t i = 0; i < decl->num_variants(); ++i)
-            decl->get_variant(i)->get_type() = decl->get_type();
+    if (variants.empty()) {
+        Logger::warn("'enum' declaration is empty", since(start));
+    } else {
+        variants.shrink_to_fit();
     }
 
+    decl->set_variants(variants);
+
+    m_dctx = m_dctx->get_parent();
     return decl;
 }
 
-std::unique_ptr<Expr> Parser::parse_expr() {
-    auto base = parse_unary_prefix();
-    assert(base != nullptr && "could not parse base expression!");
-    base = parse_binary(std::move(base), 0);
+Expr* Parser::parse_expr() {
+    Expr* base = parse_unary_prefix();
+    if (!base)
+        Logger::error("expected expression");
+    
+    base = parse_binary(base, 0);
+    if (!base)
+        Logger::error("expected expression");
 
     if (match(TokenKind::Question)) {
-        return parse_ternary(std::move(base));
+        return parse_ternary(base);
     } else {
         return base;
     }
 }
 
-std::unique_ptr<Expr> Parser::parse_primary() {
+Expr* Parser::parse_primary() {
     if (match(TokenKind::Integer)) {
         return parse_integer();
     } else if (match(TokenKind::Float)) {
@@ -822,231 +829,206 @@ std::unique_ptr<Expr> Parser::parse_primary() {
     } else if (match(TokenKind::Identifier)) {
         return parse_ref();
     } else if (match(TokenKind::SetParen)) {
-        const SourceLocation start = m_lexer.last().loc;
+        SourceLocation start = curr().loc;
+        Expr* expr = nullptr;
         next(); // '('
 
-        std::unique_ptr<Expr> expr = nullptr;
+        if (match(TokenKind::Identifier) && is_typedef(curr().value)) {
+            QualType type;
+            parse_type(type);
 
-        if (match(TokenKind::Identifier) && is_typedef(m_lexer.last().value)) {
-            QualType ty {};
-            if (!parse_type(ty))
-                Logger::error("expected cast type", since(start));
+            if (!expect(TokenKind::EndParen))
+                Logger::error("expected ')'", since(start));
 
-            if (!match(TokenKind::EndParen))
-                Logger::error("expected ')' after cast type", since(start));
+            if (!(expr = parse_expr()))
+                Logger::error("expected expression", since(start));
 
-            next(); // ')'
-
-            expr = parse_expr();
-            assert(expr != nullptr && "could not parse cast expression!");
-
-            return std::make_unique<CastExpr>(since(start), ty, std::move(expr));
+            return new CastExpr(start, type, expr);
         } else {
-            expr = parse_expr();
-            assert(expr != nullptr && "could not parse parentheses expression!");
+            if (!(expr = parse_expr()))
+                Logger::error("expected expression", since(start));
 
-            if (!match(TokenKind::EndParen))
-                Logger::error("expected ')' after expression", since(start));
+            if (!expect(TokenKind::EndParen))
+                Logger::error("expected ')'", since(start));
 
-            next(); // ')'
-            return std::make_unique<ParenExpr>(
-                since(start), expr->get_type(), std::move(expr)
-            );
+            return new ParenExpr(start, expr->get_type(), expr);
         }
     }
     
     return nullptr;
 }
 
-std::unique_ptr<Expr> Parser::parse_integer() {
-    const Token integer = m_lexer.last();
+Expr* Parser::parse_integer() {
+    Token integer = curr();
     next(); // integer
 
-    const Type* ty = nullptr;
+    const Type* type = nullptr;
     if (!match(TokenKind::Identifier)) {
         // Default to 'int' type.
-        ty = BuiltinType::get_int_type(*m_context);
+        type = BuiltinType::get_int_type(*m_tctx);
     } else if (match("u") || match("U")) {
-        ty = BuiltinType::get_uint_type(*m_context);
+        type = BuiltinType::get_uint_type(*m_tctx);
         next(); // 'u' || 'U'
     } else if (match("l") || match("L")) {
-        ty = BuiltinType::get_long_type(*m_context);
+        type = BuiltinType::get_long_type(*m_tctx);
         next(); // 'l' || 'L'
     } else if (match("ul") || match("UL")) {
-        ty = BuiltinType::get_ulong_type(*m_context);
+        type = BuiltinType::get_ulong_type(*m_tctx);
         next(); // 'ul' || 'UL'
     } else if (match("ll") || match("LL")) {
-        ty = BuiltinType::get_longlong_type(*m_context);
+        type = BuiltinType::get_longlong_type(*m_tctx);
         next(); // 'll' || 'LL'
     } else if (match("ull") || match("ULL")) {
-        ty = BuiltinType::get_ulonglong_type(*m_context);
+        type = BuiltinType::get_ulonglong_type(*m_tctx);
         next(); // 'ull' || 'ULL'
     }
 
-    return std::make_unique<IntegerLiteral>(
-        since(integer.loc), QualType(ty), std::stoll(integer.value)
-    );
+    return new IntegerLiteral(
+        since(integer.loc), type, std::stol(integer.value));
 }
 
-std::unique_ptr<Expr> Parser::parse_float() {
-    const Token fp = m_lexer.last();
+Expr* Parser::parse_float() {
+    Token fp = curr();
     next(); // float
 
-    const Type* ty = nullptr;
+    const Type* type = nullptr;
     if (!match(TokenKind::Identifier)) {
         // Default to 'double' type.
-        ty = BuiltinType::get_double_type(*m_context);
+        type = BuiltinType::get_double_type(*m_tctx);
     } else if (match("f") || match("F")) {
-        ty = BuiltinType::get_float_type(*m_context);
+        type = BuiltinType::get_float_type(*m_tctx);
         next(); // 'f' || 'F'
     }
 
-    return std::make_unique<FPLiteral>(
-        since(fp.loc), QualType(ty), std::stod(fp.value)
-    );
+    return new FPLiteral(since(fp.loc), type, std::stod(fp.value));
 }
 
-std::unique_ptr<Expr> Parser::parse_character() {
-    const Token ch = m_lexer.last();
-    next(); // '...'
+Expr* Parser::parse_character() {
+    Token ch = curr();
+    next(); // character
 
-    return std::make_unique<CharLiteral>(
-        since(ch.loc), 
-        QualType(BuiltinType::get_char_type(*m_context)), 
-        ch.value[0]
-    );
+    return new CharLiteral(
+        ch.loc, BuiltinType::get_char_type(*m_tctx), ch.value[0]);
 }
 
-std::unique_ptr<Expr> Parser::parse_string() {
-    const Token str = m_lexer.last();
-    next(); // "..."
+Expr* Parser::parse_string() {
+    Token str = curr();
+    next(); // string
 
-    QualType ty(PointerType::get(
-        *m_context, BuiltinType::get_char_type(*m_context)
-    ));
+    // Get the 'const char*' type.
+    QualType ty(PointerType::get(*m_tctx, BuiltinType::get_char_type(*m_tctx)));
     ty.with_const();
 
-    return std::make_unique<StringLiteral>(since(str.loc), ty, str.value);
+    return new StringLiteral(since(str.loc), ty, str.value);
 }
 
-std::unique_ptr<Expr> Parser::parse_binary(std::unique_ptr<Expr> base, 
-                                           int32_t precedence) {
+Expr* Parser::parse_binary(Expr* base, int32_t precedence) {
     while (1) {
-        const Token last = m_lexer.last();
+        Token last = curr();
 
         int32_t token_prec = get_binary_operator_precedence(last.kind);
-        if (token_prec < precedence) break;
+        if (token_prec < precedence) 
+            break;
 
         BinaryExpr::Op op = get_binary_operator(last.kind);
-        if (op == BinaryExpr::Unknown) break;
+        if (op == BinaryExpr::Unknown) 
+            break;
+
         next(); // operator
         
-        std::unique_ptr<Expr> right = parse_unary_prefix();
+        Expr* right = parse_unary_prefix();
         if (!right)
             Logger::error("expected right side expression", since(last.loc));
 
         int32_t next_prec = get_binary_operator_precedence(m_lexer.last().kind);
         if (token_prec < next_prec) {
-            right = parse_binary(std::move(right), precedence + 1);
+            right = parse_binary(right, precedence + 1);
             if (!right)
                 Logger::error("expected right side expression", since(last.loc));
         }
 
-        base = std::make_unique<BinaryExpr>(
-            Span(base->span().begin, right->span().end),
+        base = new BinaryExpr(
+            SourceSpan(base->get_starting_loc(), right->get_ending_loc()),
             base->get_type(),
             op,
-            std::move(base),
-            std::move(right)
-        );
+            base,
+            right);
     }
 
     return base;
 }
 
-std::unique_ptr<Expr> Parser::parse_unary_prefix() {
+Expr* Parser::parse_unary_prefix() {
     UnaryExpr::Op op = get_unary_operator(m_lexer.last().kind);
     
     if (UnaryExpr::is_prefix_op(op)) {
-        const SourceLocation start = m_lexer.last().loc;
+        SourceLocation start = m_lexer.last().loc;
         next(); // operator
 
-        std::unique_ptr<Expr> base = parse_unary_prefix();
-        if (!base) Logger::error("expected expression", since(start));
+        Expr* base = parse_unary_prefix();
+        if (!base) 
+            Logger::error("expected expression", since(start));
 
-        return std::make_unique<UnaryExpr>(
-            since(start), base->get_type(), op, false, std::move(base)
-        );
+        return new UnaryExpr(since(start), base->get_type(), op, false, base);
     } else return parse_unary_postfix();
 }
 
-std::unique_ptr<Expr> Parser::parse_unary_postfix() {
-    std::unique_ptr<Expr> base = parse_primary();
-    if (!base) Logger::error("expected expression", m_lexer.last().loc);
+Expr* Parser::parse_unary_postfix() {
+    Expr* base = parse_primary();
+    if (!base) 
+        Logger::error("expected expression", since(curr().loc));
 
     while (1) {
-        const SourceLocation start = m_lexer.last().loc;
+        SourceLocation start = curr().loc;
         UnaryExpr::Op op = get_unary_operator(m_lexer.last().kind);
 
         if (UnaryExpr::is_postfix_op(op)) {
             next(); // operator
-
-            base = std::make_unique<UnaryExpr>(
-                since(start), base->get_type(), op, true, std::move(base)
-            );
-        } else if (match(TokenKind::SetParen)) {
-            next(); // '('
-
-            std::vector<std::unique_ptr<Expr>> args = {};
-            if (!match(TokenKind::EndParen)) args.reserve(2);
+            base = new UnaryExpr(
+                since(start), 
+                base->get_type(), 
+                op, 
+                true, 
+                base);
+        } else if (expect(TokenKind::SetParen)) {
+            vector<Expr*> args = {};
+            if (!match(TokenKind::EndParen)) 
+                args.reserve(2);
 
             while (!match(TokenKind::EndParen)) {
-                std::unique_ptr<Expr> arg = parse_expr();
-                if (!arg) Logger::error("expected expression", since(start));
+                Expr* arg = parse_expr();
+                if (!arg)
+                    Logger::error("expected expression", since(start));
                 
-                args.push_back(std::move(arg));
+                args.push_back(arg);
 
-                if (match(TokenKind::EndParen)) break;
+                if (match(TokenKind::EndParen)) 
+                    break;
 
-                if (match(TokenKind::Comma)) {
-                    next(); // ','
-                } else {
-                    Logger::error("expected ',' after function call argument", 
-                        since(start));
-                }
+                if (!expect(TokenKind::Comma))
+                    Logger::error("expected ','", since(start));
             }
 
             next(); // ')'
 
-            if (!args.empty()) args.shrink_to_fit();
+            if (!args.empty()) 
+                args.shrink_to_fit();
 
-            base = std::make_unique<CallExpr>(
-                since(start), base->get_type(), std::move(base), args
-            );
-        } else if (match(TokenKind::SetBrack)) {
-            next(); // '['
-
-            std::unique_ptr<Expr> index = parse_expr();
+            base = new CallExpr(since(start), base->get_type(), base, args);
+        } else if (expect(TokenKind::SetBrack)) {
+            Expr* index = parse_expr();
             if (!index) 
                 Logger::error("expected expression after '['", since(start));
 
-            if (match(TokenKind::EndBrack)) {
-                next(); // ']'
-            } else {
-                Logger::error("expected ']'");
-            }
+            if (!expect(TokenKind::EndBrack))
+                Logger::error("expected ']'", since(start));
 
-            base = std::make_unique<SubscriptExpr>(
-                since(start), 
-                base->get_type(), 
-                std::move(base), 
-                std::move(index)
-            );
+            base = new SubscriptExpr(since(start), base->get_type(), base, index);
         } else if (match(TokenKind::Dot) || match(TokenKind::Arrow)) {
             bool arrow = match(TokenKind::Arrow);
             next(); // '.' || '->'
 
-            const Decl* member = nullptr;
+            const ValueDecl* member = nullptr;
 
             if (match(TokenKind::Identifier)) {
                 const QualType& base_type = base->get_type();
@@ -1056,13 +1038,8 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
                     std::string(arrow ? "->" : ".") + "'", since(start));
             }
 
-            base = std::make_unique<MemberExpr>(
-                since(start),
-                member->get_type(),
-                std::move(base),
-                member,
-                arrow
-            );
+            base = new MemberExpr(
+                since(start), member->get_type(), base, member, arrow);
         } else {
             break;
         }
@@ -1071,72 +1048,62 @@ std::unique_ptr<Expr> Parser::parse_unary_postfix() {
     return base;
 }
 
-std::unique_ptr<Expr> Parser::parse_ref() {
-    const Token token = m_lexer.last();
+Expr* Parser::parse_ref() {
+    Token ident = m_lexer.last();
     next(); // identifier
 
-    Decl* decl = m_scope->get(token.value);
-    if (!decl) {
-        Logger::error("unresolved reference: '" + token.value + "'", 
-            since(token.loc));
-    }
+    const NamedDecl* nd = m_dctx->get_decl(ident.value);
+    if (!nd)
+        Logger::error("unresolved reference: '" + ident.value + "'", 
+            since(ident.loc));
 
-    return std::unique_ptr<RefExpr>(new RefExpr(
-        since(token.loc), decl->get_type(), decl
-    ));
+    const ValueDecl* vd = dynamic_cast<const ValueDecl*>(nd);
+    if (!vd)
+        Logger::error("expected value", since(ident.loc));
+
+    return new RefExpr(since(ident.loc), vd->get_type(), vd);
 }
 
-std::unique_ptr<Expr> Parser::parse_sizeof() {
-    const SourceLocation start = m_lexer.last().loc;
+Expr* Parser::parse_sizeof() {
+    SourceLocation start = m_lexer.last().loc;
     next(); // 'sizeof'
 
-    if (!match(TokenKind::SetParen))
+    if (!expect(TokenKind::SetParen))
         Logger::error("missing '(' after 'sizeof' keyword");
 
-    next(); // '('
+    QualType type;
+    parse_type(type);
 
-    QualType ty {};
-    if (!parse_type(ty))
-        Logger::error("expected type for 'sizeof' operator");
-
-    if (!match(TokenKind::EndParen))
+    if (!expect(TokenKind::EndParen))
         Logger::error("missing ')' after 'sizeof' type");
 
-    next(); // ')'
-
-    // Uses ulong for the sizeof result.
-    return std::unique_ptr<SizeofExpr>(new SizeofExpr(
-        since(start), QualType(BuiltinType::get_ulong_type(*m_context)), ty
-    ));
+    // Use 'unsigned long' for the sizeof result.
+    return new SizeofExpr(
+        since(start), BuiltinType::get_ulong_type(*m_tctx), type);
 }
 
-std::unique_ptr<Expr> Parser::parse_ternary(std::unique_ptr<Expr> base) {
+Expr* Parser::parse_ternary(Expr* base) {
     next(); // '?'
 
-    std::unique_ptr<Expr> tval = nullptr, fval = nullptr;
+    Expr* tval = nullptr;
+    Expr* fval = nullptr;
 
     // Parse the true value: '?' ... ':'
-    if (!(tval = parse_expr())) Logger::error("expected expression");
+    if (!(tval = parse_expr())) 
+        Logger::error("expected expression");
 
-    if (match(TokenKind::Colon)) {
-        next(); // ':'
-    } else {
+    if (!expect(TokenKind::Colon))
         Logger::error("expected ':' after ternary specifier");
-    }
 
     /// Parse the false value: ':' ...
-    if (!(fval = parse_expr())) Logger::error("expected expression");
+    if (!(fval = parse_expr())) 
+        Logger::error("expected expression");
 
-    return std::make_unique<TernaryExpr>(
-        since(base->span().begin), 
-        tval->get_type(), 
-        std::move(base), 
-        std::move(tval), 
-        std::move(fval)
-    );
+    return new TernaryExpr(
+        since(base->get_starting_loc()), tval->get_type(), base, tval, fval);
 }
 
-std::unique_ptr<Stmt> Parser::parse_stmt() {
+Stmt* Parser::parse_stmt() {
     if (match(TokenKind::SetBrace)) {
         return parse_compound();
     } else if (match("return")) {
@@ -1150,80 +1117,85 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
     } else if (match("switch")) {
         return parse_switch();
     } else if (match("break")) {
-        const SourceLocation start = m_lexer.last().loc;
+        SourceLocation start = curr().loc;
         next(); // 'break'
-        return std::make_unique<BreakStmt>(since(start));
+        return new BreakStmt(since(start));
     } else if (match("continue")) {
-        const SourceLocation start = m_lexer.last().loc;
+        SourceLocation start = curr().loc;
         next(); // 'continue'
-        return std::make_unique<ContinueStmt>(since(start));
+        return new ContinueStmt(since(start));
     } else if (match(TokenKind::Identifier) && 
-      (is_storage_class(m_lexer.last().value) || is_typedef(m_lexer.last().value))) {
-        std::unique_ptr<Decl> var = parse_decl();
-        if (!var) Logger::error("expected variable declaration");
+      (is_storage_class(curr().value) || is_typedef(curr().value))) {
+        SourceLocation start = curr().loc;
+        vector<const Decl*> decls = {};
 
-        return std::make_unique<DeclStmt>(var->span(), std::move(var));
+        while (!match(TokenKind::Semi)) {
+            Decl* decl = parse_decl();
+            if (!decl)
+                Logger::error("expected declaration", since(start));
+
+            decls.push_back(decl);
+        }
+
+        next(); // ';'
+        return new DeclStmt(start, decls);
     }
 
     // Fallback to an expression statement.
-    std::unique_ptr<Expr> expr = parse_expr();
-    if (!expr) Logger::error("expected expression");
+    SourceLocation start = curr().loc;
+    Expr* expr = parse_expr();
+    if (!expr) 
+        Logger::error("expected expression", since(start));
 
-    return std::make_unique<ExprStmt>(expr->span(), std::move(expr));
+    return new ExprStmt(expr->get_span(), expr);
 }
 
-std::unique_ptr<Stmt> Parser::parse_compound() {
-    const SourceLocation start = m_lexer.last().loc;
+Stmt* Parser::parse_compound() {
+    SourceLocation start = curr().loc;
+    vector<Stmt*> stmts = {};
     next(); // '{'
-
-    std::unique_ptr<Scope> scope = enter_scope();
-    std::unique_ptr<Stmt> stmt = nullptr;
-    std::vector<std::unique_ptr<Stmt>> stmts = {};
-    if (!match(TokenKind::EndBrace)) stmts.reserve(4);
+    
+    // This compound won't be empty, so reserve some space.
+    if (!match(TokenKind::EndBrace)) 
+        stmts.reserve(4);
 
     while (!match(TokenKind::EndBrace)) {
-        if (!(stmt = parse_stmt())) 
+        Stmt* stmt = parse_stmt();
+        if (!stmt) 
             Logger::error("expected statement", since(start));
 
-        stmts.push_back(std::move(stmt));
-        stmt = nullptr;
+        stmts.push_back(stmt);
 
-        if (match(TokenKind::EndBrace)) break;
+        if (match(TokenKind::EndBrace)) 
+            break;
 
-        while (match(TokenKind::Semi)) next(); // ';'
+        while (expect(TokenKind::Semi));
     }
 
     next(); // '}'
-    exit_scope();
 
-    if (!stmts.empty()) stmts.shrink_to_fit();
+    if (!stmts.empty()) 
+        stmts.shrink_to_fit();
 
-    return std::make_unique<CompoundStmt>(
-        since(start), std::move(scope), stmts
-    );
+    return new CompoundStmt(since(start), stmts);
 }
 
-std::unique_ptr<Stmt> Parser::parse_if() {
-    const SourceLocation start = m_lexer.last().loc;
+Stmt* Parser::parse_if() {
+    SourceLocation start = curr().loc;
     next(); // 'if'
 
-    std::unique_ptr<Expr> cond = nullptr;
-    std::unique_ptr<Stmt> then = nullptr, els = nullptr;
+    Expr* cond = nullptr;
+    Stmt* then = nullptr;
+    Stmt* els = nullptr;
 
-    if (match(TokenKind::SetParen)) {
-        next(); // '('
-    } else {
+    if (!expect(TokenKind::SetParen))
         Logger::error("expected '(' after 'if'", since(start));
-    }
 
     if (!(cond = parse_expr()))
         Logger::error("expected expression after '('", since(start));
 
-    if (match(TokenKind::EndParen)) {
-        next(); // ')'
-    } else {
+    if (!expect(TokenKind::EndParen))
         Logger::error("missing ')' after 'if' condition", since(start));
-    }
 
     if (!(then = parse_stmt())) 
         Logger::error("expected statement", since(start));
@@ -1235,182 +1207,148 @@ std::unique_ptr<Stmt> Parser::parse_if() {
             Logger::error("expected statement after 'else'", since(start));
     }
 
-    return std::make_unique<IfStmt>(
-        since(start), std::move(cond), std::move(then), std::move(els)
-    );
+    return new IfStmt(since(start), cond, then, els);
 }
 
-std::unique_ptr<Stmt> Parser::parse_return() {
-    const SourceLocation start = m_lexer.last().loc;
+Stmt* Parser::parse_return() {
+    SourceLocation start = curr().loc;
     next(); // 'return'
 
-    std::unique_ptr<Expr> expr = nullptr;
+    Expr* expr = nullptr;
     if (!match(TokenKind::Semi)) {
         expr = parse_expr();
-        assert(expr != nullptr && "could not parse return expression!");
+        if (!expr)
+            Logger::error("expected expression", since(start));
     }
 
-    return std::unique_ptr<ReturnStmt>(new ReturnStmt(
-        since(start), std::move(expr)
-    ));
+    return new ReturnStmt(since(start), expr);
 }
 
-std::unique_ptr<Stmt> Parser::parse_while() {
-    const SourceLocation start = m_lexer.last().loc;
+Stmt* Parser::parse_while() {
+    SourceLocation start = curr().loc;
     next(); // 'while'
 
-    std::unique_ptr<Expr> cond = nullptr;
-    std::unique_ptr<Stmt> body = nullptr;
+    Expr* cond = nullptr;
+    Stmt* body = nullptr;
 
-    if (!match(TokenKind::SetParen))
+    if (!expect(TokenKind::SetParen))
         Logger::error("missing '(' after 'while' keyword", since(start));
 
-    next(); // '('
+    if (!(cond = parse_expr()))
+        Logger::error("expected expression", since(start));
 
-    cond = parse_expr();
-    assert(cond != nullptr && "could not parse while condition expression!");
-
-    if (!match(TokenKind::EndParen))
+    if (!expect(TokenKind::EndParen))
         Logger::error("missing ')' after 'while' condition", since(start));
 
-    next(); // ')'
-
-    if (match(TokenKind::Semi)) {
-        next(); // ';'
-    } else {
-        body = parse_stmt();
-        assert(body != nullptr && "could not parse while body!");
+    if (!expect(TokenKind::Semi)) {
+        if (!(body = parse_stmt()))
+            Logger::error("expected statement", since(start));
     }
 
-    return std::unique_ptr<WhileStmt>(new WhileStmt(
-        since(start), std::move(cond), std::move(body)
-    ));
+    return new WhileStmt(since(start), cond, body);
 }
 
-std::unique_ptr<Stmt> Parser::parse_for() {
-    const SourceLocation start = m_lexer.last().loc;
+Stmt* Parser::parse_for() {
+    SourceLocation start = curr().loc;
     next(); // 'while'
 
-    std::unique_ptr<Stmt> init = nullptr, body = nullptr;
-    std::unique_ptr<Expr> cond = nullptr, step = nullptr;
+    Stmt* init = nullptr;
+    Expr* cond = nullptr;
+    Expr* step = nullptr;
+    Stmt* body = nullptr;
 
-    if (match(TokenKind::SetParen)) {
-        next(); // '('
-    } else {
+    if (!expect(TokenKind::SetParen))
         Logger::error("expected '(' after 'for'", since(start));
-    }
 
     // Parse the 'for' initializer: for (... ';'
-    if (!match(TokenKind::Semi))
-        if (!(init = parse_stmt())) Logger::error("expected statement");
-
-    // Eat any semicolon after the initializer.
-    if (match(TokenKind::Semi)) next(); // ';'
+    if (!expect(TokenKind::Semi))
+        if (!(init = parse_stmt()))
+            Logger::error("expected statement", since(start));
 
     // Parse the 'for' stop condition: ';' ... ';'
     if (!match(TokenKind::Semi))
-        if (!(cond = parse_expr())) Logger::error("expected expresion");
+        if (!(cond = parse_expr())) 
+            Logger::error("expected expresion", since(start));
 
     // Eat any semicolon after the stop condition.
-    if (match(TokenKind::Semi)) next(); // ';'
+    if (match(TokenKind::Semi)) 
+        next(); // ';'
 
     // Parse the 'for' step: ';' ... ')'
     if (!match(TokenKind::EndParen))
-        if (!(step = parse_expr())) Logger::error("expected expression");
+        if (!(step = parse_expr())) 
+            Logger::error("expected expression", since(start));
 
-    if (match(TokenKind::EndParen)) {
-        next(); // ')'
-    } else {
-        Logger::error("expected ')' after 'for' specifier");
-    }
+    if (!expect(TokenKind::EndParen))
+        Logger::error("expected ')' after 'for' specifier", since(start));
 
     if (!match(TokenKind::Semi))
-        if (!(body = parse_stmt())) Logger::error("expected statement");
+        if (!(body = parse_stmt())) 
+            Logger::error("expected statement", since(start));
 
-    return std::make_unique<ForStmt>(
-        since(start), 
-        std::move(init), 
-        std::move(cond), 
-        std::move(step), 
-        std::move(body)
-    );
+    return new ForStmt(since(start), init, cond, step, body);
 }
 
-std::unique_ptr<Stmt> Parser::parse_switch() {
-    const SourceLocation start = m_lexer.last().loc;
-    next(); // 'switch'
+Stmt* Parser::parse_switch() {
+    SourceLocation start = curr().loc;
+    Expr* expr = nullptr;
+    Stmt* def = nullptr;
+    vector<CaseStmt*> cases = {};
+    next(); // 'switch'    
 
-    std::unique_ptr<Expr> mtch = nullptr;
-    std::unique_ptr<Stmt> def = nullptr;
-    std::vector<std::unique_ptr<CaseStmt>> cases = {};
+    if (!expect(TokenKind::SetParen))
+        Logger::error("expected '(' after 'switch'", since(start));
+    
+    if (!(expr = parse_expr())) 
+        Logger::error("expected expression", since(start));
 
-    if (match(TokenKind::SetParen)) {
-        next(); // '('
-    } else {
-        Logger::error("expected '(' after 'switch'");
-    }
+    if (!expect(TokenKind::EndParen))
+        Logger::error("expected ')' after 'switch' specifier", since(start));
 
-    if (!(mtch = parse_expr())) Logger::error("expected expression");
-
-    if (match(TokenKind::EndParen)) {
-        next(); // ')'
-    } else {
-        Logger::error("expected ')' after 'switch' specifier");
-    }
-
-    if (match(TokenKind::SetBrace)) {
-        next(); // '{'
-    } else {
+    if (!expect(TokenKind::SetBrace))
         Logger::error("expected '{' after 'switch' specifier");
-    }
 
     cases.reserve(4);
     while (!match(TokenKind::EndBrace)) {
         if (match("case")) {
-            const SourceLocation case_s = m_lexer.last().loc;
+            SourceLocation c_start = curr().loc;
+            Expr* c_match = nullptr;
+            Stmt* c_body = nullptr;
             next(); // 'case'
 
-            std::unique_ptr<Expr> case_m = nullptr;
-            std::unique_ptr<Stmt> case_b = nullptr;
+            if (!(c_match = parse_expr()))
+                Logger::error("expected expression", since(c_start));
 
-            if (!(case_m = parse_expr()))
-                Logger::error("expected expression after 'case'");
+            if (!expect(TokenKind::Colon))
+                Logger::error("expected ':'", since(c_start));
 
-            if (match(TokenKind::Colon)) {
-                next(); // ':'
-            } else {
-                Logger::error("expected ':' after case expression");
-            }
+            if (!(c_body = parse_stmt())) 
+                Logger::error("expected statement", since(c_start));
 
-            if (!(case_b = parse_stmt())) Logger::error("expected statement");
-
-            cases.push_back(std::make_unique<CaseStmt>(
-                since(case_s), std::move(case_m), std::move(case_b)
-            ));
+            cases.push_back(new CaseStmt(since(c_start), c_match, c_body));
         } else if (match("default")) {
-            if (def) Logger::error("more than one default statement in 'switch'");
+            if (def)
+                Logger::error("multiple defaults in 'switch'", since(start));
 
             next(); // 'default'
 
-            if (match(TokenKind::Colon)) {
-                next(); // ':'
-            } else {
-                Logger::error("expected ':' after 'default'");
-            }
+            if (!expect(TokenKind::Colon)) 
+                Logger::error("expected ':'", since(start));
 
-            if (!(def = parse_stmt())) Logger::error("expected statement");
+            if (!(def = parse_stmt())) 
+                Logger::error("expected statement", since(start));
         }
 
-        if (match(TokenKind::EndBrace)) break;
+        if (match(TokenKind::EndBrace)) 
+            break;
 
-        while (match(TokenKind::Semi)) next(); // ';'
+        while (expect(TokenKind::Semi));
     }
 
     next(); // '}'
 
-    if (!cases.empty()) cases.shrink_to_fit();
+    if (!cases.empty())
+        cases.shrink_to_fit();
     
-    return std::make_unique<SwitchStmt>(
-        since(start), std::move(mtch), cases, std::move(def)
-    );
+    return new SwitchStmt(since(start), expr, cases, def);
 }

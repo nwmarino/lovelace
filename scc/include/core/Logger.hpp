@@ -11,7 +11,7 @@
 // most components of the C frontend.
 //
 
-#include "Span.hpp"
+#include "SourceSpan.hpp"
 
 #include <iostream>
 #include <ostream>
@@ -33,7 +33,7 @@ private:
     static bool s_color;
 
     /// Fetch and log a span o fsource \p span from the file it represents.
-    static void log_source(const Span& span);
+    static void log_source(const SourceSpan& span);
 
 public:
     Logger() = delete;
@@ -48,14 +48,14 @@ public:
 
     /// Log an informative message \p msg to the output stream with a reference 
     /// to a span of source designated by \p span.
-    static void info(const string& msg, const Span& span);
+    static void info(const string& msg, const SourceSpan &span);
 
     /// Log a warning message \p msg to the output stream.
     static void warn(const string& msg);
 
     /// Log a warning message \p msg to the output stream with a reference
     /// to a span of source designated by \p span.
-    static void warn(const string& msg, const Span &span);
+    static void warn(const string& msg, const SourceSpan& span);
 
     /// Log an error message \p msg to the output stream.
     __attribute__((noreturn))
@@ -64,7 +64,7 @@ public:
     /// Log an error message \p msg to the output stream with a reference to a
     /// span of source designed by \p span.
     __attribute__((noreturn))
-    static void error(const string& msg, const Span &span) noexcept;
+    static void error(const string& msg, const SourceSpan& span) noexcept;
 };
 
 } // namespace scc

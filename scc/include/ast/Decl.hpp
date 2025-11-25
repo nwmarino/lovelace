@@ -14,7 +14,7 @@
 #include "ast/QualType.hpp"
 #include "ast/Scope.hpp"
 #include "ast/Type.hpp"
-#include "core/Span.hpp"
+#include "core/SourceSpan.hpp"
 
 #include <cassert>
 #include <vector>
@@ -28,7 +28,9 @@ using std::vector;
 class Expr;
 class Stmt;
 
+class DeclContext;
 class NamedDecl;
+class TagTypeDecl;
 
 /// Possible kinds of storage classes in C.
 enum StorageClass : uint32_t {
@@ -59,20 +61,28 @@ protected:
     /// The kind of declaration of this is.
     const Kind m_kind;
 
-    /// The span of source code this declaration covers.
-    Span m_span;
+    /// The span of source code that this declaration covers.
+    SourceSpan m_span;
 
-    explicit Decl(Kind kind, const Span& span) : m_kind(kind), m_span(span) {}
+    explicit Decl(DeclContext* dctx, Kind kind, const SourceSpan& span);
 
 public:
     virtual ~Decl() = default;
 
     /// Returns the kind of declaration this is.
     Kind get_kind() const { return m_kind; }
+
+    /// Returns the span of source code that this declaration covers.
+    const SourceSpan& get_span() const { return m_span; }
+    SourceSpan& get_span() { return m_span; }
     
-    /// Returns the span of source code this declaration covers.
-    const Span& get_span() const { return m_span; }
-    Span& get_span() { return m_span; }
+    /// Returns the location in source code that this declaration starts at.
+    const SourceLocation& get_starting_loc() const { return m_span.start; }
+    SourceLocation& get_starting_loc() { return m_span.start; }
+
+    /// Returns the location in source code that this declaration ends at.
+    const SourceLocation& get_ending_loc() const { return m_span.end; }
+    SourceLocation& get_ending_loc() { return m_span.end; }
 
     /// Pretty-print this declaration node to the output stream \p os.
     virtual void print(ostream& os) const = 0;
@@ -84,11 +94,15 @@ protected:
     /// The name of this declaration.
     string m_name;
 
-    explicit NamedDecl(Kind kind, const Span& span, const string& name)
-        : Decl(kind, span), m_name(name) {}
+    explicit NamedDecl(DeclContext* dctx, Kind kind, const SourceSpan& span, 
+                       const string& name)
+        : Decl(dctx, kind, span), m_name(name) {}
 
 public:
     virtual ~NamedDecl() = default;
+
+    /// Returns true if this declaration has a name.
+    bool has_name() const { return !m_name.empty(); }
 
     /// Returns the name of this declaration.
     const string& get_name() const { return m_name; }
@@ -101,9 +115,9 @@ protected:
     /// The type of this declaration.
     QualType m_type;
 
-    explicit ValueDecl(Kind kind, const Span& span, const string& name, 
-                       const QualType& type)
-        : NamedDecl(kind, span, name), m_type(type) {}
+    explicit ValueDecl(DeclContext* dctx, Kind kind, const SourceSpan& span, 
+                       const string& name, const QualType& type)
+        : NamedDecl(dctx, kind, span, name), m_type(type) {}
 
 public:
     virtual ~ValueDecl() = default;
@@ -117,15 +131,17 @@ public:
 class DeclContext {
 protected:
     /// The parent context to this context, if there is one.
-    DeclContext* m_parent;
+    DeclContext* m_parent = nullptr;
 
     /// The declarations in this context.
-    vector<Decl*> m_decls;
+    vector<Decl*> m_decls = {};
 
-    DeclContext(DeclContext* parent = nullptr) : m_parent(parent), m_decls() {}
+    /// The tag type declarations in this context.
+    vector<TagTypeDecl*> m_tags = {};
 
-    DeclContext(DeclContext* parent, const vector<Decl*>& decls) 
-        : m_parent(parent), m_decls(decls) {}
+    DeclContext() = default;
+
+    DeclContext(DeclContext* parent) : m_parent(parent) {}
 
 public:
     ~DeclContext();
@@ -140,9 +156,6 @@ public:
     /// Returns the number of declarations in this context.
     uint32_t num_decls() const { return m_decls.size(); }
 
-    /// Returns true if this context does not contain any declarations.
-    bool empty() const { return m_decls.empty(); }
-
     /// Returns the declarations in this context.
     const vector<Decl*>& get_decls() const { return m_decls; }
     vector<Decl*>& get_decls() { return m_decls; }
@@ -155,18 +168,39 @@ public:
             static_cast<const DeclContext*>(this)->get_decl(name));
     }
 
+    /// Returns the number of tag declarations in this context.
+    uint32_t num_tags() const { return m_tags.size(); }
+
+    /// Returns the tag type declarations in this context.
+    const vector<TagTypeDecl*>& get_tags() const { return m_tags; }
+    vector<TagTypeDecl*>& get_tags() { return m_tags; }
+
+    const TagTypeDecl* get_tag(const string& name) const;
+    TagTypeDecl* get_tag(const string& name) {
+        return const_cast<TagTypeDecl*>(
+            static_cast<const DeclContext*>(this)->get_tag(name));
+    }
+
     /// Add a new declaration \p decl to this context.
-    void add(Decl* decl) { m_decls.push_back(decl); }
+    void add(Decl* decl);
 };
 
 /// Represents a translation unit declaration (a source file).
 class TranslationUnitDecl final : public DeclContext, public Decl {
+    /// The context of types for this translation unit.
+    TypeContext* m_tctx;
+
 public:
-    TranslationUnitDecl()
-        : DeclContext(), Decl(Kind::TranslationUnit, Span()) {}
+    TranslationUnitDecl(const string& file);
 
     TranslationUnitDecl(const TranslationUnitDecl&) = delete;
     TranslationUnitDecl& operator = (const TranslationUnitDecl&) = delete;
+
+    ~TranslationUnitDecl();
+
+    /// Returns the type context of this translation unit.
+    const TypeContext& get_context() const { return *m_tctx; }
+    TypeContext& get_context() { return *m_tctx; }
 
     void print(ostream& os) const;
 };
@@ -180,9 +214,9 @@ class VariableDecl final : public ValueDecl {
     Expr* m_init;
 
 public:
-    VariableDecl(const Span& span, const string& name, const QualType& type, 
-                 StorageClass sclass, Expr* init)
-        : ValueDecl(Kind::Variable, span, name, type), m_storage(sclass), 
+    VariableDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
+                 const QualType& type, StorageClass storage, Expr* init)
+        : ValueDecl(dctx, Kind::Variable, span, name, type), m_storage(storage),
           m_init(init) {}
 
     VariableDecl(const VariableDecl&) = delete;
@@ -192,6 +226,12 @@ public:
 
     /// Returns the storage class of this variable.
     StorageClass get_storage_class() const { return m_storage; }
+
+    /// Returns true if this variable has the 'extern' storage class.
+    bool is_extern() const { return m_storage == Extern; }
+
+    /// Returns true if this variable has the 'static' storage class.
+    bool is_static() const { return m_storage == Static; }
 
     /// Returns true if this variable has an initializing expression.
     bool has_init() const { return m_init != nullptr; }
@@ -206,8 +246,9 @@ public:
 /// Represents a parameter declaration within a function parameter list.
 class ParameterDecl final : public ValueDecl {
 public:
-    ParameterDecl(const Span& span, const string& name, const QualType& type)
-        : ValueDecl(Kind::Parameter, span, name, type) {}
+    ParameterDecl(DeclContext* dctx, const SourceSpan& span, 
+                  const string& name, const QualType& type)
+        : ValueDecl(dctx, Kind::Parameter, span, name, type) {}
 
     ParameterDecl(const ParameterDecl&) = delete;
     ParameterDecl& operator = (const ParameterDecl&) = delete;
@@ -220,14 +261,18 @@ class FunctionDecl final : public DeclContext, public ValueDecl {
     /// The storage class of this function.
     StorageClass m_storage;
 
+    /// The parameters of this function. These are borrowed from the 
+    /// DeclContext super class.
+    vector<ParameterDecl*> m_params = {};
+
     /// The body of this function, if there is one.
-    Stmt* m_body;
+    Stmt* m_body = nullptr;
 
 public:
-    FunctionDecl(DeclContext* dctx, const Span& span, const string& name, 
-                 const QualType& type, StorageClass sclass, Stmt* body)
-        : DeclContext(dctx), ValueDecl(Kind::Function, span, name, type), 
-          m_storage(sclass), m_body(body) {}
+    FunctionDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
+                 const QualType& type, StorageClass storage)
+        : DeclContext(dctx), ValueDecl(dctx, Kind::Function, span, name, type), 
+          m_storage(storage) {}
 
     FunctionDecl(const FunctionDecl&) = delete;
     FunctionDecl& operator = (const FunctionDecl&) = delete;
@@ -237,19 +282,46 @@ public:
     /// Returns the storage class of this function.
     StorageClass get_storage_class() const { return m_storage; }
 
+    /// Returns true if this function has the 'extern' storage class.
+    bool is_extern() const { return m_storage == Extern; }
+
+    /// Returns true if this function has the 'static' storage class.
+    bool is_static() const { return m_storage == Static; }
+
     /// Returns the number of parameters this function has.
-    uint32_t num_params() const { 
-        return static_cast<const FunctionType*>(
-            m_type.get_type())->num_params(); 
-    }
+    uint32_t num_params() const { return m_params.size(); }
 
     /// Returns true if this function has any parameters.
-    bool has_params() const { return num_params() != 0; }
+    bool has_params() const { return !m_params.empty(); }
+
+    /// Returns the parameters of this function.
+    const vector<ParameterDecl*>& get_params() const { return m_params; }
+    vector<ParameterDecl*>& get_params() { return m_params; }
+
+    /// Set the parameter list of this function to \p params.
+    void set_params(const vector<ParameterDecl*>& params) {
+        m_params = params;
+    }
+    
+    /// Returns the parameter at position \p i of this function.
+    const ParameterDecl* get_param(uint32_t i) const {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
+    }
+
+    ParameterDecl* get_param(uint32_t i) {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
+    }
 
     /// Returns the parameter in this function named by \p name if it exists,
     /// and 'nullptr' otherwise.
     const ParameterDecl* get_param(const string& name) const {
-        return dynamic_cast<const ParameterDecl*>(DeclContext::get_decl(name));
+        for (const auto& param : m_params)
+            if (param->get_name() == name)
+                return param;
+
+        return nullptr;
     }
 
     ParameterDecl* get_param(const string& name) {
@@ -260,8 +332,13 @@ public:
     /// Returns the type of the parameter at position \p i of this function's 
     /// parameter list.
     const QualType& get_param_type(uint32_t i) const {
-        return static_cast<const FunctionType*>(
-            m_type.get_type())->get_param_type(i);
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i]->get_type();
+    }
+
+    QualType& get_param_type(uint32_t i) {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i]->get_type();
     }
 
     /// Returns true if this function declaration has a body.
@@ -271,14 +348,18 @@ public:
     const Stmt* get_body() const { return m_body; }
     Stmt* get_body() { return m_body; }
 
+    /// Set the body of this function to \p body.
+    void set_body(Stmt* body) { m_body = body; }
+
     void print(ostream& os) const override;
 };
 
 /// Represents a field in a 'struct' declaration.
 class FieldDecl final : public ValueDecl {
 public:
-    FieldDecl(const Span& span, const string& name, const QualType& type)
-        : ValueDecl(Kind::Field, span, name, type) {}
+    FieldDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
+              const QualType& type)
+        : ValueDecl(dctx, Kind::Field, span, name, type) {}
 
     FieldDecl(const FieldDecl&) = delete;
     FieldDecl& operator = (const FieldDecl&) = delete;
@@ -292,9 +373,9 @@ protected:
     /// The type defined by this declaration.
     const Type* m_type;
 
-    explicit TypeDecl(Kind kind, const Span& span, const string& name, 
-                      const Type* type)
-        : NamedDecl(kind, span, name), m_type(type) {}
+    explicit TypeDecl(DeclContext* dctx, Kind kind, const SourceSpan& span, 
+                      const string& name, const Type* type)
+        : NamedDecl(dctx, kind, span, name), m_type(type) {}
 
 public:
     virtual ~TypeDecl() = default;
@@ -309,8 +390,9 @@ public:
 /// Represents a 'typedef' declaration.
 class TypedefDecl final : public TypeDecl {
 public:
-    TypedefDecl(const Span& span, const string& name, const Type* type)
-        : TypeDecl(Kind::Typedef, span, name, type) {}
+    TypedefDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
+                const Type* type)
+        : TypeDecl(dctx, Kind::Typedef, span, name, type) {}
 
     TypedefDecl(const TypedefDecl&) = delete;
     TypedefDecl& operator = (const TypedefDecl&) = delete;
@@ -318,31 +400,84 @@ public:
     void print(ostream& os) const override;
 };
 
-/// Represents a 'struct' or 'union' declaration.
-class RecordDecl final : public DeclContext, public TypeDecl {
-    /// If true, then this record is a 'struct' declaration, and a 'union'
-    /// declaration otherwise.
-    bool m_struct;
+/// Represents a tagged type 'struct', 'union', or 'enum' declaration.
+class TagTypeDecl : public DeclContext, public TypeDecl {
+public:
+    /// Possible kinds of tag types.
+    enum TagKind : uint32_t {
+        Struct,
+        Union,
+        Enum,
+    };
+
+protected:
+    /// The kind of tag type this is.
+    TagKind m_tag_kind;
+
+    TagTypeDecl(DeclContext* dctx, Kind kind, const SourceSpan& span, 
+                const string& name, const Type* type, TagKind tag_kind)
+        : DeclContext(dctx), TypeDecl(dctx, kind, span, name, type), 
+          m_tag_kind(tag_kind) {}
 
 public:
-    RecordDecl(DeclContext* dctx, const Span& span, const string& name, 
-               const Type* type, bool is_struct)
-        : DeclContext(dctx), TypeDecl(Kind::Record, span, name, type), 
-          m_struct(is_struct) {}
+    virtual ~TagTypeDecl() = default;
+
+    /// Returns the kind fo tag type this is.
+    TagKind get_tag_kind() const { return m_tag_kind; }
+};
+
+/// Represents a 'struct' or 'union' declaration.
+class RecordDecl final : public TagTypeDecl {
+    /// The fields of this record. These are borrowed from the DeclContext
+    /// super class.
+    vector<FieldDecl*> m_fields = {};
+
+public:
+    RecordDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
+               const Type* type, TagKind tag_kind)
+        : TagTypeDecl(dctx, Kind::Record, span, name, type, tag_kind) {}
 
     RecordDecl(const RecordDecl&) = delete;
     RecordDecl& operator = (const RecordDecl&) = delete;
 
     /// Returns true if this is a 'struct' record declaration.
-    bool is_struct() const { return m_struct; }
+    bool is_struct() const { return m_tag_kind == Struct; }
 
     /// Returns true if this is a 'union' record declaration.
-    bool is_union() const { return !m_struct; }
+    bool is_union() const { return m_tag_kind == Union; }
+
+    /// Returns the number of fields in this record.
+    uint32_t num_fields() const { return m_fields.size(); }
+
+    /// Returns true if this record does not have any fields in it.
+    bool empty() const { return m_fields.empty(); }
+
+    /// Returns the fields in this record.
+    const vector<FieldDecl*>& get_fields() const { return m_fields; }
+    vector<FieldDecl*>& get_fields() { return m_fields; }
+
+    /// Set the list of fields in this record to \p fields.
+    void set_fields(const vector<FieldDecl*>& fields) { m_fields = fields; }
+
+    /// Returns the field at position \p i of this record.
+    const FieldDecl* get_field(uint32_t i) const {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
+
+    FieldDecl* get_field(uint32_t i) {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
 
     /// Returns the field declaration in this record with the name \p name if
     /// there is one, and 'nullptr' otherwise.
     const FieldDecl* get_field(const string& name) const {
-        return dynamic_cast<const FieldDecl*>(DeclContext::get_decl(name));
+        for (const FieldDecl* field : m_fields)
+            if (field->get_name() == name)
+                return field;
+
+        return nullptr;
     }
 
     FieldDecl* get_field(const string& name) {
@@ -359,9 +494,10 @@ class EnumVariantDecl final : public ValueDecl {
     const int32_t m_value;
 
 public:
-    EnumVariantDecl(const Span& span, const string& name, const QualType& type, 
-                    int32_t value)
-        : ValueDecl(Kind::EnumVariant, span, name, type), m_value(value) {}
+    EnumVariantDecl(DeclContext* dctx, const SourceSpan& span, 
+                    const string& name, const QualType& type, int32_t value)
+        : ValueDecl(dctx, Kind::EnumVariant, span, name, type), 
+          m_value(value) {}
 
     EnumVariantDecl(const EnumVariantDecl&) = delete;
     EnumVariantDecl& operator = (const EnumVariantDecl&) = delete;
@@ -373,11 +509,14 @@ public:
 };
 
 /// Represents an 'enum' declaration.
-class EnumDecl final : public DeclContext, public TypeDecl {
+class EnumDecl final : public TagTypeDecl {
+    /// The variants of this enum.
+    vector<EnumVariantDecl*> m_variants = {};
+
 public:
-    EnumDecl(DeclContext* dctx, const Span& span, const string& name, 
+    EnumDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
              const Type* type)
-        : DeclContext(dctx), TypeDecl(Kind::Enum, span, name, type) {}
+        : TagTypeDecl(dctx, Kind::Enum, span, name, type, TagKind::Enum) {}
 
     EnumDecl(const EnumDecl&) = delete;
     EnumDecl& operator = (const EnumDecl&) = delete;
@@ -386,12 +525,36 @@ public:
     uint32_t num_variants() const { return DeclContext::num_decls(); }
 
     /// Returns true if this enum does not have any variants.
-    bool empty() const { return DeclContext::empty(); }
+    bool empty() const { return m_variants.empty(); }
+
+    /// Returns the variants of this 'enum' declaration.
+    const vector<EnumVariantDecl*>& get_variants() const { return m_variants; }
+    vector<EnumVariantDecl*>& get_variants() { return m_variants; }
+
+    /// Set the variants list of this enum to \p variants.
+    void set_variants(const vector<EnumVariantDecl*>& variants) {
+        m_variants = variants;
+    }
+
+    /// Returns the varient at position \p i of this enum.
+    const EnumVariantDecl* get_variant(uint32_t i) const {
+        assert(i < num_variants() && "index out of bounds!");
+        return m_variants[i];
+    }
+
+    EnumVariantDecl* get_variant(uint32_t i) {
+        assert(i < num_variants() && "index out of bounds!");
+        return m_variants[i];
+    }
 
     /// Returns the variant in this enum with name \p name if there is one, 
     /// and 'nullptr' otherwise.
     const EnumVariantDecl* get_variant(const string& name) const {
-        return dynamic_cast<const EnumVariantDecl*>(DeclContext::get_decl(name));
+        for (const EnumVariantDecl* variant : m_variants)
+            if (variant->get_name() == name)
+                return variant;
+
+        return nullptr;
     }
 
     EnumVariantDecl* get_variant(const string& name) {

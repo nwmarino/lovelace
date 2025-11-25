@@ -306,59 +306,39 @@ public:
     string to_string() const override;
 };
 
-/// Represents the type defined by a 'struct' declaration.
-class StructType final : public Type {
+/// Represents the type defined by a tagged 'struct' or 'union' declaration.
+class RecordType final : public Type {
     friend class TypeContext;
 
-    /// The 'struct' declaration that defines this type.
+    /// The record that defines this type.
     const RecordDecl* m_decl;
 
-    /// The types of the fields in the structure that defines this type.
-    vector<QualType> m_fields;
-
-    StructType(const RecordDecl* decl, const vector<QualType>& fields)
-        : Type(), m_decl(decl), m_fields(fields) {}
+    RecordType(const RecordDecl* decl) : m_decl(decl) {}
 
 public:
-    /// Create and return a new type defined by a 'struct' declaration \p decl
-    /// and field types \p fields.
-    static const StructType* create(TypeContext& ctx, const RecordDecl* decl, 
-                                    const vector<QualType>& fields);
+    /// Create and return a new type defined by a record \p decl.
+    static const RecordType* create(TypeContext& ctx, const RecordDecl* decl);
 
-    /// Returns the 'struct' declaration that defines this type.
+    /// Returns the record that defines this type.
     const RecordDecl* get_decl() const { return m_decl; }
-
-    /// Returns the number of fields in this type.
-    uint32_t num_fields() const { return m_fields.size(); }
-
-    /// Returns the type of the field at position \p i.
-    const QualType& get_field(uint32_t i) const {
-        assert(i < num_fields() && "index out of bounds!");
-        return m_fields[i];
-    }
-
-    QualType& get_field(uint32_t i) {
-        assert(i < num_fields() && "index out of bounds!");
-        return m_fields[i];
-    }
 
     string to_string() const override;
 };
 
-/// Represents the type defined by an 'enum' declaration.
+/// Represents the type defined by a tagged 'enum' declaration.
 class EnumType final : public Type {
     friend class TypeContext;
 
-    /// The 'enum' declaration that defines this type.
+    /// The enum that defines this type.
     const EnumDecl* m_decl;
 
     EnumType(const EnumDecl* decl) : Type(), m_decl(decl) {}
 
 public:
-    /// Create and return a new type defined by an 'enum' declaration \p decl.
+    /// Create and return a new type defined by an enum \p decl.
     static const EnumType* create(TypeContext& ctx, const EnumDecl* decl);
 
-    /// Returns the 'enum' declaration that defines this type.
+    /// Returns the enum that defines this type.
     const EnumDecl* get_decl() const { return m_decl; }
 
     string to_string() const override;

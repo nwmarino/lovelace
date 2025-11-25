@@ -3,17 +3,19 @@
 //   All rights reserved.
 //
 
+#include "ast/Decl.hpp"
 #include "ast/Parser.hpp"
 #include "core/Logger.hpp"
-#include "core/TranslationUnit.hpp"
 
 #include <cstdint>
 #include <string>
 #include <vector>
 
+using std::vector;
+
 using scc::Logger;
 using scc::Parser;
-using scc::TranslationUnit;
+using scc::TranslationUnitDecl;
 
 int32_t main(int32_t argc, char* argv[]) {
     Logger::init();
@@ -46,14 +48,13 @@ int32_t main(int32_t argc, char* argv[]) {
     if (files.empty())
         Logger::error("no input files");
 
-    std::vector<std::unique_ptr<TranslationUnit>> units = {};
+    vector<TranslationUnitDecl*> units = {};
     units.reserve(files.size());
 
     for (const auto& file : files) {
         Parser parser(file);
 
-        auto unit = std::unique_ptr<TranslationUnit>(new TranslationUnit());
-        parser.parse(*unit);
+        TranslationUnitDecl* unit = parser.parse();
 
         unit->print(std::cout);
 

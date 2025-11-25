@@ -15,6 +15,7 @@
 #include "ast/Expr.hpp"
 #include "ast/QualType.hpp"
 #include "ast/TypeContext.hpp"
+#include "core/SourceSpan.hpp"
 #include "lexer/Lexer.hpp"
 #include "lexer/Token.hpp"
 
@@ -27,8 +28,12 @@ using std::string;
 class Parser final {
     string m_file;
     Lexer m_lexer;
+    TranslationUnitDecl* m_unit = nullptr;
     TypeContext* m_tctx = nullptr;
     DeclContext* m_dctx = nullptr;
+
+    /// Returns the current token.
+    const Token& curr() const { return m_lexer.last(); }
 
     /// Attempt to match the kind of the current token with \p kind. Returns
     /// true if the match is a success, and false otherwise. 
@@ -39,6 +44,11 @@ class Parser final {
     /// false otherwise.
     bool match(const char* kw) const;
 
+    /// Expect the current token to have kind \p kind, and consume it if it
+    /// does, and return true. If the token kinds do not match, returns false
+    /// and does nothing else.
+    bool expect(TokenKind kind);
+
     /// Attempt to lex the next token from source.
     void next();
 
@@ -47,7 +57,7 @@ class Parser final {
 
     /// Creates and returns a span between the location of the current token
     /// and \p loc as a starting point.
-    Span since(const SourceLocation& loc);
+    SourceSpan since(const SourceLocation& loc) const;
 
     /// Returns the equivelant binary operator for the token kind \p kind.
     BinaryExpr::Op get_binary_operator(TokenKind kind) const;
@@ -62,6 +72,10 @@ class Parser final {
     /// Returns true if \p ident is a reserved C keyword.
     bool is_reserved(const string& ident) const;
 
+    /// Check if an identifier \p ident is reserved. If it is, then the 
+    /// compiler will crash at source location \p loc.
+    void check_reserved(const SourceLocation& loc, const string& ident) const;
+
     /// Returns true if \p ident is a keyword reserved for storage classes.
     bool is_storage_class(const string& ident) const;
 
@@ -69,20 +83,29 @@ class Parser final {
     /// state of the parser.
     bool is_typedef(const string& ident) const;
 
+    /// Returns the equivelant tag kind for \p ident. Fails by assertion if
+    /// \p ident is not a tag keyword.
+    TagTypeDecl::TagKind get_tag_kind(const string& ident) const;
+
+    /// Returns true if \p ident is one of the tag type keywords.
+    bool is_tag(const string& ident) const {
+        return ident == "struct" || ident == "union" || ident == "enum";
+    }
+
     /// Attemot to parse a storage class identifier.
     StorageClass parse_storage_class();
 
     /// Attempt to parse a possible qualified type. Returns true if the parse
     /// was successful and a typesu could be parsed, and false otherwise.
-    bool parse_type(QualType& ty);
+    void parse_type(QualType& type);
 
     Decl* parse_decl();
-    Decl* parse_function(const SourceLocation& start, StorageClass sclass, 
-                         const QualType& ty, const string& name);
-    Decl* parse_variable(const SourceLocation& start, StorageClass sclass, 
-                         const QualType& ty, const string& name);
+    Decl* parse_function(const SourceLocation& start, StorageClass storage, 
+                         QualType ret_type, const string& name);
+    Decl* parse_variable(const SourceLocation& start, StorageClass storage, 
+                         QualType type, const string& name);
     Decl* parse_typedef();
-    Decl* parse_struct();
+    Decl* parse_record();
     Decl* parse_enum();
 
     Expr* parse_expr();

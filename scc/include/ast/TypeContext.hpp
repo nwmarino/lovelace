@@ -28,7 +28,7 @@ class TypeContext final {
     friend class PointerType;
     friend class FunctionType;
     friend class TypedefType;
-    friend class StructType;
+    friend class RecordType;
     friend class EnumType;
 
     using BuiltinTypePool = unordered_map<BuiltinType::Kind, BuiltinType*>;
@@ -36,7 +36,7 @@ class TypeContext final {
     using PointerTypePool = vector<PointerType*>;
     using FunctionTypePool = vector<FunctionType*>;
     using TypedefTypePool = vector<TypedefType*>;
-    using StructTypePool = vector<StructType*>;
+    using RecordTypePool = vector<RecordType*>;
     using EnumTypePool = vector<EnumType*>;
 
     /// Pool of types that are built-in to the C language.
@@ -56,19 +56,19 @@ class TypeContext final {
     /// Pool of typedef types.
     TypedefTypePool m_typedefs = {};
 
-    /// Pool of struct types.
-    StructTypePool m_structs = {};
+    /// Pool of record types.
+    RecordTypePool m_records = {};
 
     /// Pool of enum types.
     EnumTypePool m_enums = {};
 
+public:
     TypeContext();
 
-public:
     TypeContext(const TypeContext&) = delete;
     TypeContext& operator = (const TypeContext&) = delete;
 
-    ~TypeContext() = default;
+    ~TypeContext();
 };
 
 } // namespace scc

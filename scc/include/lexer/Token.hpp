@@ -14,7 +14,7 @@
 // syntax tree which represents the entirety of a program.
 //
 
-#include "core/Span.hpp"
+#include "core/SourceSpan.hpp"
 
 namespace scc {
 

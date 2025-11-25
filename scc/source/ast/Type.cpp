@@ -157,16 +157,14 @@ string TypedefType::to_string() const {
     return m_decl->get_name();
 }
 
-const StructType* StructType::create(
-        TypeContext& ctx, const RecordDecl* decl, 
-        const std::vector<QualType>& fields) {
-    StructType* ty = new StructType(decl, fields);
-    ctx.m_structs.push_back(ty);
+const RecordType* RecordType::create(TypeContext& ctx, const RecordDecl* decl) {
+    RecordType* ty = new RecordType(decl);
+    ctx.m_records.push_back(ty);
     return ty;
 }
 
-string StructType::to_string() const {
-    return m_decl->get_name();
+string RecordType::to_string() const {
+    return (m_decl->is_struct() ? "struct " : "union ") + m_decl->get_name();
 }
 
 const EnumType* EnumType::create(TypeContext& ctx, const EnumDecl* decl) {
@@ -176,5 +174,5 @@ const EnumType* EnumType::create(TypeContext& ctx, const EnumDecl* decl) {
 }
 
 string EnumType::to_string() const {
-    return m_decl->get_name();
+    return "enum " + m_decl->get_name();
 }

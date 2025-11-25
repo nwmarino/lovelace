@@ -30,18 +30,21 @@ target_compile_features(scc PUBLIC cxx_std_20)
 enable_testing()
 
 add_executable(scc_test
-    source/ast/TypeContext.cpp
+    source/ast/Decl.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
     source/ast/Printer.cpp
     source/ast/QualType.cpp
     source/ast/Scope.cpp
+    source/ast/Stmt.cpp
     source/ast/Type.cpp
+    source/ast/TypeContext.cpp
     source/core/Logger.cpp
     source/core/Tools.cpp
     source/lexer/Lexer.cpp
     test/LexerTests.cpp
     test/ParserTests.cpp
+    test/ParseTypeTests.cpp
 )
 
 target_include_directories(scc_test PUBLIC

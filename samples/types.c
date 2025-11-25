@@ -1,11 +1,18 @@
-struct A {
-    struct B* b;
+struct A { 
+    struct B* b; 
 };
 
-int main() {
-    struct C* c;
-}
-
-struct C {
-    int c;
+struct B {
+    struct A y;
+    int x;
 };
+
+enum C {
+    A,
+    B,
+    C,
+};
+
+typedef struct B Ab;
+
+typedef enum C Ac;

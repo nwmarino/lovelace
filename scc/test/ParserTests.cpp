@@ -9,9 +9,7 @@
 #include "ast/Stmt.hpp"
 #include "ast/Type.hpp"
 #include "core/Logger.hpp"
-#include "core/TranslationUnit.hpp"
 
-#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 
 namespace scc::test {
@@ -19,155 +17,115 @@ namespace scc::test {
 class ParserTests : public ::testing::Test {};
 
 TEST_F(ParserTests, ParseEmptyFunction) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main();");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
-    EXPECT_EQ(fn->name(), "main");
+    EXPECT_EQ(fn->get_name(), "main");
     EXPECT_EQ(fn->get_type().to_string(), "int ()");
     EXPECT_FALSE(fn->has_params());
     EXPECT_FALSE(fn->has_body());
 }
 
 TEST_F(ParserTests, ParseExternFunction) {
-    TranslationUnit unit {};
-
     Parser parser("test", "extern int main();");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->storage_class(), StorageClass::Extern);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
-    EXPECT_EQ(fn->name(), "main");
+    EXPECT_EQ(fn->get_storage_class(), StorageClass::Extern);
+    EXPECT_EQ(fn->get_name(), "main");
     EXPECT_EQ(fn->get_type().to_string(), "int ()"); 
     EXPECT_FALSE(fn->has_params());
     EXPECT_FALSE(fn->has_body());
 }
 
 TEST_F(ParserTests, ParseStaticFunction) {
-    TranslationUnit unit {};
-
     Parser parser("test", "static int main();");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->storage_class(), StorageClass::Static);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
-    EXPECT_EQ(fn->name(), "main");
+    EXPECT_EQ(fn->get_storage_class(), StorageClass::Static);
+    EXPECT_EQ(fn->get_name(), "main");
     EXPECT_EQ(fn->get_type().to_string(), "int ()");
     EXPECT_FALSE(fn->has_params());
     EXPECT_FALSE(fn->has_body());
 }
 
 TEST_F(ParserTests, ParseUninitializedGlobal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int x;");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto var = dynamic_cast<const VariableDecl*>(decl);
+    auto var = dynamic_cast<const VariableDecl*>(unit->get_decl("x"));
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int");
-    EXPECT_FALSE(var->has_initializer());
+    EXPECT_FALSE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseExternGlobal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "extern int x;");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->storage_class(), StorageClass::Extern);
-
-    auto var = dynamic_cast<const VariableDecl*>(decl);
+    auto var = dynamic_cast<const VariableDecl*>(unit->get_decl("x"));
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_storage_class(), StorageClass::Extern);
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int"); 
-    EXPECT_FALSE(var->has_initializer());
+    EXPECT_FALSE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseStaticGlobal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "static int x;");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->storage_class(), StorageClass::Static);
-
-    auto var = dynamic_cast<const VariableDecl*>(decl);
+    auto var = dynamic_cast<const VariableDecl*>(unit->get_decl("x"));
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_storage_class(), StorageClass::Static);
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int"); 
-    EXPECT_FALSE(var->has_initializer());
+    EXPECT_FALSE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseAutoGlobal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "auto x = 5;");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->storage_class(), StorageClass::Auto);
-
-    auto var = dynamic_cast<const VariableDecl*>(decl);
+    auto var = dynamic_cast<const VariableDecl*>(unit->get_decl("x"));
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_storage_class(), StorageClass::Auto);
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int"); 
-    EXPECT_TRUE(var->has_initializer());
+    EXPECT_TRUE(var->has_init());
 
-    auto init = dynamic_cast<const IntegerLiteral*>(var->get_initializer());
+    auto init = dynamic_cast<const IntegerLiteral*>(var->get_init());
     EXPECT_NE(init, nullptr);
     EXPECT_EQ(init->get_value(), 5);
 }
 
 TEST_F(ParserTests, ParseUninitializedLocal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { int x; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -180,23 +138,18 @@ TEST_F(ParserTests, ParseUninitializedLocal) {
 
     auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int");
-    EXPECT_FALSE(var->has_initializer());
+    EXPECT_FALSE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseStaticLocal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { static int x; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -209,24 +162,19 @@ TEST_F(ParserTests, ParseStaticLocal) {
 
     auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->storage_class(), StorageClass::Static);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_storage_class(), StorageClass::Static);
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int");
-    EXPECT_FALSE(var->has_initializer());
+    EXPECT_FALSE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseAutoLocal) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { auto x = 12; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -239,24 +187,19 @@ TEST_F(ParserTests, ParseAutoLocal) {
 
     auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->storage_class(), StorageClass::Auto);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_storage_class(), StorageClass::Auto);
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "int");
-    EXPECT_TRUE(var->has_initializer());
+    EXPECT_TRUE(var->has_init());
 }
 
 TEST_F(ParserTests, ParseCastBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { float x = (float) 3.14; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -269,30 +212,25 @@ TEST_F(ParserTests, ParseCastBasic) {
 
     auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
+    EXPECT_EQ(var->get_name(), "x");
     EXPECT_EQ(var->get_type().to_string(), "float");
-    EXPECT_TRUE(var->has_initializer());
+    EXPECT_TRUE(var->has_init());
 
-    auto init = dynamic_cast<const CastExpr*>(var->get_initializer());
+    auto init = dynamic_cast<const CastExpr*>(var->get_init());
     EXPECT_NE(init, nullptr);
     EXPECT_EQ(init->get_type().to_string(), "float");
 }
 
 TEST_F(ParserTests, ParseCallNamed) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(); int main() { return foo(); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 2);
+    EXPECT_EQ(unit->num_decls(), 2);
 
-    auto foo_decl = unit.get_decl("foo");
+    auto foo_decl = unit->get_decl("foo");
     EXPECT_NE(foo_decl, nullptr);
 
-    auto main_decl = unit.get_decl("main");
-    EXPECT_NE(main_decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(main_decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -315,17 +253,15 @@ TEST_F(ParserTests, ParseCallNamed) {
 }
 
 TEST_F(ParserTests, ParseCallNamedArgs) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(int x); int main() { return foo(1); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 2);
+    EXPECT_EQ(unit->num_decls(), 2);
 
-    auto foo_decl = unit.get_decl("foo");
+    auto foo_decl = unit->get_decl("foo");
     EXPECT_NE(foo_decl, nullptr);
 
-    auto main_decl = unit.get_decl("main");
+    auto main_decl = unit->get_decl("main");
     EXPECT_NE(main_decl, nullptr);
 
     auto fn = dynamic_cast<const FunctionDecl*>(main_decl);
@@ -356,17 +292,12 @@ TEST_F(ParserTests, ParseCallNamedArgs) {
 }
 
 TEST_F(ParserTests, ParseParenBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { return (1); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -388,17 +319,12 @@ TEST_F(ParserTests, ParseParenBasic) {
 }
 
 TEST_F(ParserTests, ParseParenReference) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { int x = 5; return (x); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
     
@@ -411,8 +337,8 @@ TEST_F(ParserTests, ParseParenReference) {
     
     auto var = dynamic_cast<const VariableDecl*>(dstmt->get_decl());
     EXPECT_NE(var, nullptr);
-    EXPECT_EQ(var->name(), "x");
-    EXPECT_TRUE(var->has_initializer());
+    EXPECT_EQ(var->get_name(), "x");
+    EXPECT_TRUE(var->has_init());
 
     auto ret = dynamic_cast<const ReturnStmt*>(compound->get_stmt(1));
     EXPECT_NE(ret, nullptr);
@@ -429,19 +355,15 @@ TEST_F(ParserTests, ParseParenReference) {
 }
 
 TEST_F(ParserTests, ParseFunctionRedefine) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(); int foo() { return 1; }");
-    EXPECT_NO_FATAL_FAILURE(parser.parse(unit));
+    TranslationUnitDecl* unit = nullptr;
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("foo"));
     EXPECT_NE(fn, nullptr);
-    EXPECT_EQ(fn->name(), "foo");
+    EXPECT_EQ(fn->get_name(), "foo");
     EXPECT_TRUE(fn->has_body());
 
     auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
@@ -450,39 +372,31 @@ TEST_F(ParserTests, ParseFunctionRedefine) {
 }
 
 TEST_F(ParserTests, ParseFunctionRedefineInvalid) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(); int foo(int x) { return 1; }");
-    ASSERT_DEATH(parser.parse(unit), "");
+    ASSERT_DEATH(TranslationUnitDecl* unit = parser.parse();, "");
 }
 
 TEST_F(ParserTests, ParseFunctionDoubleDefinition) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo() { return 0; } int foo() { return 1; }");
-    ASSERT_DEATH(parser.parse(unit), "");
+    ASSERT_DEATH(TranslationUnitDecl* unit = parser.parse();, "");
 }
 
 TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(int x); int foo(int x) { return 1; }");
-    EXPECT_NO_FATAL_FAILURE(parser.parse(unit));
+    TranslationUnitDecl* unit = nullptr;
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto decl = unit.get_decl(0);
-    EXPECT_NE(decl, nullptr);
-
-    auto fn = dynamic_cast<const FunctionDecl*>(decl);
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("foo"));
     EXPECT_NE(fn, nullptr);
-    EXPECT_EQ(fn->name(), "foo");
+    EXPECT_EQ(fn->get_name(), "foo");
     EXPECT_TRUE(fn->has_params());
     EXPECT_TRUE(fn->has_body());
 
     auto param = dynamic_cast<const ParameterDecl*>(fn->get_param(0));
     EXPECT_NE(param, nullptr);
-    EXPECT_EQ(param->name(), "x");
+    EXPECT_EQ(param->get_name(), "x");
 
     auto body = dynamic_cast<const CompoundStmt*>(fn->get_body());
     EXPECT_NE(body, nullptr);
@@ -490,40 +404,34 @@ TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
 }
 
 TEST_F(ParserTests, ParseArrayTypeVariable) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int x[5];");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto var = dynamic_cast<const VariableDecl*>(unit.get_scope()->get("x"));
+    auto var = dynamic_cast<const VariableDecl*>(unit->get_decl("x"));
     EXPECT_NE(var, nullptr);
     EXPECT_EQ(var->get_type().to_string(), "int[5]");
 }
 
 TEST_F(ParserTests, ParseArrayTypeParameter) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int foo(int x[5]);");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("foo"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("foo"));
     EXPECT_NE(fn, nullptr);
     EXPECT_EQ(fn->get_type().to_string(), "int (int[5])");
 }
 
 TEST_F(ParserTests, ParseWhileLoop) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { while (1) continue; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -544,14 +452,12 @@ TEST_F(ParserTests, ParseWhileLoop) {
 }
 
 TEST_F(ParserTests, ParseWhileLoopEmpty) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { while (1); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -565,14 +471,12 @@ TEST_F(ParserTests, ParseWhileLoopEmpty) {
 }
 
 TEST_F(ParserTests, ParseForLoop) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (int i = 0; i < 5; ++i) break; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -592,7 +496,7 @@ TEST_F(ParserTests, ParseForLoop) {
 
     auto iter = dynamic_cast<const VariableDecl*>(init->get_decl());
     EXPECT_NE(iter, nullptr);
-    EXPECT_EQ(iter->name(), "i");
+    EXPECT_EQ(iter->get_name(), "i");
 
     auto cond = dynamic_cast<const BinaryExpr*>(loop->get_cond());
     EXPECT_NE(cond, nullptr);
@@ -608,14 +512,12 @@ TEST_F(ParserTests, ParseForLoop) {
 }
 
 TEST_F(ParserTests, ParseForLoopEmpty) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (;;); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -632,14 +534,12 @@ TEST_F(ParserTests, ParseForLoopEmpty) {
 }
 
 TEST_F(ParserTests, ParseForLoopNoInit) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (;5;1) {} }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -656,14 +556,12 @@ TEST_F(ParserTests, ParseForLoopNoInit) {
 }
 
 TEST_F(ParserTests, ParseForLoopNoCond) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (int i = 0;;++i) {} }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -680,14 +578,12 @@ TEST_F(ParserTests, ParseForLoopNoCond) {
 }
 
 TEST_F(ParserTests, ParseForLoopNoStep) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (int i = 0; i < 5;) {} }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -704,14 +600,12 @@ TEST_F(ParserTests, ParseForLoopNoStep) {
 }
 
 TEST_F(ParserTests, ParseForLoopNoBody) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { for (int i = 0; i < 5; ++i); }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -728,14 +622,12 @@ TEST_F(ParserTests, ParseForLoopNoBody) {
 }
 
 TEST_F(ParserTests, ParseSubscriptBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { 1[5]; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -759,14 +651,12 @@ TEST_F(ParserTests, ParseSubscriptBasic) {
 }
 
 TEST_F(ParserTests, ParseTernaryBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { return 5 ? 0 : 1; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -795,14 +685,12 @@ TEST_F(ParserTests, ParseTernaryBasic) {
 }
 
 TEST_F(ParserTests, ParseSwitchBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; } }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -829,14 +717,12 @@ TEST_F(ParserTests, ParseSwitchBasic) {
 }
 
 TEST_F(ParserTests, ParseSwitchDefault) {
-    TranslationUnit unit {};
-
     Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; default: return 2; } }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 
@@ -866,17 +752,15 @@ TEST_F(ParserTests, ParseSwitchDefault) {
 }
 
 TEST_F(ParserTests, ParseTypedefDecl) {
-    TranslationUnit unit {};
-
     Parser parser("test", "typedef unsigned long long uint64_t;");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 1);
 
-    auto td = dynamic_cast<const TypedefDecl*>(unit.get_scope()->get("uint64_t"));
+    auto td = dynamic_cast<const TypedefDecl*>(unit->get_decl("uint64_t"));
     EXPECT_NE(td, nullptr);
-    EXPECT_EQ(td->name(), "uint64_t");
-    EXPECT_EQ(td->get_type().to_string(), "uint64_t");
+    EXPECT_EQ(td->get_name(), "uint64_t");
+    EXPECT_EQ(td->get_type()->to_string(), "uint64_t");
 
     const QualType& ty = td->get_type();
     
@@ -888,157 +772,132 @@ TEST_F(ParserTests, ParseTypedefDecl) {
 }
 
 TEST_F(ParserTests, ParseTypedefDeclRef) {
-    TranslationUnit unit {};
-
     Parser parser("test", "typedef unsigned long long uint64_t; const uint64_t main();");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 2);
+    EXPECT_EQ(unit->num_decls(), 2);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_EQ(fn->get_type().to_string(), "const uint64_t ()");
 }
 
 TEST_F(ParserTests, ParseStructDecl) {
-    TranslationUnit unit {};
-
     Parser parser("test", "struct Box { long long x; const int y; };");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 0);
+    EXPECT_EQ(unit->num_tags(), 1);
 
-    auto decl = dynamic_cast<const RecordDecl*>(unit.get_scope()->get("Box"));
+    auto decl = dynamic_cast<const RecordDecl*>(unit->get_tag("Box"));
     EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->name(), "Box");
+    EXPECT_EQ(decl->get_name(), "Box");
     EXPECT_EQ(decl->num_decls(), 2);
 
-    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_decl(0));
+    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_field(0));
     EXPECT_NE(f1, nullptr);
-    EXPECT_EQ(f1->name(), "x");
+    EXPECT_EQ(f1->get_name(), "x");
     EXPECT_EQ(f1->get_type().to_string(), "long long");
 
-    auto f2 = dynamic_cast<const FieldDecl*>(decl->get_decl(1));
+    auto f2 = dynamic_cast<const FieldDecl*>(decl->get_field(1));
     EXPECT_NE(f2, nullptr);
-    EXPECT_EQ(f2->name(), "y");
+    EXPECT_EQ(f2->get_name(), "y");
     EXPECT_EQ(f2->get_type().to_string(), "const int");
 }
 
-TEST_F(ParserTests, ParseStructPtrComposition) {
-    TranslationUnit unit {};
-
-    Parser parser("test", "struct A { struct B* b; };");
-    parser.parse(unit);
-
-    EXPECT_EQ(unit.num_decls(), 1);
-
-    auto decl = dynamic_cast<const RecordDecl*>(unit.get_scope()->get("A"));
-    EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->num_decls(), 1);
-
-    auto f1 = dynamic_cast<const FieldDecl*>(decl->get_decl(0));
-    EXPECT_NE(f1, nullptr);
-    EXPECT_EQ(f1->name(), "b");
-    EXPECT_EQ(f1->get_type().to_string(), "struct B*");
-}
-
 TEST_F(ParserTests, ParseEnumDecl) {
-    TranslationUnit unit {};
-
     Parser parser("test", "enum Colors { Orange, Yellow = 5, Red, Blue = -12, Green };");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 0);
+    EXPECT_EQ(unit->num_tags(), 1);
 
-    auto decl = dynamic_cast<const EnumDecl*>(unit.get_scope()->get("Colors"));
+    auto decl = dynamic_cast<const EnumDecl*>(unit->get_tag("Colors"));
     EXPECT_NE(decl, nullptr);
-    EXPECT_EQ(decl->name(), "Colors");
+    EXPECT_EQ(decl->get_name(), "Colors");
     EXPECT_EQ(decl->num_variants(), 5);
 
-    auto v1 = dynamic_cast<const VariantDecl*>(decl->get_variant(0));
+    auto v1 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(0));
     EXPECT_NE(v1, nullptr);
-    EXPECT_EQ(v1->name(), "Orange");
-    EXPECT_EQ(v1->get_type().to_string(), "Colors");
+    EXPECT_EQ(v1->get_name(), "Orange");
+    EXPECT_EQ(v1->get_type().to_string(), "enum Colors");
     EXPECT_EQ(v1->get_value(), 0);
 
-    auto v2 = dynamic_cast<const VariantDecl*>(decl->get_variant(1));
+    auto v2 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(1));
     EXPECT_NE(v2, nullptr);
-    EXPECT_EQ(v2->name(), "Yellow");
-    EXPECT_EQ(v2->get_type().to_string(), "Colors");
+    EXPECT_EQ(v2->get_name(), "Yellow");
+    EXPECT_EQ(v2->get_type().to_string(), "enum Colors");
     EXPECT_EQ(v2->get_value(), 5);
 
-    auto v3 = dynamic_cast<const VariantDecl*>(decl->get_variant(2));
+    auto v3 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(2));
     EXPECT_NE(v3, nullptr);
-    EXPECT_EQ(v3->name(), "Red");
-    EXPECT_EQ(v3->get_type().to_string(), "Colors");
+    EXPECT_EQ(v3->get_name(), "Red");
+    EXPECT_EQ(v3->get_type().to_string(), "enum Colors");
     EXPECT_EQ(v3->get_value(), 6);
 
-    auto v4 = dynamic_cast<const VariantDecl*>(decl->get_variant(3));
+    auto v4 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(3));
     EXPECT_NE(v4, nullptr);
-    EXPECT_EQ(v4->name(), "Blue");
-    EXPECT_EQ(v4->get_type().to_string(), "Colors");
+    EXPECT_EQ(v4->get_name(), "Blue");
+    EXPECT_EQ(v4->get_type().to_string(), "enum Colors");
     EXPECT_EQ(v4->get_value(), -12);
 
-    auto v5 = dynamic_cast<const VariantDecl*>(decl->get_variant(4));
+    auto v5 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(4));
     EXPECT_NE(v5, nullptr);
-    EXPECT_EQ(v5->name(), "Green");
-    EXPECT_EQ(v5->get_type().to_string(), "Colors");
+    EXPECT_EQ(v5->get_name(), "Green");
+    EXPECT_EQ(v5->get_type().to_string(), "enum Colors");
     EXPECT_EQ(v5->get_value(), -11);
 }
 
 TEST_F(ParserTests, ParseUnnamedEnumDecl) {
-    TranslationUnit unit {};
-
     Parser parser("test", "enum { Orange, Yellow = 5, Red, Blue = -12, Green };");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 1);
+    EXPECT_EQ(unit->num_decls(), 0);
+    EXPECT_EQ(unit->num_tags(), 1);
 
-    auto decl = dynamic_cast<const EnumDecl*>(unit.get_decl(0));
+    auto decl = dynamic_cast<const EnumDecl*>(unit->get_tags().front());
     EXPECT_NE(decl, nullptr);
     EXPECT_EQ(decl->num_variants(), 5);
 
-    auto v1 = dynamic_cast<const VariantDecl*>(decl->get_variant(0));
+    auto v1 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(0));
     EXPECT_NE(v1, nullptr);
-    EXPECT_EQ(v1->name(), "Orange");
+    EXPECT_EQ(v1->get_name(), "Orange");
     EXPECT_EQ(v1->get_type().to_string(), "int");
     EXPECT_EQ(v1->get_value(), 0);
 
-    auto v2 = dynamic_cast<const VariantDecl*>(decl->get_variant(1));
+    auto v2 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(1));
     EXPECT_NE(v2, nullptr);
-    EXPECT_EQ(v2->name(), "Yellow");
+    EXPECT_EQ(v2->get_name(), "Yellow");
     EXPECT_EQ(v2->get_type().to_string(), "int");
     EXPECT_EQ(v2->get_value(), 5);
 
-    auto v3 = dynamic_cast<const VariantDecl*>(decl->get_variant(2));
+    auto v3 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(2));
     EXPECT_NE(v3, nullptr);
-    EXPECT_EQ(v3->name(), "Red");
+    EXPECT_EQ(v3->get_name(), "Red");
     EXPECT_EQ(v3->get_type().to_string(), "int");
     EXPECT_EQ(v3->get_value(), 6);
 
-    auto v4 = dynamic_cast<const VariantDecl*>(decl->get_variant(3));
+    auto v4 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(3));
     EXPECT_NE(v4, nullptr);
-    EXPECT_EQ(v4->name(), "Blue");
+    EXPECT_EQ(v4->get_name(), "Blue");
     EXPECT_EQ(v4->get_type().to_string(), "int");
     EXPECT_EQ(v4->get_value(), -12);
 
-    auto v5 = dynamic_cast<const VariantDecl*>(decl->get_variant(4));
+    auto v5 = dynamic_cast<const EnumVariantDecl*>(decl->get_variant(4));
     EXPECT_NE(v5, nullptr);
-    EXPECT_EQ(v5->name(), "Green");
+    EXPECT_EQ(v5->get_name(), "Green");
     EXPECT_EQ(v5->get_type().to_string(), "int");
     EXPECT_EQ(v5->get_value(), -11);
 }
 
 /*
 TEST_F(ParserTests, ParseMemberBasic) {
-    TranslationUnit unit {};
-
     Parser parser("test", "struct A { int a; }; int main() { struct A x; x.a; }");
-    parser.parse(unit);
+    TranslationUnitDecl* unit = parser.parse();
 
-    EXPECT_EQ(unit.num_decls(), 2);
+    EXPECT_EQ(unit->num_decls(), 2);
 
-    auto fn = dynamic_cast<const FunctionDecl*>(unit.get_scope()->get("main"));
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
     EXPECT_NE(fn, nullptr);
     EXPECT_TRUE(fn->has_body());
 

@@ -13,7 +13,7 @@
 
 #include "ast/Decl.hpp"
 #include "ast/QualType.hpp"
-#include "core/Span.hpp"
+#include "core/SourceSpan.hpp"
 
 #include <cassert>
 #include <vector>
@@ -50,13 +50,13 @@ protected:
     const Kind m_kind;
 
     /// The span of source code that this expression covers.
-    Span m_span;
+    SourceSpan m_span;
 
     /// The type of this expression.
     QualType m_type;
 
 public:
-    explicit Expr(Kind kind, const Span& span, const QualType& type)
+    explicit Expr(Kind kind, const SourceSpan& span, const QualType& type)
         : m_kind(kind), m_span(span), m_type(type) {}
 
     Expr(const Expr&) = delete;
@@ -67,9 +67,17 @@ public:
     /// Returns the kind of expression this is.
     Kind kind() const { return m_kind; }
 
-    /// Returns the span of source code this expression covers.
-    const Span& get_span() const { return m_span; }
-    Span& get_span() { return m_span; }
+    /// Returns the span of source code that this expression covers.
+    const SourceSpan& get_span() const { return m_span; }
+    SourceSpan& get_span() { return m_span; }
+    
+    /// Returns the location in source code that this expression starts at.
+    const SourceLocation& get_starting_loc() const { return m_span.start; }
+    SourceLocation& get_starting_loc() { return m_span.start; }
+
+    /// Returns the location in source code that this expression ends at.
+    const SourceLocation& get_ending_loc() const { return m_span.end; }
+    SourceLocation& get_ending_loc() { return m_span.end; }
 
     /// Returns the type of this expression.
     const QualType& get_type() const { return m_type; }
@@ -85,7 +93,7 @@ class IntegerLiteral final : public Expr {
     int64_t m_value;
 
 public:
-    IntegerLiteral(const Span& span, const QualType& type, int64_t value)
+    IntegerLiteral(const SourceSpan& span, const QualType& type, int64_t value)
         : Expr(Kind::IntegerLiteral, span, type), m_value(value) {}
 
     IntegerLiteral(const IntegerLiteral&) = delete;
@@ -103,7 +111,7 @@ class FPLiteral final : public Expr {
     double m_value;
 
 public:
-    FPLiteral(const Span& span, const QualType& type, double value)
+    FPLiteral(const SourceSpan& span, const QualType& type, double value)
         : Expr(Kind::FPLiteral, span, type), m_value(value) {}
 
     FPLiteral(const FPLiteral&) = delete;
@@ -121,7 +129,7 @@ class CharLiteral final : public Expr {
     char m_value;
 
 public:
-    CharLiteral(const Span& span, const QualType& type, char value)
+    CharLiteral(const SourceSpan& span, const QualType& type, char value)
         : Expr(Kind::CharLiteral, span, type), m_value(value) {}
 
     CharLiteral(const CharLiteral&) = delete;
@@ -139,7 +147,7 @@ class StringLiteral final : public Expr {
     string m_value;
 
 public:
-    StringLiteral(const Span& span, const QualType& type, const string& value)
+    StringLiteral(const SourceSpan& span, const QualType& type, const string& value)
         : Expr(Kind::StringLiteral, span, type), m_value(value) {}
 
     StringLiteral(const StringLiteral&) = delete;
@@ -202,7 +210,7 @@ private:
     Expr* m_right;
 
 public:
-    BinaryExpr(const Span& span, const QualType& type, Op op, Expr* left, 
+    BinaryExpr(const SourceSpan& span, const QualType& type, Op op, Expr* left, 
                Expr* right)
         : Expr(Kind::Binary, span, type), m_operator(op), m_left(left), 
           m_right(right) {}
@@ -264,7 +272,7 @@ private:
     Expr* m_expr;
 
 public:
-    UnaryExpr(const Span& span, const QualType& type, Op op, bool postfix, 
+    UnaryExpr(const SourceSpan& span, const QualType& type, Op op, bool postfix, 
               Expr* expr)
         : Expr(Kind::Unary, span, type), m_operator(op), m_postfix(postfix),
           m_expr(expr) {}
@@ -296,7 +304,7 @@ class ParenExpr final : public Expr {
     Expr* m_expr;
 
 public:
-    ParenExpr(const Span& span, const QualType& type, Expr* expr)
+    ParenExpr(const SourceSpan& span, const QualType& type, Expr* expr)
         : Expr(Kind::Paren, span, type), m_expr(expr) {}
 
     ParenExpr(const ParenExpr&) = delete;
@@ -317,7 +325,7 @@ class RefExpr final : public Expr {
     const ValueDecl* m_decl;
 
 public:
-    RefExpr(const Span& span, const QualType& type, const ValueDecl* decl)
+    RefExpr(const SourceSpan& span, const QualType& type, const ValueDecl* decl)
         : Expr(Kind::Ref, span, type), m_decl(decl) {}
 
     RefExpr(const RefExpr&) = delete;
@@ -347,7 +355,7 @@ class CallExpr final : public Expr {
     vector<Expr*> m_args;
 
 public:
-    CallExpr(const Span& span, const QualType& type, Expr* callee, 
+    CallExpr(const SourceSpan& span, const QualType& type, Expr* callee, 
              const vector<Expr*>& args)
         : Expr(Kind::Call, span, type), m_callee(callee), m_args(args) {}
 
@@ -391,7 +399,7 @@ class CastExpr final : public Expr {
     Expr* m_expr;
 
 public:
-    CastExpr(const Span& span, const QualType& type, Expr* expr)
+    CastExpr(const SourceSpan& span, const QualType& type, Expr* expr)
         : Expr(Kind::Cast, span, type), m_expr(expr) {}
 
     CastExpr(const CastExpr&) = delete;
@@ -412,7 +420,7 @@ class SizeofExpr final : public Expr {
     QualType m_target;
 
 public:
-    SizeofExpr(const Span& span, const QualType& type, const QualType& target)
+    SizeofExpr(const SourceSpan& span, const QualType& type, const QualType& target)
         : Expr(Kind::Sizeof, span, type), m_target(target) {}
 
     SizeofExpr(const SizeofExpr&) = delete;
@@ -435,7 +443,7 @@ class SubscriptExpr final : public Expr {
     Expr* m_index;
 
 public:
-    SubscriptExpr(const Span& span, const QualType& type, Expr* base, 
+    SubscriptExpr(const SourceSpan& span, const QualType& type, Expr* base, 
                   Expr* index)
         : Expr(Kind::Subscript, span, type), m_base(base), m_index(index) {}
 
@@ -468,7 +476,7 @@ class MemberExpr final : public Expr {
     bool m_arrow;
 
 public:
-    MemberExpr(const Span& span, const QualType& type, Expr* base,
+    MemberExpr(const SourceSpan& span, const QualType& type, Expr* base,
                const ValueDecl* member, bool arrow)
         : Expr(Kind::Member, span, type), m_base(std::move(base)),
           m_member(member), m_arrow(arrow) {}
@@ -503,8 +511,8 @@ class TernaryExpr final : public Expr {
     Expr* m_fval;
 
 public:
-    TernaryExpr(const Span& span, const QualType& type, Expr* cond, Expr* tval, 
-                Expr* fval)
+    TernaryExpr(const SourceSpan& span, const QualType& type, Expr* cond, 
+                Expr* tval, Expr* fval)
         : Expr(Kind::Ternary, span, type), m_cond(cond), m_tval(tval), 
           m_fval(fval) {}
 

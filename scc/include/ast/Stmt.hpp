@@ -11,8 +11,7 @@
 //
 
 #include "ast/Expr.hpp"
-#include "ast/Scope.hpp"
-#include "core/Span.hpp"
+#include "core/SourceSpan.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -46,22 +45,27 @@ protected:
     const Kind m_kind;
 
     /// The span of source code that this statement covers.
-    Span m_span;
+    SourceSpan m_span;
 
 public:
-    Stmt(Kind kind, const Span& span) : m_kind(kind), m_span(span) {}
-
-    Stmt(const Stmt&) = delete;
-    Stmt& operator = (const Stmt&) = delete;
+    Stmt(Kind kind, const SourceSpan& span) : m_kind(kind), m_span(span) {}
 
     virtual ~Stmt() = default;
 
     /// Returns the kind of statement this is.
     Kind get_kind() const { return m_kind; }
 
-    /// Returns the span of source code this statement covers.
-    const Span& get_span() const { return m_span; }
-    Span& get_span() { return m_span; }
+    /// Returns the span of source code that this statement covers.
+    const SourceSpan& get_span() const { return m_span; }
+    SourceSpan& get_span() { return m_span; }
+    
+    /// Returns the location in source code that this statement starts at.
+    const SourceLocation& get_starting_loc() const { return m_span.start; }
+    SourceLocation& get_starting_loc() { return m_span.start; }
+
+    /// Returns the location in source code that this statement ends at.
+    const SourceLocation& get_ending_loc() const { return m_span.end; }
+    SourceLocation& get_ending_loc() { return m_span.end; }
 
     /// Pretty-print this expression node to the output stream \p os.
     virtual void print(ostream& os) const = 0;
@@ -73,7 +77,7 @@ class CompoundStmt final : public Stmt {
     vector<Stmt*> m_stmts;
 
 public:
-    CompoundStmt(const Span& span, const vector<Stmt*>& stmts)
+    CompoundStmt(const SourceSpan& span, const vector<Stmt*>& stmts)
         : Stmt(Kind::Compound, span), m_stmts(stmts) {}
 
     CompoundStmt(const CompoundStmt&) = delete;
@@ -90,6 +94,9 @@ public:
     /// Returns the statements in this compound.
     const vector<Stmt*>& get_stmts() const { return m_stmts; }
     vector<Stmt*>& get_stmts() { return m_stmts; }
+
+    /// Set the statement list of this compound to \p stmts.
+    void set_stmts(const vector<Stmt*>& stmts) { m_stmts = stmts; }
 
     /// Returns the statement at position \p i of this compound statement.
     const Stmt* get_stmt(uint32_t i) const {
@@ -111,7 +118,7 @@ class DeclStmt final : public Stmt {
     vector<const Decl*> m_decls;
 
 public:
-    DeclStmt(const Span& span, const vector<const Decl*>& decls)
+    DeclStmt(const SourceSpan& span, const vector<const Decl*>& decls)
         : Stmt(Kind::Declaration, span), m_decls(decls) {}
         
     DeclStmt(const DeclStmt&) = delete;
@@ -139,7 +146,7 @@ class ExprStmt final : public Stmt {
     Expr* m_expr;
   
 public:
-    ExprStmt(const Span& span, Expr* expr)
+    ExprStmt(const SourceSpan& span, Expr* expr)
         : Stmt(Kind::Expression, span), m_expr(expr) {}
 
     ExprStmt(const ExprStmt&) = delete;
@@ -166,7 +173,7 @@ class IfStmt final : public Stmt {
     Stmt* m_else;
 
 public:
-    IfStmt(const Span& span, Expr* cond, Stmt* then, Stmt* els)
+    IfStmt(const SourceSpan& span, Expr* cond, Stmt* then, Stmt* els)
         : Stmt(Stmt::If, span), m_cond(cond), m_then(then), m_else(els) {}
 
     IfStmt(const IfStmt&) = delete;
@@ -199,7 +206,7 @@ class ReturnStmt final : public Stmt {
     Expr* m_expr;
 
 public:
-    ReturnStmt(const Span& span, Expr* expr)
+    ReturnStmt(const SourceSpan& span, Expr* expr)
         : Stmt(Kind::Return, span), m_expr(expr) {}
 
     ReturnStmt(const ReturnStmt&) = delete;
@@ -221,7 +228,7 @@ public:
 /// Represents a 'break' statement.
 class BreakStmt final : public Stmt {
 public:
-    BreakStmt(const Span& span) : Stmt(Kind::Break, span) {}
+    BreakStmt(const SourceSpan& span) : Stmt(Kind::Break, span) {}
 
     BreakStmt(const BreakStmt&) = delete;
     BreakStmt& operator = (const BreakStmt&) = delete;
@@ -232,7 +239,7 @@ public:
 /// Represents a 'continue' statement.
 class ContinueStmt final : public Stmt {
 public:
-    ContinueStmt(const Span& span) : Stmt(Kind::Continue, span) {}
+    ContinueStmt(const SourceSpan& span) : Stmt(Kind::Continue, span) {}
 
     ContinueStmt(const ContinueStmt&) = delete;
     ContinueStmt& operator = (const ContinueStmt&) = delete;
@@ -249,7 +256,7 @@ class WhileStmt final : public Stmt {
     Stmt* m_body;
 
 public:
-    WhileStmt(const Span& span, Expr* cond, Stmt* body)
+    WhileStmt(const SourceSpan& span, Expr* cond, Stmt* body)
         : Stmt(Kind::While, span), m_cond(cond), m_body(body) {}
 
     WhileStmt(const WhileStmt&) = delete;
@@ -287,7 +294,8 @@ class ForStmt final : public Stmt {
     Stmt* m_body;
 
 public:
-    ForStmt(const Span& span, Stmt* init, Expr* cond, Expr* step, Stmt* body)
+    ForStmt(const SourceSpan& span, Stmt* init, Expr* cond, Expr* step, 
+            Stmt* body)
         : Stmt(Kind::For, span), m_init(init), m_cond(cond), m_step(step), 
           m_body(body) {}
 
@@ -339,7 +347,7 @@ class CaseStmt final : public Stmt {
     Stmt* m_body;
 
 public:
-    CaseStmt(const Span& span, Expr* match, Stmt* body)
+    CaseStmt(const SourceSpan& span, Expr* match, Stmt* body)
         : Stmt(Kind::Case, span), m_match(match), m_body(body) {}
 
     CaseStmt(const CaseStmt&) = delete;
@@ -373,8 +381,8 @@ class SwitchStmt final : public Stmt {
     Stmt* m_default;
 
 public:
-    SwitchStmt(const Span& span, Expr* match, const vector<CaseStmt*>& cases, 
-               Stmt* def)
+    SwitchStmt(const SourceSpan& span, Expr* match, 
+               const vector<CaseStmt*>& cases, Stmt* def)
         : Stmt(Kind::Switch, span), m_match(match), m_cases(cases), 
           m_default(def) {}
 
