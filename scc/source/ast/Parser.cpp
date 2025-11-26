@@ -601,10 +601,10 @@ Decl* Parser::parse_variable(
     }
 
     return new VariableDecl(
-        m_dctx, 
-        start, 
-        name, 
-        type, 
+        m_dctx,
+        start,
+        name,
+        type,
         storage, 
         !m_dctx->has_parent(),
         init);

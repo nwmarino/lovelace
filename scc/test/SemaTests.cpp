@@ -21,10 +21,14 @@ protected:
 
     void SetUp() override {
         Logger::init();
+        unit = nullptr;
     }
 
     void TearDown() override {
-        delete unit;
+        if (unit != nullptr) { 
+            delete unit;
+            unit = nullptr;
+        }
     }
 };
 

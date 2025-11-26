@@ -16,14 +16,23 @@ namespace scc::test {
 
 class ParseTypeTests : public ::testing::Test {
 protected:
+    TranslationUnitDecl* unit;
+
     void SetUp() override {
         Logger::init();
+        unit = nullptr;
+    }
+
+    void TearDown() override {
+        if (unit != nullptr) { 
+            delete unit;
+            unit = nullptr;
+        }
     }
 };
 
-TEST_F(ParseTypeTests, RedefinePreStructValid) {
+TEST_F(ParseTypeTests, Struct_Positive_LaterDefinitionWithBody) {
     Parser parser("test", "struct A; struct A { int a; };");
-    TranslationUnitDecl* unit = nullptr;
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);
@@ -40,9 +49,8 @@ TEST_F(ParseTypeTests, RedefinePreStructValid) {
     EXPECT_EQ(f1->get_type().to_string(), "int");
 }
 
-TEST_F(ParseTypeTests, RedefinePostStructValid) {
+TEST_F(ParseTypeTests, Struct_Positive_RedefinitionWithoutBody) {
     Parser parser("test", "struct A { int a; }; struct A; ");
-    TranslationUnitDecl* unit = nullptr;
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);
@@ -59,15 +67,13 @@ TEST_F(ParseTypeTests, RedefinePostStructValid) {
     EXPECT_EQ(f1->get_type().to_string(), "int");
 }
 
-TEST_F(ParseTypeTests, RedefineStructInvalid) {
+TEST_F(ParseTypeTests, Struct_Negative_Redefinition) {
     Parser parser("test", "struct A { int a; } struct A { int a; };");
-    TranslationUnitDecl* unit = nullptr;
-    ASSERT_DEATH(unit = parser.parse(), "");
+    EXPECT_DEATH(unit = parser.parse(), "");
 }
 
-TEST_F(ParseTypeTests, StructForwardDeclaration) {
+TEST_F(ParseTypeTests, Struct_Positive_ForwardDeclaration) {
     Parser parser("test", "struct A { struct B* b; };");
-    TranslationUnitDecl* unit = nullptr;
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);

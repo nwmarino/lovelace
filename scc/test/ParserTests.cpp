@@ -14,11 +14,26 @@
 
 namespace scc::test {
 
-class ParserTests : public ::testing::Test {};
+class ParserTests : public ::testing::Test {
+protected:
+    TranslationUnitDecl* unit;
+
+    void SetUp() override {
+        Logger::init();
+        unit = nullptr;
+    }
+
+    void TearDown() override {
+        if (unit != nullptr) { 
+            delete unit;
+            unit = nullptr;
+        }
+    }
+};
 
 TEST_F(ParserTests, ParseEmptyFunction) {
     Parser parser("test", "int main();");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -32,7 +47,7 @@ TEST_F(ParserTests, ParseEmptyFunction) {
 
 TEST_F(ParserTests, ParseExternFunction) {
     Parser parser("test", "extern int main();");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -47,7 +62,7 @@ TEST_F(ParserTests, ParseExternFunction) {
 
 TEST_F(ParserTests, ParseStaticFunction) {
     Parser parser("test", "static int main();");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -62,7 +77,7 @@ TEST_F(ParserTests, ParseStaticFunction) {
 
 TEST_F(ParserTests, ParseUninitializedGlobal) {
     Parser parser("test", "int x;");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -75,7 +90,7 @@ TEST_F(ParserTests, ParseUninitializedGlobal) {
 
 TEST_F(ParserTests, ParseExternGlobal) {
     Parser parser("test", "extern int x;");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -89,7 +104,7 @@ TEST_F(ParserTests, ParseExternGlobal) {
 
 TEST_F(ParserTests, ParseStaticGlobal) {
     Parser parser("test", "static int x;");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -103,7 +118,7 @@ TEST_F(ParserTests, ParseStaticGlobal) {
 
 TEST_F(ParserTests, ParseAutoGlobal) {
     Parser parser("test", "auto x = 5;");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -121,7 +136,7 @@ TEST_F(ParserTests, ParseAutoGlobal) {
 
 TEST_F(ParserTests, ParseUninitializedLocal) {
     Parser parser("test", "int main() { int x; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -145,7 +160,7 @@ TEST_F(ParserTests, ParseUninitializedLocal) {
 
 TEST_F(ParserTests, ParseStaticLocal) {
     Parser parser("test", "int main() { static int x; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -170,7 +185,7 @@ TEST_F(ParserTests, ParseStaticLocal) {
 
 TEST_F(ParserTests, ParseAutoLocal) {
     Parser parser("test", "int main() { auto x = 12; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -195,7 +210,7 @@ TEST_F(ParserTests, ParseAutoLocal) {
 
 TEST_F(ParserTests, ParseCastBasic) {
     Parser parser("test", "int main() { float x = (float) 3.14; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -223,7 +238,7 @@ TEST_F(ParserTests, ParseCastBasic) {
 
 TEST_F(ParserTests, ParseCallNamed) {
     Parser parser("test", "int foo(); int main() { return foo(); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 2);
 
@@ -254,7 +269,7 @@ TEST_F(ParserTests, ParseCallNamed) {
 
 TEST_F(ParserTests, ParseCallNamedArgs) {
     Parser parser("test", "int foo(int x); int main() { return foo(1); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 2);
 
@@ -293,7 +308,7 @@ TEST_F(ParserTests, ParseCallNamedArgs) {
 
 TEST_F(ParserTests, ParseParenBasic) {
     Parser parser("test", "int main() { return (1); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -320,7 +335,7 @@ TEST_F(ParserTests, ParseParenBasic) {
 
 TEST_F(ParserTests, ParseParenReference) {
     Parser parser("test", "int main() { int x = 5; return (x); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -373,12 +388,12 @@ TEST_F(ParserTests, ParseFunctionRedefine) {
 
 TEST_F(ParserTests, ParseFunctionRedefineInvalid) {
     Parser parser("test", "int foo(); int foo(int x) { return 1; }");
-    ASSERT_DEATH(TranslationUnitDecl* unit = parser.parse();, "");
+    ASSERT_DEATH(EXPECT_NO_FATAL_FAILURE(unit = parser.parse());, "");
 }
 
 TEST_F(ParserTests, ParseFunctionDoubleDefinition) {
     Parser parser("test", "int foo() { return 0; } int foo() { return 1; }");
-    ASSERT_DEATH(TranslationUnitDecl* unit = parser.parse();, "");
+    ASSERT_DEATH(EXPECT_NO_FATAL_FAILURE(unit = parser.parse());, "");
 }
 
 TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
@@ -405,7 +420,7 @@ TEST_F(ParserTests, ParseFunctionRedefineWithParams) {
 
 TEST_F(ParserTests, ParseArrayTypeVariable) {
     Parser parser("test", "int x[5];");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -416,7 +431,7 @@ TEST_F(ParserTests, ParseArrayTypeVariable) {
 
 TEST_F(ParserTests, ParseArrayTypeParameter) {
     Parser parser("test", "int foo(int x[5]);");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -427,7 +442,7 @@ TEST_F(ParserTests, ParseArrayTypeParameter) {
 
 TEST_F(ParserTests, ParseWhileLoop) {
     Parser parser("test", "int main() { while (1) continue; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -453,7 +468,7 @@ TEST_F(ParserTests, ParseWhileLoop) {
 
 TEST_F(ParserTests, ParseWhileLoopEmpty) {
     Parser parser("test", "int main() { while (1); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -472,7 +487,7 @@ TEST_F(ParserTests, ParseWhileLoopEmpty) {
 
 TEST_F(ParserTests, ParseForLoop) {
     Parser parser("test", "int main() { for (int i = 0; i < 5; ++i) break; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -513,7 +528,7 @@ TEST_F(ParserTests, ParseForLoop) {
 
 TEST_F(ParserTests, ParseForLoopEmpty) {
     Parser parser("test", "int main() { for (;;); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -535,7 +550,7 @@ TEST_F(ParserTests, ParseForLoopEmpty) {
 
 TEST_F(ParserTests, ParseForLoopNoInit) {
     Parser parser("test", "int main() { for (;5;1) {} }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -557,7 +572,7 @@ TEST_F(ParserTests, ParseForLoopNoInit) {
 
 TEST_F(ParserTests, ParseForLoopNoCond) {
     Parser parser("test", "int main() { for (int i = 0;;++i) {} }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -579,7 +594,7 @@ TEST_F(ParserTests, ParseForLoopNoCond) {
 
 TEST_F(ParserTests, ParseForLoopNoStep) {
     Parser parser("test", "int main() { for (int i = 0; i < 5;) {} }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -601,7 +616,7 @@ TEST_F(ParserTests, ParseForLoopNoStep) {
 
 TEST_F(ParserTests, ParseForLoopNoBody) {
     Parser parser("test", "int main() { for (int i = 0; i < 5; ++i); }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -623,7 +638,7 @@ TEST_F(ParserTests, ParseForLoopNoBody) {
 
 TEST_F(ParserTests, ParseSubscriptBasic) {
     Parser parser("test", "int main() { 1[5]; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -652,7 +667,7 @@ TEST_F(ParserTests, ParseSubscriptBasic) {
 
 TEST_F(ParserTests, ParseTernaryBasic) {
     Parser parser("test", "int main() { return 5 ? 0 : 1; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -686,7 +701,7 @@ TEST_F(ParserTests, ParseTernaryBasic) {
 
 TEST_F(ParserTests, ParseSwitchBasic) {
     Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; } }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -718,7 +733,7 @@ TEST_F(ParserTests, ParseSwitchBasic) {
 
 TEST_F(ParserTests, ParseSwitchDefault) {
     Parser parser("test", "int main() { switch (1) { case 0: return 0; case 1: return 1; default: return 2; } }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -753,7 +768,7 @@ TEST_F(ParserTests, ParseSwitchDefault) {
 
 TEST_F(ParserTests, ParseTypedefDecl) {
     Parser parser("test", "typedef unsigned long long uint64_t;");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
 
@@ -773,7 +788,7 @@ TEST_F(ParserTests, ParseTypedefDecl) {
 
 TEST_F(ParserTests, ParseTypedefDeclRef) {
     Parser parser("test", "typedef unsigned long long uint64_t; const uint64_t main();");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 2);
 
@@ -784,7 +799,7 @@ TEST_F(ParserTests, ParseTypedefDeclRef) {
 
 TEST_F(ParserTests, ParseStructDecl) {
     Parser parser("test", "struct Box { long long x; const int y; };");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);
     EXPECT_EQ(unit->num_tags(), 1);
@@ -807,7 +822,7 @@ TEST_F(ParserTests, ParseStructDecl) {
 
 TEST_F(ParserTests, ParseEnumDecl) {
     Parser parser("test", "enum Colors { Orange, Yellow = 5, Red, Blue = -12, Green };");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);
     EXPECT_EQ(unit->num_tags(), 1);
@@ -850,7 +865,7 @@ TEST_F(ParserTests, ParseEnumDecl) {
 
 TEST_F(ParserTests, ParseUnnamedEnumDecl) {
     Parser parser("test", "enum { Orange, Yellow = 5, Red, Blue = -12, Green };");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 0);
     EXPECT_EQ(unit->num_tags(), 1);
@@ -893,7 +908,7 @@ TEST_F(ParserTests, ParseUnnamedEnumDecl) {
 /*
 TEST_F(ParserTests, ParseMemberBasic) {
     Parser parser("test", "struct A { int a; }; int main() { struct A x; x.a; }");
-    TranslationUnitDecl* unit = parser.parse();
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 2);
 

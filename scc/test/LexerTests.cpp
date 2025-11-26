@@ -12,7 +12,7 @@ namespace scc::test {
 
 class LexerTests : public ::testing::Test {};
 
-TEST_F(LexerTests, LexIdentifier) {
+TEST_F(LexerTests, Positive_Identifier) {
     Lexer lexer("test", "test");
 
     const Token& t1 = lexer.lex();
@@ -23,7 +23,7 @@ TEST_F(LexerTests, LexIdentifier) {
     EXPECT_EQ(t2.kind, TokenKind::Eof);
 }
 
-TEST_F(LexerTests, LexIdentifierMany) {
+TEST_F(LexerTests, Positive_MultipleIdentifiers) {
     Lexer lexer("test", "one_ _two three_ _four");
 
     const Token& t1 = lexer.lex();
@@ -43,7 +43,7 @@ TEST_F(LexerTests, LexIdentifierMany) {
     EXPECT_EQ(t4.value, "_four");
 }
 
-TEST_F(LexerTests, LexIntegerLiteral) {
+TEST_F(LexerTests, Positive_IntegerLiteral) {
     Lexer lexer("test", "1 0u 1L 5ul");
 
     const Token& t1 = lexer.lex();
@@ -75,7 +75,7 @@ TEST_F(LexerTests, LexIntegerLiteral) {
     EXPECT_EQ(t7.value, "ul");
 }
 
-TEST_F(LexerTests, LexFloatLiteral) {
+TEST_F(LexerTests, Positive_FloatLiteral) {
     Lexer lexer("test", "1.0 1.f .1 3.14F");
 
     const Token& t1 = lexer.lex();
@@ -103,7 +103,7 @@ TEST_F(LexerTests, LexFloatLiteral) {
     EXPECT_EQ(t6.value, "F");
 }
 
-TEST_F(LexerTests, LexCharacterLiteral) {
+TEST_F(LexerTests, Positive_CharacterLiteral) {
     Lexer lexer("test", "'a' '0'");
 
     const Token& t1 = lexer.lex();
@@ -115,7 +115,7 @@ TEST_F(LexerTests, LexCharacterLiteral) {
     EXPECT_EQ(t2.value, "0");
 }
 
-TEST_F(LexerTests, LexCharacterLiteralEscapeSequences) {
+TEST_F(LexerTests, Positive_CharacterEscapeSequences) {
     Lexer lexer("test", "'\v' '\n' '\t' '\''");
 
     const Token& t1 = lexer.lex();
@@ -135,7 +135,7 @@ TEST_F(LexerTests, LexCharacterLiteralEscapeSequences) {
     EXPECT_EQ(t4.value, "'");
 }
 
-TEST_F(LexerTests, LexStringLiteral) {
+TEST_F(LexerTests, Positive_StringLiteral) {
     Lexer lexer("test", "\"hello, world!\"");
 
     const Token& t1 = lexer.lex();
@@ -143,7 +143,7 @@ TEST_F(LexerTests, LexStringLiteral) {
     EXPECT_EQ(t1.value, "hello, world!");
 }
 
-TEST_F(LexerTests, LexStringLiteralEscapeSequences) {
+TEST_F(LexerTests, Positive_StringEscapeSequences) {
     Lexer lexer("test", "\"hello,\tworld!\n\"");
 
     const Token& t1 = lexer.lex();
@@ -151,23 +151,24 @@ TEST_F(LexerTests, LexStringLiteralEscapeSequences) {
     EXPECT_EQ(t1.value, "hello,\tworld!\n");
 }
 
-TEST_F(LexerTests, LexIsolated) {
+TEST_F(LexerTests, Positive_IsolatedToken) {
     Lexer lexer("test", ".");
 
     const Token& t1 = lexer.lex();
     EXPECT_EQ(t1.kind, TokenKind::Dot);
 }
 
-TEST_F(LexerTests, LexCompound) {
+TEST_F(LexerTests, Positive_CompoundToken) {
     Lexer lexer("test", "++");
 
     const Token& t1 = lexer.lex();
     EXPECT_EQ(t1.kind, TokenKind::PlusPlus);
 }
 
-TEST_F(LexerTests, LexComplete1) {
+TEST_F(LexerTests, Complete) {
     Lexer lexer(
-        "test", "int main(int argc, char* argv[]) { return argc * 3; }");
+        "test", 
+        "int main(int argc, char* argv[]) { return argc * 3; }");
 
     const Token& t1 = lexer.lex();
     EXPECT_EQ(t1.kind, TokenKind::Identifier);
