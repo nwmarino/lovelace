@@ -10,8 +10,8 @@
 // This header file defines the statement nodes in the abstract syntax tree.
 //
 
-#include "ast/Expr.hpp"
-#include "core/SourceSpan.hpp"
+#include "scc/ast/Expr.hpp"
+#include "scc/core/SourceSpan.hpp"
 
 #include <cassert>
 #include <cstdint>

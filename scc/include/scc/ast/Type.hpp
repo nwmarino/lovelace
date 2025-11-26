@@ -17,7 +17,7 @@
 // hold onto valued instances of QualType.
 //
 
-#include "ast/QualType.hpp"
+#include "scc/ast/QualType.hpp"
 
 #include <cassert>
 #include <cstdint>

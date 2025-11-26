@@ -3,9 +3,9 @@
 // All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Expr.hpp"
-#include "ast/Stmt.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Expr.hpp"
+#include "scc/ast/Stmt.hpp"
 
 #include <cstdint>
 #include <ostream>

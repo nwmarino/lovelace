@@ -11,7 +11,7 @@
 // most components of the C frontend.
 //
 
-#include "SourceSpan.hpp"
+#include "scc/core/SourceSpan.hpp"
 
 #include <iostream>
 #include <ostream>

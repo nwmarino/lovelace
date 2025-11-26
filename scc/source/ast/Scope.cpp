@@ -3,8 +3,8 @@
 // All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Scope.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Scope.hpp"
 
 #include <cassert>
 

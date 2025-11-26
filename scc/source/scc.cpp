@@ -3,10 +3,10 @@
 //   All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Parser.hpp"
-#include "ast/Sema.hpp"
-#include "core/Logger.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Parser.hpp"
+#include "scc/ast/Sema.hpp"
+#include "scc/core/Logger.hpp"
 
 #include <cstdint>
 #include <string>

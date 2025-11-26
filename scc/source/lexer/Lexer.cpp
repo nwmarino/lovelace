@@ -3,12 +3,12 @@
 // All rights reserved.
 //
 
-#include "core/Logger.hpp"
-#include "core/Tools.hpp"
-#include "lexer/Token.hpp"
-#include <cctype>
-#include "lexer/Lexer.hpp"
+#include "scc/core/Logger.hpp"
+#include "scc/core/Tools.hpp"
+#include "scc/lexer/Token.hpp"
+#include "scc/lexer/Lexer.hpp"
 
+#include <cctype>
 using namespace scc;
 
 /// Returns true if \p c is an octal digit, i.e. a digit in [0, 7].

@@ -11,7 +11,7 @@
 // source code into tokens recognized by the parser.
 //
 
-#include "lexer/Token.hpp"
+#include "scc/lexer/Token.hpp"
 
 #include <cassert>
 #include <vector>

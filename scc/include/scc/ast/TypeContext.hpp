@@ -11,7 +11,7 @@
 // managing the types of a translation unit and its abstract syntax tree.
 //
 
-#include "ast/Type.hpp"
+#include "scc/ast/Type.hpp"
 
 #include <unordered_map>
 #include <vector>

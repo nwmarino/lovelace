@@ -3,15 +3,15 @@
 // All rights reserved.
 //
 
-#include "ast/Parser.hpp"
-#include "ast/Decl.hpp"
-#include "ast/Expr.hpp"
-#include "ast/Stmt.hpp"
-#include "ast/Type.hpp"
-#include "ast/TypeContext.hpp"
-#include "core/Logger.hpp"
-#include "core/SourceSpan.hpp"
-#include "lexer/Token.hpp"
+#include "scc/ast/Parser.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Expr.hpp"
+#include "scc/ast/Stmt.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/ast/TypeContext.hpp"
+#include "scc/core/Logger.hpp"
+#include "scc/core/SourceSpan.hpp"
+#include "scc/lexer/Token.hpp"
 
 #include <string>
 #include <unordered_set>

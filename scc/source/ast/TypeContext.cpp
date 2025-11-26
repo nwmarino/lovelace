@@ -3,8 +3,8 @@
 // All rights reserved.
 //
 
-#include "ast/Type.hpp"
-#include "ast/TypeContext.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/ast/TypeContext.hpp"
 
 using namespace scc;
 

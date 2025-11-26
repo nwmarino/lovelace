@@ -11,11 +11,11 @@
 // declarations; both top-level and nested.
 //
 
-#include "ast/QualType.hpp"
-#include "ast/Scope.hpp"
-#include "ast/Type.hpp"
-#include "ast/Visitor.hpp"
-#include "core/SourceSpan.hpp"
+#include "scc/ast/QualType.hpp"
+#include "scc/ast/Scope.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/ast/Visitor.hpp"
+#include "scc/core/SourceSpan.hpp"
 
 #include <cassert>
 #include <vector>

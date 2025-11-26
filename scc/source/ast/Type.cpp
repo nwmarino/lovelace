@@ -3,9 +3,9 @@
 // All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Type.hpp"
-#include "ast/TypeContext.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/ast/TypeContext.hpp"
 
 #include <cassert>
 

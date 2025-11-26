@@ -11,10 +11,10 @@
 // abstract syntax tree.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/QualType.hpp"
-#include "ast/Visitor.hpp"
-#include "core/SourceSpan.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/QualType.hpp"
+#include "scc/ast/Visitor.hpp"
+#include "scc/core/SourceSpan.hpp"
 
 #include <cassert>
 #include <vector>

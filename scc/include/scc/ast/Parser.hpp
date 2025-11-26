@@ -11,13 +11,13 @@
 // into an abstract syntax tree on a per-translation unit basis.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Expr.hpp"
-#include "ast/QualType.hpp"
-#include "ast/TypeContext.hpp"
-#include "core/SourceSpan.hpp"
-#include "lexer/Lexer.hpp"
-#include "lexer/Token.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Expr.hpp"
+#include "scc/ast/QualType.hpp"
+#include "scc/ast/TypeContext.hpp"
+#include "scc/core/SourceSpan.hpp"
+#include "scc/lexer/Lexer.hpp"
+#include "scc/lexer/Token.hpp"
 
 #include <string>
 

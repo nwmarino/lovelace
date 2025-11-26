@@ -11,9 +11,13 @@
 // pattern over the abstract syntax tree for generating SPBE-IR code.
 //
 
+#include "scc/ast/Visitor.hpp"
+
+#include "graph/BasicBlock.hpp"
+
 namespace scc {
 
-class Codegen {
+class Codegen final : public Visitor {
 
 };
 

@@ -3,8 +3,8 @@
 // All rights reserved.
 //
 
-#include "core/Logger.hpp"
-#include "core/Tools.hpp"
+#include "scc/core/Logger.hpp"
+#include "scc/core/Tools.hpp"
 
 #include <fstream>
 

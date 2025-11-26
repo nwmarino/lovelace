@@ -3,13 +3,13 @@
 // All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Expr.hpp"
-#include "ast/Sema.hpp"
-#include "ast/QualType.hpp"
-#include "ast/Stmt.hpp"
-#include "ast/Type.hpp"
-#include "core/Logger.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Expr.hpp"
+#include "scc/ast/Sema.hpp"
+#include "scc/ast/QualType.hpp"
+#include "scc/ast/Stmt.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/core/Logger.hpp"
 
 using namespace scc;
 

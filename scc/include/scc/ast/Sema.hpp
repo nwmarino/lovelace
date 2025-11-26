@@ -14,8 +14,8 @@
 // scope tree construction, and other IR simplifying actions.
 // 
 
-#include "ast/Decl.hpp"
-#include "ast/Visitor.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Visitor.hpp"
 
 #include <cstdint>
 

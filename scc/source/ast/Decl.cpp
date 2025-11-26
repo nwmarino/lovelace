@@ -3,9 +3,9 @@
 // All rights reserved.
 //
 
-#include "ast/Decl.hpp"
-#include "ast/Stmt.hpp"
-#include "ast/TypeContext.hpp"
+#include "scc/ast/Decl.hpp"
+#include "scc/ast/Stmt.hpp"
+#include "scc/ast/TypeContext.hpp"
 
 using namespace scc;
 

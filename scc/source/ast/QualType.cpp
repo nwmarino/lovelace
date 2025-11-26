@@ -3,8 +3,8 @@
 // All rights reserved.
 //
 
-#include "ast/Type.hpp"
-#include "ast/QualType.hpp"
+#include "scc/ast/Type.hpp"
+#include "scc/ast/QualType.hpp"
 
 using namespace scc;
 

@@ -3,7 +3,7 @@
 // All rights reserved.
 //
 
-#include "ast/Expr.hpp"
+#include "scc/ast/Expr.hpp"
 
 using namespace scc;
 
