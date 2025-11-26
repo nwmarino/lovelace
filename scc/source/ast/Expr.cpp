@@ -13,6 +13,40 @@ BinaryExpr::~BinaryExpr() {
     m_left = m_right = nullptr;
 }
 
+bool BinaryExpr::is_assignment(Op op) {
+    switch (op) {
+    case Assign:
+    case AddAssign:
+    case SubAssign:
+    case MulAssign:
+    case DivAssign:
+    case ModAssign:
+    case AndAssign:
+    case OrAssign:
+    case LeftShiftAssign:
+    case RightShiftAssign:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool BinaryExpr::is_comparison(Op op) {
+    switch (op) {
+    case Equals:
+    case NotEquals:
+    case LessThan:
+    case LessThanEquals:
+    case GreaterThan:
+    case GreaterThanEquals:
+    case LogicAnd:
+    case LogicOr:
+        return true;
+    default:
+        return false;
+    }
+}
+
 const char* BinaryExpr::to_string(Op op) {
     switch (op) {
     case Unknown:           return "";

@@ -40,19 +40,22 @@ class Type {
     friend class TypeContext;
 
 public:
+    enum Kind : uint32_t {
+        Builtin,
+        Array,
+        Pointer,
+        Function,
+        Typedef,
+        Record,
+        Enum,
+    };
+
     using id_t = uint32_t;
 
 protected:
-    /// Iterator for type ids during creation.
-    static id_t s_id;
+    const Kind m_kind;
 
-    /// A unique identifier for this type. Each instance of a type has an id,
-    /// but deduplication means only symbollicaly unique types get an id. 
-    ///
-    /// The id of a type cannot be changed after creation.
-    id_t m_id;
-
-    Type() : m_id(s_id++) {}
+    Type(Kind kind) : m_kind(kind) {}
 
 public:
     Type(const Type&) = delete;
@@ -60,11 +63,10 @@ public:
 
     virtual ~Type() = default;
 
-    bool operator == (const Type& other) const { return m_id == other.id(); }
-    bool operator != (const Type& other) const { return m_id != other.id(); }
+    virtual bool operator == (const Type& other) const = 0;
 
-    /// Returns the unique numerical identifier of this type.
-    id_t id() const { return m_id; }
+    /// Returns the kind of type this is.
+    Kind get_kind() const { return m_kind; }
 
     /// Returns true if this is the void type.
     virtual bool is_void() const { return false; }
@@ -80,9 +82,6 @@ public:
 
     /// Returns true if this is a floating point type.
     virtual bool is_floating_point() const { return false; }
-
-    /// Returns true if this is a pointer type.
-    virtual bool is_pointer() const { return false; }
 
     /// Returns a stringified version of this type.
     virtual string to_string() const = 0;
@@ -113,11 +112,13 @@ public:
 
 private:
     /// The kind of built-in type this is.
-    Kind m_kind;
+    Kind m_bt_kind;
 
-    BuiltinType(Kind kind) : Type(), m_kind(kind) {}
+    BuiltinType(BuiltinType::Kind kind) : Type(Builtin), m_bt_kind(kind) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Returns the 'void' type.
     static const BuiltinType* get_void_type(TypeContext& ctx);
 
@@ -160,17 +161,17 @@ public:
     /// Returns the 'long double' type.
     static const BuiltinType* get_longdouble_type(TypeContext& ctx);
 
-    bool is_void() const override { return m_kind == Void; }
+    bool is_void() const override { return m_bt_kind == Void; }
 
     bool is_integer() const override { 
-        return Char <= m_kind && ULongLong <= m_kind; 
+        return Char <= m_bt_kind && m_bt_kind <= ULongLong; 
     }
 
     bool is_signed_integer() const override;
     
     bool is_unsigned_integer() const override;
 
-    bool is_floating_point() const override { return m_kind >= Float; }
+    bool is_floating_point() const override { return m_bt_kind >= Float; }
 
     string to_string() const override;
 };
@@ -186,9 +187,11 @@ class ArrayType final : public Type {
     uint32_t m_size;
 
     ArrayType(const QualType& element, uint32_t size)
-        : Type(), m_element(element), m_size(size) {}
+        : Type(Array), m_element(element), m_size(size) {}
     
 public:
+    bool operator == (const Type& other) const override;
+
     /// Returns the array type with element type \p element and size \p size.
     static const ArrayType* get(TypeContext& ctx, const QualType& element, 
                                 uint32_t size);
@@ -213,11 +216,19 @@ class PointerType final : public Type {
     /// is an integral type 'int'.
     QualType m_pointee;
 
-    PointerType(const QualType& pointee) : Type(), m_pointee(pointee) {}
+    PointerType(const QualType& pointee) : Type(Pointer), m_pointee(pointee) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Returns the pointer type that points to type \p pointee.
     static const PointerType* get(TypeContext& ctx, const QualType& pointee);
+
+    /// Returns the pointer to char type, i.e. 'char*'.
+    static const PointerType* get_char_p(TypeContext& ctx);
+
+    /// Returns the pointer-to-pointer to char type, i.e. 'char**'.
+    static const PointerType* get_char_pp(TypeContext& ctx);
 
     /// Returns the type that this pointer type is pointing to.
     const QualType& get_pointee() const { return m_pointee; }
@@ -239,9 +250,11 @@ class FunctionType final : public Type {
     vector<QualType> m_params;
 
     FunctionType(const QualType& ret, const vector<QualType>& params)
-        : Type(), m_ret(ret), m_params(params) {}
+        : Type(Function), m_ret(ret), m_params(params) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Returns a function signature type that returns type \p ret, and has
     /// parameter types \p params.
     static const FunctionType* get(TypeContext& ctx, const QualType& ret, 
@@ -288,9 +301,11 @@ class TypedefType final : public Type {
     QualType m_underlying;
 
     TypedefType(const TypedefDecl* decl, const QualType& underlying)
-        : Type(), m_decl(decl), m_underlying(underlying) {}
+        : Type(Typedef), m_decl(decl), m_underlying(underlying) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Create and return a new type defined by a 'typedef' declaration \p decl
     /// with the underlying type \p underlying.
     static const TypedefType* create(TypeContext& ctx, const TypedefDecl* decl, 
@@ -313,9 +328,11 @@ class RecordType final : public Type {
     /// The record that defines this type.
     const RecordDecl* m_decl;
 
-    RecordType(const RecordDecl* decl) : m_decl(decl) {}
+    RecordType(const RecordDecl* decl) : Type(Record), m_decl(decl) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Create and return a new type defined by a record \p decl.
     static const RecordType* create(TypeContext& ctx, const RecordDecl* decl);
 
@@ -332,9 +349,11 @@ class EnumType final : public Type {
     /// The enum that defines this type.
     const EnumDecl* m_decl;
 
-    EnumType(const EnumDecl* decl) : Type(), m_decl(decl) {}
+    EnumType(const EnumDecl* decl) : Type(Enum), m_decl(decl) {}
 
 public:
+    bool operator == (const Type& other) const override;
+
     /// Create and return a new type defined by an enum \p decl.
     static const EnumType* create(TypeContext& ctx, const EnumDecl* decl);
 

@@ -11,7 +11,12 @@
 
 using namespace scc;
 
-Type::id_t Type::s_id = 0;
+bool BuiltinType::operator == (const Type& other) const {
+    if (other.get_kind() != Builtin)
+        return false;
+
+    return m_bt_kind == static_cast<const BuiltinType*>(&other)->m_bt_kind;
+}
 
 const BuiltinType* BuiltinType::get_void_type(TypeContext& ctx) {
     return ctx.m_bts[Void];
@@ -70,7 +75,7 @@ const BuiltinType* BuiltinType::get_longdouble_type(TypeContext& ctx) {
 }
 
 bool BuiltinType::is_signed_integer() const {
-    switch (m_kind) {
+    switch (m_bt_kind) {
     case Char:
     case Short:
     case Int:
@@ -83,7 +88,7 @@ bool BuiltinType::is_signed_integer() const {
 }
 
 bool BuiltinType::is_unsigned_integer() const {
-    switch (m_kind) {
+    switch (m_bt_kind) {
     case UChar:
     case UShort:
     case UInt:
@@ -96,7 +101,7 @@ bool BuiltinType::is_unsigned_integer() const {
 }
 
 string BuiltinType::to_string() const {
-    switch (m_kind) {
+    switch (m_bt_kind) {
     case Void:          return "void";
     case Char:          return "char";
     case UChar:         return "unsigned char";
@@ -114,6 +119,15 @@ string BuiltinType::to_string() const {
     }
 }
 
+bool ArrayType::operator == (const Type& other) const {
+    if (other.get_kind() != Array)
+        return false;
+
+    const ArrayType* other_array = static_cast<const ArrayType*>(&other);
+    return m_element == other_array->get_element() 
+        && m_size == other_array->m_size;
+}
+
 const ArrayType* ArrayType::get(
         TypeContext& ctx, const QualType& element, uint32_t size) {
     ArrayType* ty = new ArrayType(element, size);
@@ -121,10 +135,40 @@ const ArrayType* ArrayType::get(
     return ty;
 }
 
+bool PointerType::operator == (const Type& other) const {
+    if (other.get_kind() != Pointer)
+        return false;
+
+    return m_pointee == static_cast<const PointerType*>(&other)->get_pointee();
+}
+
 const PointerType* PointerType::get(TypeContext& ctx, const QualType& pointee) {
     PointerType* ty = new PointerType(pointee);
     ctx.m_ptrs.push_back(ty);
     return ty;
+}
+
+const PointerType* PointerType::get_char_p(TypeContext& ctx) {
+    return PointerType::get(ctx, BuiltinType::get_char_type(ctx));
+}
+
+const PointerType* PointerType::get_char_pp(TypeContext& ctx) {
+    return PointerType::get(ctx, get_char_p(ctx));
+}
+
+bool FunctionType::operator == (const Type& other) const {
+    if (other.get_kind() != Function)
+        return false;
+
+    const FunctionType* other_function = static_cast<const FunctionType*>(&other);
+    if (num_params() != other_function->num_params())
+        return false;
+
+    for (uint32_t i = 0; i < num_params(); ++i)
+        if (m_params[i] != other_function->m_params[i])
+            return false;
+
+    return m_ret == other_function->get_return_type();
 }
 
 const FunctionType* FunctionType::get(
@@ -146,6 +190,15 @@ string FunctionType::to_string() const {
     return str + ')';
 }
 
+bool TypedefType::operator == (const Type& other) const {
+    if (other.get_kind() == Typedef) {
+        return m_underlying == 
+            static_cast<const TypedefType*>(&other)->m_underlying;
+    } else {
+        return m_underlying == QualType(&other);
+    }
+}
+
 const TypedefType* TypedefType::create(
         TypeContext& ctx, const TypedefDecl* decl, const QualType& underlying) {
     TypedefType* ty = new TypedefType(decl, underlying);
@@ -157,6 +210,13 @@ string TypedefType::to_string() const {
     return m_decl->get_name();
 }
 
+bool RecordType::operator == (const Type& other) const {
+    if (other.get_kind() != Record)
+        return false;
+
+    return m_decl == static_cast<const RecordType*>(&other)->m_decl;
+}
+
 const RecordType* RecordType::create(TypeContext& ctx, const RecordDecl* decl) {
     RecordType* ty = new RecordType(decl);
     ctx.m_records.push_back(ty);
@@ -165,6 +225,13 @@ const RecordType* RecordType::create(TypeContext& ctx, const RecordDecl* decl) {
 
 string RecordType::to_string() const {
     return (m_decl->is_struct() ? "struct " : "union ") + m_decl->get_name();
+}
+
+bool EnumType::operator == (const Type& other) const {
+    if (other.get_kind() != Enum)
+        return false;
+
+    return m_decl == static_cast<const EnumType*>(&other)->m_decl;
 }
 
 const EnumType* EnumType::create(TypeContext& ctx, const EnumDecl* decl) {

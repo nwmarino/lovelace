@@ -6,6 +6,7 @@ set(SCC_SOURCES
     source/ast/Printer.cpp
     source/ast/QualType.cpp
     source/ast/Scope.cpp
+    source/ast/Sema.cpp
     source/ast/Stmt.cpp
     source/ast/Type.cpp
     source/ast/TypeContext.cpp
@@ -36,6 +37,7 @@ add_executable(scc_test
     source/ast/Printer.cpp
     source/ast/QualType.cpp
     source/ast/Scope.cpp
+    source/ast/Sema.cpp
     source/ast/Stmt.cpp
     source/ast/Type.cpp
     source/ast/TypeContext.cpp
@@ -45,6 +47,7 @@ add_executable(scc_test
     test/LexerTests.cpp
     test/ParserTests.cpp
     test/ParseTypeTests.cpp
+    test/SemaTests.cpp
 )
 
 target_include_directories(scc_test PUBLIC

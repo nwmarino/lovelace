@@ -223,6 +223,13 @@ public:
         LogicOr,
     };
 
+    /// Returns true if the operator \p op is an assignment operator (shorthand
+    /// or otherwise).
+    static bool is_assignment(Op op);
+
+    /// Returns true if the operator \p op is a comparison operation.
+    static bool is_comparison(Op op);
+
     /// Returns a stringified version of the operator \p op.
     static const char* to_string(Op op);
 

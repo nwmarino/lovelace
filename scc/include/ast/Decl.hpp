@@ -222,14 +222,18 @@ class VariableDecl final : public ValueDecl {
     /// The storage class of this variable.
     StorageClass m_storage;
 
+    /// If this is a global variable or not.
+    bool m_global;
+
     /// The initializing expression of this variable, if there is one.
     Expr* m_init;
 
 public:
     VariableDecl(DeclContext* dctx, const SourceSpan& span, const string& name, 
-                 const QualType& type, StorageClass storage, Expr* init)
+                 const QualType& type, StorageClass storage, bool global, 
+                Expr* init)
         : ValueDecl(dctx, Kind::Variable, span, name, type), m_storage(storage),
-          m_init(init) {}
+          m_global(global), m_init(init) {}
 
     VariableDecl(const VariableDecl&) = delete;
     VariableDecl& operator = (const VariableDecl&) = delete;
@@ -244,6 +248,9 @@ public:
 
     /// Returns true if this variable has the 'static' storage class.
     bool is_static() const { return m_storage == Static; }
+
+    /// Returns true if this is a global variable.
+    bool is_global() const { return m_global; }
 
     /// Returns true if this variable has an initializing expression.
     bool has_init() const { return m_init != nullptr; }
@@ -301,6 +308,10 @@ public:
 
     ~FunctionDecl();
 
+    /// Returns true if this is the "main" function, i.e. a function named
+    /// "main".
+    bool is_main() const { return m_name == "main"; }
+
     /// Returns the storage class of this function.
     StorageClass get_storage_class() const { return m_storage; }
 
@@ -349,6 +360,12 @@ public:
     ParameterDecl* get_param(const string& name) {
         return const_cast<ParameterDecl*>(
             static_cast<const FunctionDecl*>(this)->get_param(name));
+    }
+
+    /// Returns the return type of this function.
+    const QualType& get_return_type() const { 
+        return static_cast<const FunctionType*>(
+            m_type.get_type())->get_return_type(); 
     }
 
     /// Returns the type of the parameter at position \p i of this function's 

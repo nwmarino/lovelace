@@ -5,6 +5,7 @@
 
 #include "ast/Decl.hpp"
 #include "ast/Parser.hpp"
+#include "ast/Sema.hpp"
 #include "core/Logger.hpp"
 
 #include <cstdint>
@@ -15,6 +16,7 @@ using std::vector;
 
 using scc::Logger;
 using scc::Parser;
+using scc::Sema;
 using scc::TranslationUnitDecl;
 
 int32_t main(int32_t argc, char* argv[]) {
@@ -48,17 +50,19 @@ int32_t main(int32_t argc, char* argv[]) {
     if (files.empty())
         Logger::error("no input files");
 
-    vector<TranslationUnitDecl*> units = {};
-    units.reserve(files.size());
+    vector<TranslationUnitDecl*> units(files.size(), nullptr);
 
-    for (const auto& file : files) {
-        Parser parser(file);
+    for (uint32_t i = 0, e = files.size(); i != e; ++i) {
+        Parser parser(files[i]);
 
         TranslationUnitDecl* unit = parser.parse();
 
+        Sema sema(unit);
+        unit->accept(sema);
+
         unit->print(std::cout);
 
-        units.push_back(std::move(unit));
+        units[i] = unit;
     }
 
     return 0;

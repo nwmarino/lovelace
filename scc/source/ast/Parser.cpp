@@ -600,7 +600,14 @@ Decl* Parser::parse_variable(
         type = init->get_type();
     }
 
-    return new VariableDecl(m_dctx, start, name, type, storage, init);
+    return new VariableDecl(
+        m_dctx, 
+        start, 
+        name, 
+        type, 
+        storage, 
+        !m_dctx->has_parent(),
+        init);
 }
 
 Decl* Parser::parse_typedef() {
@@ -970,7 +977,9 @@ Expr* Parser::parse_unary_prefix() {
             Logger::error("expected expression", since(start));
 
         return new UnaryExpr(since(start), base->get_type(), op, false, base);
-    } else return parse_unary_postfix();
+    } else {
+        return parse_unary_postfix();
+    }
 }
 
 Expr* Parser::parse_unary_postfix() {
@@ -1215,10 +1224,13 @@ Stmt* Parser::parse_return() {
     next(); // 'return'
 
     Expr* expr = nullptr;
-    if (!match(TokenKind::Semi)) {
+    if (!expect(TokenKind::Semi)) {
         expr = parse_expr();
         if (!expr)
             Logger::error("expected expression", since(start));
+
+        if (!expect(TokenKind::Semi))
+            Logger::error("expected ';'", since(start));
     }
 
     return new ReturnStmt(since(start), expr);
