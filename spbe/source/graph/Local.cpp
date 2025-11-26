@@ -1,6 +1,11 @@
-#include "../../include/graph/Function.hpp"
-#include "../../include/graph/Local.hpp"
-#include "../../include/graph/Type.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Function.hpp"
+#include "spbe/graph/Local.hpp"
+#include "spbe/graph/Type.hpp"
 
 using namespace spbe;
 

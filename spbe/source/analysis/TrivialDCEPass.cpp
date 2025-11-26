@@ -1,4 +1,9 @@
-#include "../../include/analysis/TrivialDCEPass.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/analysis/TrivialDCEPass.hpp"
 
 using namespace spbe;
 

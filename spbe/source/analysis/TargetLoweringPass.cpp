@@ -1,8 +1,12 @@
-#include "../../include/analysis/TargetLoweringPass.hpp"
-#include "../../include/target/Target.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
 
-#include "../../include/X64/X64.hpp"
-#include "X64/X64InstrSelector.hpp"
+#include "spbe/analysis/TargetLoweringPass.hpp"
+#include "spbe/target/Target.hpp"
+#include "spbe/X64/X64.hpp"
+#include "spbe/X64/X64InstrSelector.hpp"
 
 using namespace spbe;
 

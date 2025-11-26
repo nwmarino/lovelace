@@ -1,5 +1,10 @@
-#include "../../include/graph/Type.hpp"
-#include "../../include/target/Target.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Type.hpp"
+#include "spbe/target/Target.hpp"
 
 using namespace spbe;
 

@@ -1,5 +1,10 @@
-#include "../../include/graph/Function.hpp"
-#include "../../include/machine/MachFunction.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Function.hpp"
+#include "spbe/machine/MachFunction.hpp"
 
 using namespace spbe;
 

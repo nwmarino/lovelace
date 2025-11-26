@@ -1,13 +1,17 @@
-#include "../../include/graph/CFG.hpp"
-#include "../../include/machine/MachBasicBlock.hpp"
-#include "../../include/machine/MachFunction.hpp"
-#include "../../include/machine/MachInstruction.hpp"
-#include "../../include/machine/MachObject.hpp"
-#include "../../include/machine/MachRegister.hpp"
-#include "../../include/machine/RegisterAllocator.hpp"
-#include "../../include/machine/RegisterAnalysis.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
 
-#include "../../include/X64/X64.hpp"
+#include "spbe/graph/CFG.hpp"
+#include "spbe/machine/MachBasicBlock.hpp"
+#include "spbe/machine/MachFunction.hpp"
+#include "spbe/machine/MachInstruction.hpp"
+#include "spbe/machine/MachObject.hpp"
+#include "spbe/machine/MachRegister.hpp"
+#include "spbe/machine/RegisterAllocator.hpp"
+#include "spbe/machine/RegisterAnalysis.hpp"
+#include "spbe/X64/X64.hpp"
 
 #ifdef SPBE_MACHINE_DEBUGGING
 #include <iostream>

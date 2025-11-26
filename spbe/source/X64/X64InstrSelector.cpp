@@ -1,15 +1,20 @@
-#include "../../include/X64/X64InstrSelector.hpp"
-#include "X64/X64.hpp"
-#include "graph/Constant.hpp"
-#include "graph/Function.hpp"
-#include "graph/Global.hpp"
-#include "graph/InlineAsm.hpp"
-#include "graph/Instruction.hpp"
-#include "graph/Local.hpp"
-#include "machine/MachFunction.hpp"
-#include "machine/MachInstruction.hpp"
-#include "machine/MachOperand.hpp"
-#include "machine/MachRegister.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Constant.hpp"
+#include "spbe/graph/Function.hpp"
+#include "spbe/graph/Global.hpp"
+#include "spbe/graph/InlineAsm.hpp"
+#include "spbe/graph/Instruction.hpp"
+#include "spbe/graph/Local.hpp"
+#include "spbe/machine/MachFunction.hpp"
+#include "spbe/machine/MachInstruction.hpp"
+#include "spbe/machine/MachOperand.hpp"
+#include "spbe/machine/MachRegister.hpp"
+#include "spbe/X64/X64.hpp"
+#include "spbe/X64/X64InstrSelector.hpp"
 
 #include <algorithm>
 #include <unordered_map>

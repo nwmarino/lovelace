@@ -1,5 +1,10 @@
-#include "../../include/machine/MachRegister.hpp"
-#include "../../include/X64/X64.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/machine/MachRegister.hpp"
+#include "spbe/X64/X64.hpp"
 
 #include <cassert>
 #include <cstdint>

@@ -1,4 +1,9 @@
-#include "../../include/machine/RegisterAllocator.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/machine/RegisterAllocator.hpp"
 
 using namespace spbe;
 

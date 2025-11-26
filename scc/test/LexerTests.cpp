@@ -3,8 +3,8 @@
 // All rights reserved.
 //
 
-#include "lexer/Lexer.hpp"
-#include "lexer/Token.hpp"
+#include "scc/lexer/Lexer.hpp"
+#include "scc/lexer/Token.hpp"
 
 #include <gtest/gtest.h>
 

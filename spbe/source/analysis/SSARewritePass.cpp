@@ -1,10 +1,15 @@
-#include "../../include/analysis/SSARewritePass.hpp"
-#include "../../include/graph/BasicBlock.hpp"
-#include "../../include/graph/CFG.hpp"
-#include "../../include/graph/Constant.hpp"
-#include "../../include/graph/InstrBuilder.hpp"
-#include "../../include/graph/Instruction.hpp"
-#include "../../include/graph/Value.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/analysis/SSARewritePass.hpp"
+#include "spbe/graph/BasicBlock.hpp"
+#include "spbe/graph/CFG.hpp"
+#include "spbe/graph/Constant.hpp"
+#include "spbe/graph/InstrBuilder.hpp"
+#include "spbe/graph/Instruction.hpp"
+#include "spbe/graph/Value.hpp"
 
 #include <algorithm>
 #include <functional>

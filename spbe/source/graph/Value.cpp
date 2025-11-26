@@ -1,5 +1,10 @@
-#include "../../include/graph/Use.hpp"
-#include "../../include/graph/Value.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Use.hpp"
+#include "spbe/graph/Value.hpp"
 
 #include <algorithm>
 

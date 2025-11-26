@@ -1,5 +1,10 @@
-#include "../../include/machine/MachBasicBlock.hpp"
-#include "../../include/machine/MachFunction.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/machine/MachBasicBlock.hpp"
+#include "spbe/machine/MachFunction.hpp"
 
 using namespace spbe;
 

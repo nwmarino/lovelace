@@ -1,4 +1,9 @@
-#include "../../include/machine/MachObject.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/machine/MachObject.hpp"
 
 using namespace spbe;
 

@@ -1,5 +1,10 @@
-#include "../../include/machine/MachOperand.hpp"
-#include "../../include/machine/MachRegister.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/machine/MachOperand.hpp"
+#include "spbe/machine/MachRegister.hpp"
 
 #include <cassert>
 

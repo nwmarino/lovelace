@@ -1,6 +1,11 @@
-#include "../../include/graph/BasicBlock.hpp"
-#include "../../include/graph/Function.hpp"
-#include "../../include/graph/Instruction.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/BasicBlock.hpp"
+#include "spbe/graph/Function.hpp"
+#include "spbe/graph/Instruction.hpp"
 
 using namespace spbe;
 

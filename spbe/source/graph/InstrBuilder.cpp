@@ -1,8 +1,13 @@
-#include "../../include/graph/CFG.hpp"
-#include "../../include/graph/InstrBuilder.hpp"
-#include "../../include/graph/Constant.hpp"
-#include "../../include/graph/Instruction.hpp"
-#include "../../include/target/Target.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/CFG.hpp"
+#include "spbe/graph/InstrBuilder.hpp"
+#include "spbe/graph/Constant.hpp"
+#include "spbe/graph/Instruction.hpp"
+#include "spbe/target/Target.hpp"
 
 using namespace spbe;
 

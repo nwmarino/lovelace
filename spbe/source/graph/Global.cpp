@@ -1,6 +1,11 @@
-#include "../../include/graph/CFG.hpp"
-#include "../../include/graph/Global.hpp"
-#include "../../include/graph/Type.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/CFG.hpp"
+#include "spbe/graph/Global.hpp"
+#include "spbe/graph/Type.hpp"
 
 using namespace spbe;
 

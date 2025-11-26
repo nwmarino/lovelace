@@ -1,12 +1,17 @@
-#include "../../include/graph/BasicBlock.hpp"
-#include "../../include/graph/CFG.hpp"
-#include "../../include/graph/Constant.hpp"
-#include "../../include/graph/Function.hpp"
-#include "../../include/graph/Global.hpp"
-#include "../../include/graph/InlineAsm.hpp"
-#include "../../include/graph/Instruction.hpp"
-#include "../../include/graph/Local.hpp"
-#include "../../include/graph/Type.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/BasicBlock.hpp"
+#include "spbe/graph/CFG.hpp"
+#include "spbe/graph/Constant.hpp"
+#include "spbe/graph/Function.hpp"
+#include "spbe/graph/Global.hpp"
+#include "spbe/graph/InlineAsm.hpp"
+#include "spbe/graph/Instruction.hpp"
+#include "spbe/graph/Local.hpp"
+#include "spbe/graph/Type.hpp"
 
 #include <iomanip>
 #include <iostream>

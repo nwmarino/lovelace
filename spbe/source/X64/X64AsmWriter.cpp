@@ -1,12 +1,17 @@
-#include "../../include/graph/BasicBlock.hpp"
-#include "../../include/graph/CFG.hpp"
-#include "../../include/graph/Constant.hpp"
-#include "../../include/graph/Function.hpp"
-#include "../../include/machine/MachOperand.hpp"
-#include "../../include/machine/MachFunction.hpp"
-#include "../../include/machine/MachRegister.hpp"
-#include "../../include/X64/X64.hpp"
-#include "../../include/X64/X64AsmWriter.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/BasicBlock.hpp"
+#include "spbe/graph/CFG.hpp"
+#include "spbe/graph/Constant.hpp"
+#include "spbe/graph/Function.hpp"
+#include "spbe/machine/MachOperand.hpp"
+#include "spbe/machine/MachFunction.hpp"
+#include "spbe/machine/MachRegister.hpp"
+#include "spbe/X64/X64.hpp"
+#include "spbe/X64/X64AsmWriter.hpp"
 
 #include <cmath>
 #include <cstdint>

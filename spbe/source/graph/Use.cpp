@@ -1,5 +1,10 @@
-#include "../../include/graph/Instruction.hpp"
-#include "../../include/graph/Use.hpp"
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+#include "spbe/graph/Instruction.hpp"
+#include "spbe/graph/Use.hpp"
 
 using namespace spbe;
 
