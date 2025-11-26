@@ -21,6 +21,10 @@ string scc::without_extension(const string& path) {
     return path.substr(0, first);
 }
 
+string scc::with_pure_extension(const string& path) {
+    return without_extension(path) + ".i";
+}
+
 string scc::with_assembly_extension(const string& path) {
     return without_extension(path) + ".s";
 }

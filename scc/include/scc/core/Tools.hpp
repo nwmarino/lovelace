@@ -20,6 +20,10 @@ using std::string;
 /// Returns the path \p path without any file extensions (suffixed with '.').
 string without_extension(const string& path);
 
+/// Returns the file at path \p path with just the pure post C preprocessor
+/// file extension.
+string with_pure_extension(const string& path);
+
 /// Returns the file at path \p path with just the native assembly file 
 /// extension.
 string with_assembly_extension(const string& path);

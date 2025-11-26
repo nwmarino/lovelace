@@ -8,12 +8,11 @@
 #include "scc/ast/Parser.hpp"
 #include "scc/ast/Sema.hpp"
 #include "scc/core/Logger.hpp"
-
 #include "scc/core/Tools.hpp"
+
 #include "spbe/X64/X64AsmWriter.hpp"
 #include "spbe/analysis/TargetLoweringPass.hpp"
 #include "spbe/graph/CFG.hpp"
-#include "spbe/machine/AsmWriter.hpp"
 #include "spbe/machine/MachObject.hpp"
 #include "spbe/machine/RegisterAnalysis.hpp"
 #include "spbe/target/Target.hpp"
@@ -74,6 +73,11 @@ int32_t main(int32_t argc, char* argv[]) {
 
     for (uint32_t i = 0, e = files.size(); i != e; ++i) {
         const string& path = files[i];
+
+        string pure = scc::with_pure_extension(path);
+
+        string gcc = "gcc -E ";
+
         Parser parser(path);
 
         TranslationUnitDecl* unit = parser.parse();
@@ -112,20 +116,20 @@ int32_t main(int32_t argc, char* argv[]) {
     }
 
     if (link) {
-        // Use clang to link the objects together.
+        // Use gcc to link the objects together.
         //
         // TODO: Switch this out with a manual ld command and dynamically find
         // the lib paths on my own.
 
-        string clang = "/usr/bin/clang -o " + output + ' ';
+        string gcc = "/usr/bin/gcc -o " + output + ' ';
 
         for (const auto& file : files) {
             string filename = scc::with_object_extension(file);
             if (std::filesystem::exists(filename))
-                clang += filename;
+                gcc += filename;
         }
 
-        std::system(clang.c_str());
+        std::system(gcc.c_str());
 
         for (const auto& file : files) {
             string filename = scc::with_object_extension(file);
