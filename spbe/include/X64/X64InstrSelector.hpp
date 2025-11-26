@@ -187,7 +187,7 @@ class X64InstrSelector final : public spbe::InstrSelector {
     void select_comparison(const Instruction* inst) override;
 
 public:
-    X64InstrSelector(MachFunction& MF) 
+    X64InstrSelector(MachFunction& MF)
         : spbe::InstrSelector(MF), m_target(MF.get_target()) {}
 
     X64InstrSelector(const X64InstrSelector&) = delete;

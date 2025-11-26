@@ -2,6 +2,7 @@
 #include "../../include/target/Target.hpp"
 
 #include "../../include/X64/X64.hpp"
+#include "X64/X64InstrSelector.hpp"
 
 using namespace spbe;
 
@@ -20,7 +21,7 @@ void TargetLoweringPass::run() {
 
         switch (m_obj.get_target()->arch()) {
         case Target::Arch::x64: {
-            x64::X64InstSelection isel { mf };
+            x64::X64InstrSelector isel(*mf);
             isel.run();
             break;
         }

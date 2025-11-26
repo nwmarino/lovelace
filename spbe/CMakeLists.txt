@@ -1,5 +1,44 @@
-add_library(spbe SHARED
-    source/analysis/LLVMTranslatePass.cpp
+cmake_minimum_required(VERSION 4.0)
+
+project(spbe LANGUAGES CXX)
+
+set(SPBE_HEADERS
+    #include/analysis/LLVMTranslatePass.hpp
+    include/analysis/Pass.hpp
+    include/analysis/SSARewritePass.hpp
+    include/analysis/TargetLoweringPass.hpp
+    include/analysis/TrivialDCEPass.hpp
+    include/graph/BasicBlock.hpp
+    include/graph/CFG.hpp
+    include/graph/Constant.hpp
+    include/graph/Function.hpp
+    include/graph/Global.hpp
+    include/graph/InlineAsm.hpp
+    include/graph/InstrBuilder.hpp
+    include/graph/Instruction.hpp
+    include/graph/Local.hpp
+    include/graph/Type.hpp
+    include/graph/Use.hpp
+    include/graph/User.hpp
+    include/graph/Value.hpp
+    include/machine/AsmWriter.hpp
+    include/machine/InstrSelector.hpp
+    include/machine/MachBasicBlock.hpp
+    include/machine/MachFunction.hpp
+    include/machine/MachInstruction.hpp
+    include/machine/MachObject.hpp
+    include/machine/MachOperand.hpp
+    include/machine/MachRegister.hpp
+    include/machine/RegisterAllocator.hpp
+    include/machine/RegisterAnalysis.hpp
+    include/target/Target.hpp
+    include/X64/X64.hpp
+    include/X64/X64AsmWriter.hpp
+    include/X64/X64InstrSelector.hpp
+)
+
+set(SPBE_SOURCES
+    #source/analysis/LLVMTranslatePass.cpp
     source/analysis/PrintPass.cpp
     source/analysis/SSARewritePass.cpp
     source/analysis/TargetLoweringPass.cpp
@@ -28,7 +67,7 @@ add_library(spbe SHARED
     source/X64/X64InstrSelector.cpp
 )
 
-add_library(spbe::spbe ALIAS spbe)
+add_library(spbe ${SPBE_SOURCES} ${SPBE_HEADERS})
 
 target_include_directories(spbe
     PUBLIC
@@ -38,5 +77,11 @@ target_include_directories(spbe
 
 target_compile_features(spbe PUBLIC cxx_std_20)
 
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+install(TARGETS spbe
+    EXPORT spbeTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/ DESTINATION include)
