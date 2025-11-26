@@ -15,11 +15,11 @@ set(SCC_SOURCES
     source/lexer/Lexer.cpp
 )
 
-add_compile_options(-g -D SCC_COMPILE_SAMPLES)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(scc ${SCC_SOURCES})
+
+target_compile_options(scc PRIVATE -g -D SCC_COMPILE_SAMPLES)
 
 target_link_libraries(scc PUBLIC
     spbe
@@ -31,8 +31,6 @@ target_include_directories(scc PUBLIC
 )
 
 target_compile_features(scc PUBLIC cxx_std_20)
-
-enable_testing()
 
 add_executable(scc_test
     source/ast/Decl.cpp
