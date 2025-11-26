@@ -6,5 +6,5 @@ Features *planned* but not yet implemented:
 - Function pointers
 - `auto` functions
 - Automatic array sizing
-- Variaditic functions
-- Do..while loops
+- Variadic functions
+- `Do..while` loops
