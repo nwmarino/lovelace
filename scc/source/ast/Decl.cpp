@@ -11,9 +11,8 @@ using namespace scc;
 
 Decl::Decl(DeclContext* dctx, Kind kind, const SourceSpan& span) 
         : m_kind(kind), m_span(span) {
-    if (dctx) {
+    if (dctx)
         dctx->add(this);
-    }
 }
 
 DeclContext::~DeclContext() {
@@ -37,10 +36,9 @@ const NamedDecl* DeclContext::get_decl(const string& name) const {
 }
 
 const TagTypeDecl* DeclContext::get_tag(const string& name) const {
-    for (TagTypeDecl* tag : m_tags) {
+    for (TagTypeDecl* tag : m_tags)
         if (tag->get_name() == name)
             return tag;
-    }
 
     if (has_parent())
         return m_parent->get_tag(name);

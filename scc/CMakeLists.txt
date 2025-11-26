@@ -1,5 +1,6 @@
 set(SCC_SOURCES
     source/scc.cpp
+    source/ast/Codegen.cpp
     source/ast/Decl.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
@@ -33,6 +34,7 @@ target_include_directories(scc PUBLIC
 target_compile_features(scc PUBLIC cxx_std_20)
 
 add_executable(scc_test
+    source/ast/Codegen.cpp
     source/ast/Decl.cpp
     source/ast/Expr.cpp
     source/ast/Parser.cpp
@@ -58,6 +60,7 @@ target_include_directories(scc_test PUBLIC
 )
 
 target_link_libraries(scc_test PRIVATE
+    spbe
     GTest::GTest
     GTest::Main
 )

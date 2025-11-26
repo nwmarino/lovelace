@@ -32,9 +32,7 @@ TranslationUnitDecl* Parser::parse() {
 
     while (!m_lexer.is_eof())
         parse_decl();
-
-    m_tctx = nullptr;
-    m_dctx = nullptr;
+    
     return m_unit;
 }
 
@@ -1136,7 +1134,7 @@ Stmt* Parser::parse_stmt() {
     } else if (match(TokenKind::Identifier) && 
       (is_storage_class(curr().value) || is_typedef(curr().value))) {
         SourceLocation start = curr().loc;
-        vector<const Decl*> decls = {};
+        vector<Decl*> decls = {};
 
         while (!match(TokenKind::Semi)) {
             Decl* decl = parse_decl();

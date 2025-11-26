@@ -33,13 +33,13 @@ class Sema final : public Visitor {
     
     TranslationUnitDecl* m_unit = nullptr;
     FunctionDecl* m_fn = nullptr;
-    TypeContext& m_tctx;
-    DeclContext& m_dctx;
+    TypeContext* m_tctx = nullptr;
+    DeclContext* m_dctx = nullptr;
     LoopKind m_loop = None;
 
 public:
     Sema(TranslationUnitDecl* unit) 
-        : m_unit(unit), m_tctx(unit->get_context()), m_dctx(*unit) {}
+        : m_unit(unit), m_tctx(&unit->get_context()), m_dctx(unit) {}
 
     Sema(const Sema&) = delete;
     Sema& operator = (const Sema&) = delete;

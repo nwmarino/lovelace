@@ -45,6 +45,21 @@ TEST_F(ParserTests, ParseEmptyFunction) {
     EXPECT_FALSE(fn->has_body());
 }
 
+TEST_F(ParserTests, Function_Positive_ReturnZero) {
+    Parser parser("test", "int main(int argc, char** argv) { return 0; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    auto fn = dynamic_cast<const FunctionDecl*>(unit->get_decl("main"));
+    EXPECT_NE(fn, nullptr);
+    EXPECT_EQ(fn->num_decls(), 2);
+    EXPECT_EQ(fn->get_name(), "main");
+    EXPECT_EQ(fn->get_type().to_string(), "int (int, char**)");
+    EXPECT_EQ(fn->num_params(), 2);
+    EXPECT_TRUE(fn->has_body());
+}
+
 TEST_F(ParserTests, ParseExternFunction) {
     Parser parser("test", "extern int main();");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());

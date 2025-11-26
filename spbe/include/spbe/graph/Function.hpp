@@ -69,7 +69,7 @@ public:
 class Function final : public Value {
 public:
     /// Recognized linkage types for global functions.
-    enum class LinkageType : uint8_t {
+    enum LinkageType : uint8_t {
         Internal = 0, External,
     };
 

@@ -12,14 +12,14 @@ enable_testing()
 find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(GTest REQUIRED)
 
+#if (STATIM_COMPILE_SPBE)
+    add_subdirectory(spbe)
+#endif()
+
 if (STATIM_COMPILE_STMC)
     add_subdirectory(stmc)
 endif()
 
 #if (STATIM_COMPILE_SCC)
     add_subdirectory(scc)
-#endif()
-
-#if (STATIM_COMPILE_SPBE)
-    add_subdirectory(spbe)
 #endif()

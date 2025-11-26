@@ -20,141 +20,141 @@ std::string spbe::opcode_to_string(Opcode op) {
     case INST_OP_NOP:
         return "Nop";
     case INST_OP_CONSTANT:
-        return "Constant";
+        return "ConstantOp";
     case INST_OP_STRING:
-        return "String";
+        return "StringOp";
     case INST_OP_LOAD:
-        return "Load";
+        return "LoadOp";
     case INST_OP_STORE:
-        return "Store";
+        return "StoreOp";
     case INST_OP_ACCESS_PTR:
-        return "AP";
+        return "AccessPtrOp";
     case INST_OP_SELECT:
-        return "Select";
+        return "SelectOp";
     case INST_OP_BRANCH_IF:
-        return "BranchIf";
+        return "BranchIfOp";
     case INST_OP_JUMP:
-        return "Jump";
+        return "JumpOp";
     case INST_OP_PHI:
-        return "Phi";
+        return "PhiNode";
     case INST_OP_RETURN:
-        return "Return";
+        return "ReturnOp";
     case INST_OP_ABORT:
-        return "Abort";
+        return "AbortOp";
     case INST_OP_UNREACHABLE:
-        return "Unreachable";
+        return "UnreachableOp";
     case INST_OP_CALL:
-        return "Call";
+        return "CallOp";
     case INST_OP_IADD:
-        return "IAdd";
+        return "IAddOp";
     case INST_OP_FADD:
-        return "FAdd";
+        return "FAddOp";
     case INST_OP_ISUB:
-        return "ISub";
+        return "ISubOp";
     case INST_OP_FSUB:
-        return "FSub";
+        return "FSubOp";
     case INST_OP_SMUL:
-        return "SMul";
+        return "SMulOp";
     case INST_OP_UMUL:
-        return "UMul";
+        return "UMulOp";
     case INST_OP_FMUL:
-        return "FMul";
+        return "FMulOp";
     case INST_OP_SDIV:
-        return "SDiv";
+        return "SDivOp";
     case INST_OP_UDIV:
-        return "UDiv";
+        return "UDivOp";
     case INST_OP_FDIV:
-        return "FDiv";
+        return "FDivOp";
     case INST_OP_SREM:
-        return "SRem";
+        return "SRemOp";
     case INST_OP_UREM:
-        return "URem";
+        return "URemOp";
     case INST_OP_AND:
-        return "And";
+        return "AndOp";
     case INST_OP_OR:
-        return "Or";
+        return "OrOp";
     case INST_OP_XOR:
-        return "Xor";
+        return "XorOp";
     case INST_OP_SHL:
-        return "Shl";
+        return "ShlOp";
     case INST_OP_SHR:
-        return "Shr";
+        return "ShrOp";
     case INST_OP_SAR:
-        return "Sar";
+        return "SarOp";
     case INST_OP_NOT:
-        return "Not";
+        return "NotOp";
     case INST_OP_INEG:
-        return "INeg";
+        return "INegOp";
     case INST_OP_FNEG:
-        return "FNeg";
+        return "FNegOp";
     case INST_OP_SEXT:
-        return "SExt";
+        return "SExtOp";
     case INST_OP_ZEXT:
-        return "ZExt";
+        return "ZExtOp";
     case INST_OP_FEXT:
-        return "FExt";
+        return "FExtOp";
     case INST_OP_ITRUNC:
-        return "ITrunc";
+        return "ITruncOp";
     case INST_OP_FTRUNC:
-        return "FTrunc";
+        return "FTruncOp";
     case INST_OP_SI2FP:
-        return "SI2FP";
+        return "SI2FPOp";
     case INST_OP_UI2FP:
-        return "UI2FP";
+        return "UI2FPOp";
     case INST_OP_FP2SI:
-        return "FP2SI";
+        return "FP2SIOp";
     case INST_OP_FP2UI:
-        return "FP2UI";
+        return "FP2UIOp";
     case INST_OP_P2I:
-        return "P2I";
+        return "P2IOp";
     case INST_OP_I2P:
-        return "I2P";
+        return "I2POp";
     case INST_OP_REINTERPET:
-        return "Reinterpret";
+        return "ReinterpretOp";
     case INST_OP_CMP_IEQ:
-        return "CmpIEQ";
+        return "CmpIEQOp";
     case INST_OP_CMP_INE:
-        return "CmpINE";
+        return "CmpINEOp";
     case INST_OP_CMP_OEQ:
-        return "CmpOEQ";
+        return "CmpOEQOp";
     case INST_OP_CMP_ONE:
-        return "CmpONE";
+        return "CmpONEOp";
     case INST_OP_CMP_UNEQ:
-        return "CmpUNEQ";
+        return "CmpUNEQOp";
     case INST_OP_CMP_UNNE:
-        return "CmpUNNE";
+        return "CmpUNNEOp";
     case INST_OP_CMP_SLT:
-        return "CmpSLT";
+        return "CmpSLTOp";
     case INST_OP_CMP_SLE:
-        return "CmpSLE";
+        return "CmpSLEOp";
     case INST_OP_CMP_SGT:
-        return "CmpSGT";
+        return "CmpSGTOp";
     case INST_OP_CMP_SGE:
-        return "CmpSGE";
+        return "CmpSGEOp";
     case INST_OP_CMP_ULT:
-        return "CmpULT";
+        return "CmpULTOp";
     case INST_OP_CMP_ULE:
-        return "CmpULE";
+        return "CmpULEOp";
     case INST_OP_CMP_UGT:
-        return "CmpUGT";
+        return "CmpUGTOp";
     case INST_OP_CMP_UGE:
-        return "CmpUGE";
+        return "CmpUGEOp";
     case INST_OP_CMP_OLT:
-        return "CmpOLT";
+        return "CmpOLTOp";
     case INST_OP_CMP_OLE:
-        return "CmpOLE";
+        return "CmpOLEOp";
     case INST_OP_CMP_OGT:
-        return "CmpOGT";
+        return "CmpOGTOp";
     case INST_OP_CMP_OGE:
-        return "CmpOGE";
+        return "CmpOGEOp";
     case INST_OP_CMP_UNLT:
-        return "CmpUNLT";
+        return "CmpUNLTOp";
     case INST_OP_CMP_UNLE:
-        return "CmpUNLE";
+        return "CmpUNLEOp";
     case INST_OP_CMP_UNGT:
-        return "CmpUNGT";
+        return "CmpUNGTOp";
     case INST_OP_CMP_UNGE:
-        return "CmpUNGE";
+        return "CmpUNGEOp";
     default:
         return "Unknown";
     }

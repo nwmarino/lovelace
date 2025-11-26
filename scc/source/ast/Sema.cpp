@@ -228,6 +228,9 @@ static bool is_bool_evaluable(const QualType& type) {
 }
 
 void Sema::visit(TranslationUnitDecl &node) {
+    assert(m_unit == &node && 
+        "unit is not the same as the one this sema is initialized with!");
+
     for (TagTypeDecl* tag : node.m_tags)
         tag->accept(*this);
 
@@ -283,7 +286,7 @@ void Sema::visit(FunctionDecl &node) {
 
         // Check that 'main' returns 'int'.
         const QualType& r_type = f_type->get_return_type();
-        if (r_type != BuiltinType::get_int_type(m_tctx))
+        if (r_type != BuiltinType::get_int_type(*m_tctx))
             Logger::error("'main' must return 'int'", node.get_span());
         
         // Check that main has no more than 3 parameters.
@@ -293,7 +296,7 @@ void Sema::visit(FunctionDecl &node) {
         // Check that the first parameter is of type 'int'.
         if (node.num_params() > 0) {
             const QualType& p_type = f_type->get_param_type(0);
-            if (p_type != BuiltinType::get_int_type(m_tctx)) {
+            if (p_type != BuiltinType::get_int_type(*m_tctx)) {
                 Logger::error("'main' first parameter must have type 'int'", 
                     node.get_span());
             }
@@ -302,7 +305,7 @@ void Sema::visit(FunctionDecl &node) {
         // Check that the second parameter is of type 'char**'.
         if (node.num_params() > 1) {
             const QualType& p_type = f_type->get_param_type(1);
-            if (p_type != PointerType::get_char_pp(m_tctx)) {
+            if (p_type != PointerType::get_char_pp(*m_tctx)) {
                 Logger::error("'main' second parameter must have type 'char**'", 
                     node.get_span());
             }
@@ -311,19 +314,19 @@ void Sema::visit(FunctionDecl &node) {
         // Check that the third parameter is of type 'char**'.
         if (node.num_params() > 2) {
             const QualType& p_type = f_type->get_param_type(2);
-            if (p_type != PointerType::get_char_pp(m_tctx)) {
+            if (p_type != PointerType::get_char_pp(*m_tctx)) {
                 Logger::error("'main' third parameter must have type 'char**'", 
                     node.get_span());
             }
         }
     }
 
-    m_dctx = node;
+    m_dctx = &node;
 
     if (node.has_body())
         node.m_body->accept(*this);
 
-    m_dctx = *m_dctx.get_parent();
+    m_dctx = m_dctx->get_parent();
     m_fn = nullptr;
 }
 
@@ -497,7 +500,7 @@ void Sema::visit(BinaryExpr &node) {
     }
 
     if (BinaryExpr::is_comparison(node.get_operator())) {
-        node.m_type = BuiltinType::get_int_type(m_tctx);
+        node.m_type = BuiltinType::get_int_type(*m_tctx);
         return;
     }
 
@@ -516,7 +519,7 @@ void Sema::visit(UnaryExpr &node) {
 
     switch (node.get_operator()) {
     case UnaryExpr::LogicNot:
-        node.m_type = BuiltinType::get_int_type(m_tctx);
+        node.m_type = BuiltinType::get_int_type(*m_tctx);
         break;
     
     case UnaryExpr::AddressOf:

@@ -119,6 +119,9 @@ private:
 public:
     bool operator == (const Type& other) const override;
 
+    /// Returns the kind of builtin type this is.
+    BuiltinType::Kind get_builtin_kind() const { return m_bt_kind; }
+
     /// Returns the 'void' type.
     static const BuiltinType* get_void_type(TypeContext& ctx);
 

@@ -4,37 +4,37 @@ project(spbe LANGUAGES CXX)
 
 set(SPBE_HEADERS
     #include/analysis/LLVMTranslatePass.hpp
-    include/analysis/Pass.hpp
-    include/analysis/SSARewritePass.hpp
-    include/analysis/TargetLoweringPass.hpp
-    include/analysis/TrivialDCEPass.hpp
-    include/graph/BasicBlock.hpp
-    include/graph/CFG.hpp
-    include/graph/Constant.hpp
-    include/graph/Function.hpp
-    include/graph/Global.hpp
-    include/graph/InlineAsm.hpp
-    include/graph/InstrBuilder.hpp
-    include/graph/Instruction.hpp
-    include/graph/Local.hpp
-    include/graph/Type.hpp
-    include/graph/Use.hpp
-    include/graph/User.hpp
-    include/graph/Value.hpp
-    include/machine/AsmWriter.hpp
-    include/machine/InstrSelector.hpp
-    include/machine/MachBasicBlock.hpp
-    include/machine/MachFunction.hpp
-    include/machine/MachInstruction.hpp
-    include/machine/MachObject.hpp
-    include/machine/MachOperand.hpp
-    include/machine/MachRegister.hpp
-    include/machine/RegisterAllocator.hpp
-    include/machine/RegisterAnalysis.hpp
-    include/target/Target.hpp
-    include/X64/X64.hpp
-    include/X64/X64AsmWriter.hpp
-    include/X64/X64InstrSelector.hpp
+    include/spbe/analysis/Pass.hpp
+    include/spbe/analysis/SSARewritePass.hpp
+    include/spbe/analysis/TargetLoweringPass.hpp
+    include/spbe/analysis/TrivialDCEPass.hpp
+    include/spbe/graph/BasicBlock.hpp
+    include/spbe/graph/CFG.hpp
+    include/spbe/graph/Constant.hpp
+    include/spbe/graph/Function.hpp
+    include/spbe/graph/Global.hpp
+    include/spbe/graph/InlineAsm.hpp
+    include/spbe/graph/InstrBuilder.hpp
+    include/spbe/graph/Instruction.hpp
+    include/spbe/graph/Local.hpp
+    include/spbe/graph/Type.hpp
+    include/spbe/graph/Use.hpp
+    include/spbe/graph/User.hpp
+    include/spbe/graph/Value.hpp
+    include/spbe/machine/AsmWriter.hpp
+    include/spbe/machine/InstrSelector.hpp
+    include/spbe/machine/MachBasicBlock.hpp
+    include/spbe/machine/MachFunction.hpp
+    include/spbe/machine/MachInstruction.hpp
+    include/spbe/machine/MachObject.hpp
+    include/spbe/machine/MachOperand.hpp
+    include/spbe/machine/MachRegister.hpp
+    include/spbe/machine/RegisterAllocator.hpp
+    include/spbe/machine/RegisterAnalysis.hpp
+    include/spbe/target/Target.hpp
+    include/spbe/X64/X64.hpp
+    include/spbe/X64/X64AsmWriter.hpp
+    include/spbe/X64/X64InstrSelector.hpp
 )
 
 set(SPBE_SOURCES

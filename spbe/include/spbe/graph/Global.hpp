@@ -18,7 +18,7 @@ class CFG;
 class Global final : public Constant {
 public:
     /// Recognized linkage types for global data.
-    enum class LinkageType : uint8_t {
+    enum LinkageType : uint8_t {
         Internal = 0, External,
     };
 

@@ -126,10 +126,10 @@ class DeclStmt final : public Stmt {
     friend class Codegen;
 
     /// The nested declarations in this statement.
-    vector<const Decl*> m_decls;
+    vector<Decl*> m_decls;
 
 public:
-    DeclStmt(const SourceSpan& span, const vector<const Decl*>& decls)
+    DeclStmt(const SourceSpan& span, const vector<Decl*>& decls)
         : Stmt(Kind::Declaration, span), m_decls(decls) {}
         
     DeclStmt(const DeclStmt&) = delete;
@@ -139,8 +139,8 @@ public:
     uint32_t num_decls() const { return m_decls.size(); }
 
     /// Returns the list of declarations in this statement.
-    const vector<const Decl*>& get_decls() const { return m_decls; }
-    vector<const Decl*>& get_decls() { return m_decls; }
+    const vector<Decl*>& get_decls() const { return m_decls; }
+    vector<Decl*>& get_decls() { return m_decls; }
 
     /// Returns the first declaration that is part of this statement.
     const Decl* get_decl() const { 
