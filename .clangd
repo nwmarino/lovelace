@@ -1,7 +1,5 @@
 CompileFlags:
   Add: [
-    "-Icompiler/include",
     "-std=c++20",
-    "-I/usr/lib/llvm/19/include",
     "-stdlib=libstdc++"
   ]

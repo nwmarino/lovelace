@@ -16,9 +16,9 @@ find_package(GTest REQUIRED)
     add_subdirectory(spbe)
 #endif()
 
-if (STATIM_COMPILE_STMC)
+#if (STATIM_COMPILE_STMC)
     add_subdirectory(stmc)
-endif()
+#endif()
 
 #if (STATIM_COMPILE_SCC)
     add_subdirectory(scc)

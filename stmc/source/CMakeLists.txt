@@ -1,5 +1,0 @@
-add_subdirectory(core)
-add_subdirectory(siir)
-add_subdirectory(tree)
-add_subdirectory(types)
-add_subdirectory(x64)

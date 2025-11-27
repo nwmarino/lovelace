@@ -1,16 +1,22 @@
-#ifndef STATIM_TOKEN_HPP_
-#define STATIM_TOKEN_HPP_
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
 
-#include "source_location.hpp"
-#include "types.hpp"
+#ifndef STATIM_TOKEN_H_
+#define STATIM_TOKEN_H_
+
+#include "stmc/types/SourceLocation.hpp"
 
 #include <string>
 
 namespace stm {
 
+using std::string;
+
 /// Different kinds of tokens & literals.
-enum TokenKind : u8 {
-    TOKEN_KIND_END_OF_FILE = 0x0,
+enum TokenKind : uint32_t {
+    TOKEN_KIND_END_OF_FILE,
     TOKEN_KIND_IDENTIFIER,
     TOKEN_KIND_SET_PAREN,
     TOKEN_KIND_END_PAREN,
@@ -67,24 +73,34 @@ enum TokenKind : u8 {
     TOKEN_KIND_STRING,
 };
 
-std::string token_kind_to_string(TokenKind kind);
-
 /// Represents a token lexed from source.
 struct Token final {
-    SourceLocation  loc;
-    TokenKind       kind;
-    std::string     value;
+    /// The kind of token this is.
+    TokenKind kind;
 
-    Token(SourceLocation loc, 
-          TokenKind kind = TOKEN_KIND_END_OF_FILE, 
-          const std::string& value = "") 
-        : loc(loc), kind(kind), value(value) {};
+    /// The location of this token in source.
+    SourceLocation loc;    
+     
+    /// The attached value of this token for literals and identifiers. 
+    string value;
+
+    Token() = default;
+
+    Token(TokenKind kind, SourceLocation loc) 
+        : kind(kind), loc(loc) {}
+    
+    Token(TokenKind kind, SourceLocation loc, const string& value)
+        : kind(kind), loc(loc), value(value) {}
 
     bool operator == (const Token& other) const {
         return kind == other.kind && loc == other.loc && value == other.value;
+    }
+
+    bool operator != (const Token& other) const {
+        return kind != other.kind || loc != other.loc || value != other.value;
     }
 };
 
 } // namespace stm
 
-#endif // STATIM_TOKEN_HPP_
+#endif // STATIM_TOKEN_H_
