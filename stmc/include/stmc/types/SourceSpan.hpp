@@ -17,25 +17,35 @@ struct SourceSpan final {
 
     SourceSpan() = default;
 
-    SourceSpan(const SourceLocation& loc)
+    SourceSpan(SourceLocation loc)
         : start(loc), end(loc) {}
 
-    SourceSpan(const SourceLocation& start, const SourceLocation& end) 
+    SourceSpan(SourceLocation start, SourceLocation end) 
         : start(start), end(end) {}
 
-    bool operator == (const SourceSpan& other) const {
+    SourceSpan(const SourceSpan& other) {
+        start = other.start;
+        end = other.end;
+    }
+
+    void operator=(const SourceSpan& other) {
+        start = other.start;
+        end = other.end;
+    }
+
+    bool operator==(const SourceSpan& other) const {
         return start == other.start && end == other.end;
     }
 
-    bool operator != (const SourceSpan& other) const {
+    bool operator!=(const SourceSpan& other) const {
         return start != other.start || end != other.end;
     }
 
-    bool operator < (const SourceSpan& other) const {
+    bool operator<(const SourceSpan& other) const {
         return start < other.start && end < other.end;
     }
 
-    bool operator > (const SourceSpan& other) const {
+    bool operator>(const SourceSpan& other) const {
         return start > other.start && end > other.end;
     }
 };

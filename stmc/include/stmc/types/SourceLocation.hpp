@@ -16,25 +16,34 @@ using std::string;
 /// Representation of a location in source code.
 struct SourceLocation final {
     /// The line and column in source code this location refers to.
-    uint16_t line = 1, col = 1;
+    uint16_t line, col;
 
-    SourceLocation() = default;
+    SourceLocation(uint16_t line = 1, uint16_t col = 1) 
+        : line(line), col(col) {}
 
-    SourceLocation(uint16_t line, uint16_t col) : line(line), col(col) {}
+    SourceLocation(const SourceLocation& other) {
+        line = other.line;
+        col = other.col;
+    }
 
-    bool operator == (const SourceLocation& other) const {
+    void operator=(const SourceLocation& other) {
+        line = other.line;
+        col = other.col;
+    }
+
+    bool operator==(const SourceLocation& other) const {
         return line == other.line && col == other.col;
     }
 
-    bool operator != (const SourceLocation& other) const {
+    bool operator!=(const SourceLocation& other) const {
         return line != other.line || col != other.col;
     }
 
-    bool operator < (const SourceLocation& other) const {
+    bool operator<(const SourceLocation& other) const {
         return line < other.line && col < other.col;
     }
 
-    bool operator > (const SourceLocation& other) const {
+    bool operator>(const SourceLocation& other) const {
         return line > other.line && col > other.col;
     }
 };

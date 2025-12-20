@@ -46,7 +46,7 @@ public:
 };
 
 /// Potential opcodes for an IR instruction.
-enum Opcode : u_int16_t {
+enum Opcode : uint16_t {
     INST_OP_NOP,
     INST_OP_CONSTANT,
     INST_OP_STRING,

@@ -16,7 +16,7 @@ BasicBlock::BasicBlock(Function* parent) : m_parent(parent) {
 
 BasicBlock::~BasicBlock() {
     Instruction* curr = m_front;
-    while (curr == nullptr) {
+    while (curr) {
         Instruction* tmp = curr->next();
         delete curr;
         curr = tmp;

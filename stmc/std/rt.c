@@ -1,4 +1,15 @@
-// clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -c rt.c
+//
+// Copyright (c) 2025 Nick Marino
+// All rights reserved.
+//
+
+//
+// The following source is an early C implementation of runtime standard 
+// library functions. It can be compiled using an ordinary C compiler, but
+// requires special flags to waive away special libc things:
+//
+// clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -c <file>.c
+//
 
 void __attribute__((noreturn)) exit(long code) {
     asm volatile (
