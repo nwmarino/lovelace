@@ -58,9 +58,19 @@ int32_t main(int32_t argc, char** argv) {
     vector<string> files = { "samples/return_zero.stm" };
     vector<TranslationUnitDecl*> units = {};
 
-    for (int32_t i = 1; i < argc; ++i)
-        files.push_back(string(argv[i]));
-    
+    for (int32_t i = 1; i < argc; ++i) {
+        string arg = argv[i];
+
+        if (arg == "-o") {
+            if (i + 1 == argc)
+                diags.fatal("expected filename after -o");
+
+            options.output = argv[++i];
+        } else {
+            files.push_back(arg);
+        }
+    }
+
     if (files.empty())
         diags.fatal("no input files");
 

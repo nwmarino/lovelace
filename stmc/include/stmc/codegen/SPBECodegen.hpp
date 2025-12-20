@@ -74,7 +74,6 @@ class SPBECodegen final : public Visitor {
     void gen_binary_logical_or(BinaryOp& op);
         
     void gen_unary_addition(UnaryOp& op);
-    void gen_unary_memory(UnaryOp& op);
     void gen_unary_negation(UnaryOp& op);
     void gen_unary_bitwise_not(UnaryOp& op);
     void gen_unary_logical_not(UnaryOp& op);

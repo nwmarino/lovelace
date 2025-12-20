@@ -5,9 +5,9 @@
 
 #include "stmc/tree/Context.hpp"
 #include "stmc/tree/Decl.hpp"
-#include <cassert>
-#include <sys/ucontext.h>
 #include "stmc/tree/Type.hpp"
+
+#include <cassert>
 
 using namespace stm;
 

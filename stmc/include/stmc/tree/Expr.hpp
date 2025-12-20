@@ -326,12 +326,12 @@ public:
 
     /// Test if the operator \p op can be used as a prefix operator.
     static bool is_prefix(Operator op) {
-        return op == Increment || op == Decrement;
+        return op != Unknown;
     }
 
     /// Test if the operator \p op can be used as a prefix operator.
     static bool is_postfix(Operator op) {
-        return op != Unknown;
+        return op == Increment || op == Decrement;
     }
 
 private:

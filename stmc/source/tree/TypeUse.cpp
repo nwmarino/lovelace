@@ -9,7 +9,7 @@
 using namespace stm;
 
 bool TypeUse::compare(const TypeUse& other) const {
-    return m_quals == other.m_quals && m_type->compare(other);
+    return /*m_quals == other.m_quals &&*/ m_type->compare(other);
 }
 
 bool TypeUse::can_cast(const TypeUse& other, bool implicitly) const {

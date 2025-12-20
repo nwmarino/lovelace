@@ -61,10 +61,6 @@ void SPBECodegen::gen_unary_addition(UnaryOp& op) {
 
 }
 
-void SPBECodegen::gen_unary_memory(UnaryOp& op) {
-
-}
-
 void SPBECodegen::gen_unary_negation(UnaryOp& op) {
 
 }
@@ -177,9 +173,26 @@ void SPBECodegen::visit(UnaryOp& node) {
     case UnaryOp::Decrement:
         return gen_unary_addition(node);
 
-    case UnaryOp::AddressOf:
-    case UnaryOp::Dereference:
-        return gen_unary_memory(node);
+    case UnaryOp::AddressOf: {
+        m_vctx = LValue;
+        node.get_expr()->accept(*this);
+        assert(m_temp && "'&' base does not produce a value!");
+        return;
+    }
+    
+    case UnaryOp::Dereference: {
+        ValueContext ctx = m_vctx;
+        m_vctx = RValue;
+        node.get_expr()->accept(*this);
+        assert(m_temp && "'*' base does not produce a value!");
+
+        if (ctx == RValue) {
+            const spbe::Type* type = lower_type_to_spbe(node.get_type());
+            m_temp = m_builder.build_load(type, m_temp);
+        }
+
+        return;
+    }
 
     case UnaryOp::Negate:
         return gen_unary_negation(node);

@@ -1,14 +1,7 @@
-bar :: () -> s64 {
-    ret 6;
-}
-
-lock :: mut s64;
-
-test :: () -> s64 {
-    ret bar();
-}
-
 main :: () -> s64 {
-    lock = 42;
-    ret lock;
+    let x: s64 = 42;
+    let y: *s64 = &x;
+    let z: s64 = *y;
+
+    ret z;
 }
