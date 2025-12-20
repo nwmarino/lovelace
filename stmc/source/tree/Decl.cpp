@@ -46,8 +46,8 @@ VariableDecl::~VariableDecl() {
 
 VariableDecl* VariableDecl::create(
         Context &ctx, SourceSpan span, const string &name, const RuneVec &runes, 
-        const TypeUse &type, Expr *init) {
-    return new VariableDecl(span, name, runes, type, init);
+        const TypeUse &type, Expr *init, bool global) {
+    return new VariableDecl(span, name, runes, type, init, global);
 }
 
 ParameterDecl* ParameterDecl::create(

@@ -23,11 +23,11 @@ static void print_global(std::ostream& os, Global* global) {
 
     switch (global->get_linkage()) {
     case Global::LinkageType::Internal:
-        os << "$internal ";
+        os << "int ";
         break;
 
     case Global::LinkageType::External:
-        os << "$external ";
+        os << "ext ";
         break;
     }
 

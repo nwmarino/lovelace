@@ -95,6 +95,37 @@ Decl* Parser::parse_binding_declaration(const Token name) {
 
         m_scope->add(FN);
         return FN;
+    } else if (expect("struct")) {
+
+    } else if (expect("enum")) {
+
+    } else {
+        // Assume global variable declaration.
+        
+        TypeUse type = parse_type();
+
+        Expr* init = nullptr;
+        SourceLocation end = loc();
+        
+        if (expect(Token::Eq)) {
+            init = parse_initial_expression();
+            end = init->get_span().end;
+        }
+
+        // Semis are not strictly necessary, but are not disallowed either.
+        while (expect(Token::Semi));
+
+        VariableDecl* var = VariableDecl::create(
+            *m_context, 
+            SourceSpan(name.loc, end), 
+            name.value, 
+            {}, 
+            type, 
+            init, 
+            true);
+
+        m_scope->add(var);
+        return var;
     }
 
     return nullptr;

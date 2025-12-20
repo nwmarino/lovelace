@@ -2,10 +2,13 @@ bar :: () -> s64 {
     ret 6;
 }
 
+lock :: mut s64;
+
 test :: () -> s64 {
     ret bar();
 }
 
 main :: () -> s64 {
-    ret test();
+    lock = 42;
+    ret lock;
 }

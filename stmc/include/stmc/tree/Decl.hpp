@@ -190,14 +190,17 @@ class VariableDecl final : public ValueDecl {
     // The initializing expression of this variable, if there is one.
     Expr* m_init;
 
+    // If this is a global variable.
+    bool m_global;
+
     VariableDecl(SourceSpan span, const string& name, const RuneVec& runes, 
-                 const TypeUse& type, Expr* init)
-      : ValueDecl(span, name, runes, type), m_init(init) {}
+                 const TypeUse& type, Expr* init, bool global)
+      : ValueDecl(span, name, runes, type), m_init(init), m_global(global) {}
 
 public:
     static VariableDecl* create(Context& ctx, SourceSpan span, 
                                 const string& name, const RuneVec& runes, 
-                                const TypeUse& type, Expr* init);
+                                const TypeUse& type, Expr* init, bool global);
 
     ~VariableDecl() override;
 
@@ -213,6 +216,8 @@ public:
 
     const Expr* get_init() const { return m_init; }
     Expr* get_init() { return m_init; }
+
+    bool is_global() const { return m_global; }
 };
 
 /// Represents a function parameter declaration.

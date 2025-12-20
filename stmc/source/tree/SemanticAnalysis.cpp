@@ -16,14 +16,8 @@ using namespace stm;
 
 /// Test if \p type can be evaluated to a boolean (either trivially or through 
 /// a comparison).
-static bool is_boolean_evaluable(const Type* type) {
-    if (const BuiltinType* BT = dynamic_cast<const BuiltinType*>(type)) {
-        return BT->get_kind() != BuiltinType::Void;
-    } else if (const PointerType* PT = dynamic_cast<const PointerType*>(type)) {
-        return true;
-    }
-
-    return false;
+static inline bool is_boolean_evaluable(const Type* type) {
+    return type->is_integer() || type->is_floating_point() || type->is_pointer();
 }
 
 SemanticAnalysis::TypeCheckResult SemanticAnalysis::type_check(
@@ -48,6 +42,9 @@ void SemanticAnalysis::visit(VariableDecl& node) {
         init->accept(*this);
 
         const SourceSpan span = node.get_span();
+        if (node.is_global() && !init->is_constant())
+            m_diags.fatal("globals cannot be initialized with non-constants", span);
+
         const TypeUse& actual = init->get_type();
         const TypeUse& expected = node.get_type();
 
@@ -60,8 +57,6 @@ void SemanticAnalysis::visit(VariableDecl& node) {
                 *m_context, init->get_span(), expected, init);
         }
     }
-
-    // @Todo: check that global variables are initialized with constants only.
 }
 
 void SemanticAnalysis::visit(FunctionDecl& node) {
@@ -94,7 +89,7 @@ void SemanticAnalysis::visit(RetStmt& node) {
  
     if (!node.has_expr()) {
         if (!m_function->returns_void())
-            m_diags.fatal("function does not return void", span);
+            m_diags.fatal("function does not return 'void'", span);
 
         return;
     }

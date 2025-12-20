@@ -135,7 +135,8 @@ Stmt* Parser::parse_declarative_statement() {
         name, 
         {}, 
         type, 
-        init);
+        init,
+        false);
 
     m_scope->add(var);
     return DeclStmt::create(*m_context, var);

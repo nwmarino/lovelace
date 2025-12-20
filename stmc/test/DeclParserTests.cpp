@@ -94,4 +94,34 @@ TEST_F(DeclParserTests, FunctionParameters) {
     EXPECT_EQ(P2->get_type().to_string(), "char");
 }
 
+TEST_F(DeclParserTests, Global) {
+    Parser parser(diags, "test", "glob :: s64");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    VariableDecl* VD = dynamic_cast<VariableDecl*>(unit->get_decls()[0]);
+    EXPECT_NE(VD, nullptr);
+    EXPECT_EQ(VD->get_name(), "glob");
+    EXPECT_EQ(VD->get_type().to_string(), "s64");
+    EXPECT_FALSE(VD->has_init());
+}
+
+TEST_F(DeclParserTests, GlobalWithInitializer) {
+    Parser parser(diags, "test", "glob :: s64 = 5");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    VariableDecl* VD = dynamic_cast<VariableDecl*>(unit->get_decls()[0]);
+    EXPECT_NE(VD, nullptr);
+    EXPECT_EQ(VD->get_name(), "glob");
+    EXPECT_EQ(VD->get_type().to_string(), "s64");
+    EXPECT_TRUE(VD->has_init());
+
+    IntegerLiteral* IL = dynamic_cast<IntegerLiteral*>(VD->get_init());
+    EXPECT_NE(IL, nullptr);
+    EXPECT_EQ(IL->get_value(), 5);
+}
+
 } // namespace stm::test

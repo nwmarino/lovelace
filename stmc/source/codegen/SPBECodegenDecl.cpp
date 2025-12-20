@@ -3,6 +3,7 @@
 // All rights reserved.
 //
 
+#include "spbe/graph/Global.hpp"
 #include "stmc/codegen/SPBECodegen.hpp"
 #include "stmc/tree/Decl.hpp"
 
@@ -15,11 +16,33 @@
 using namespace stm;
 
 void SPBECodegen::declare_spbe_global(VariableDecl& decl) {
+    const spbe::Type* type = lower_type_to_spbe(decl.get_type());
 
+    spbe::Global::LinkageType linkage = spbe::Global::Internal;
+
+    spbe::Global* GL = new spbe::Global(
+        m_graph,
+        type,
+        linkage,
+        !decl.get_type().is_mut(),
+        decl.get_name());
 }
 
 void SPBECodegen::define_spbe_global(VariableDecl& decl) {
+    if (!decl.has_init())
+        return;    
 
+    spbe::Global* GL = m_graph.get_global(decl.get_name());
+    assert(GL && "global has not been defined yet!");
+
+    m_vctx = RValue;
+    decl.get_init()->accept(*this);
+    assert(m_temp && "global variable initializer does not produce a value!");
+
+    spbe::Constant* init = dynamic_cast<spbe::Constant*>(m_temp);
+    assert(init && "global variable initializer is not a constant!");
+
+    GL->set_initializer(init);
 }
 
 void SPBECodegen::declare_spbe_function(FunctionDecl& decl) {
@@ -110,7 +133,15 @@ void SPBECodegen::visit(TranslationUnitDecl& node) {
 void SPBECodegen::visit(VariableDecl& node) {
     const spbe::Type* type = lower_type_to_spbe(node.get_type());
 
-    // @Todo: perform special logic for globals.
+    if (node.is_global()) {
+        if (m_phase == Declare) {
+            declare_spbe_global(node);
+        } else if (m_phase == Define) {
+            define_spbe_global(node);
+        }
+
+        return;
+    }
 
     spbe::Local* local = new spbe::Local(
         m_graph, 

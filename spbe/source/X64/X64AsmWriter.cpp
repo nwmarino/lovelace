@@ -7,6 +7,7 @@
 #include "spbe/graph/CFG.hpp"
 #include "spbe/graph/Constant.hpp"
 #include "spbe/graph/Function.hpp"
+#include "spbe/graph/Type.hpp"
 #include "spbe/machine/MachOperand.hpp"
 #include "spbe/machine/MachFunction.hpp"
 #include "spbe/machine/MachRegister.hpp"
@@ -444,16 +445,21 @@ void X64AsmWriter::write_global(std::ostream& os, const Global& global) {
         os << "\t.global" << global.get_name() << '\n';
 
     const auto& target = m_object.get_target();
-    const auto& initializer = global.get_initializer();
-    const uint32_t align = target->get_type_align(initializer->get_type()),
-                   size = target->get_type_size(initializer->get_type());
+
+    const Type* type = static_cast<const PointerType*>(
+        global.get_type())->get_pointee();
+
+    const Constant* initializer = global.get_initializer();
+    const uint32_t align = target->get_type_align(type);
+    const uint32_t size = target->get_type_size(type);
 
     os << "\t.align\t" << align << '\n'
        << "\t.type\t" << global.get_name() << ",@object\n"
        << "\t.size\t" << global.get_name() << ',' << size << '\n'
        << global.get_name() << ":\n";
 
-    write_constant(os, *initializer);
+    if (initializer)
+        write_constant(os, *initializer);
 }
 
 void X64AsmWriter::run(std::ostream& os) {

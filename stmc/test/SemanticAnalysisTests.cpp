@@ -220,4 +220,48 @@ TEST_F(SemanticAnalysisTests, TypeCheck_CastReturn_Positive) {
     EXPECT_NO_FATAL_FAILURE(unit->accept(sema));
 }
 
+TEST_F(SemanticAnalysisTests, Mutability_Assignment_Positive) {
+    Parser parser(diags, "test", "foo :: () -> s64 { let x: mut s64 = 5; x = 5; ret x; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
+
+    SemanticAnalysis sema(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(sema));
+}
+
+TEST_F(SemanticAnalysisTests, Mutability_Assignment_Negative) {
+    Parser parser(diags, "test", "foo :: () -> s64 { let x: s64 = 5; x = 5; ret x; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
+
+    SemanticAnalysis sema(diags, opts);
+    EXPECT_DEATH(unit->accept(sema), "");
+}
+
+TEST_F(SemanticAnalysisTests, Mutability_Increment_Positive) {
+    Parser parser(diags, "test", "foo :: () -> s64 { let x: mut s64 = 5; ret x++; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
+
+    SemanticAnalysis sema(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(sema));
+}
+
+TEST_F(SemanticAnalysisTests, Mutability_Decrement_Negative) {
+    Parser parser(diags, "test", "foo :: () -> s64 { let x: s64 = 5; ret --x; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
+
+    SemanticAnalysis sema(diags, opts);
+    EXPECT_DEATH(unit->accept(sema), "");
+}
+
 } // namespace stm::test

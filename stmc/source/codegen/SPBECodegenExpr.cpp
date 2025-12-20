@@ -219,10 +219,13 @@ void SPBECodegen::visit(DeclRefExpr& node) {
         
         return;
     } else if (auto variable = dynamic_cast<const VariableDecl*>(node.get_decl())) {
-        // @Todo: check if variable is a global, and get it from graph globals.
-
-        m_temp = m_function->get_local(node.get_name());
-        assert(m_temp && "local not declared yet!");
+        if (variable->is_global()) {
+            m_temp = m_graph.get_global(node.get_name());
+            assert(m_temp && "global not declared for variable!");
+        } else {
+            m_temp = m_function->get_local(node.get_name());
+            assert(m_temp && "local not declared for variable!");
+        }
 
         if (m_vctx == RValue)
             m_temp = m_builder.build_load(lower_type_to_spbe(node.get_type()), m_temp);
