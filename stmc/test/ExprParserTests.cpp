@@ -21,7 +21,7 @@ protected:
     TranslationUnitDecl* unit;
 
     void SetUp() override {
-        diags = {};
+        diags = Diagnostics(&std::cerr, false);
         unit = nullptr;
     }
 

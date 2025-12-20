@@ -35,7 +35,29 @@ Decl* Parser::parse_binding_declaration(const Token name) {
         params.reserve(2);
 
         while (!expect(Token::EndParen)) {
-            // Parse function parameters.
+            if (!match(Token::Identifier))
+                m_diags.fatal("expected parameter name", loc());
+
+            const SourceLocation param_start = loc();
+            string param_name = last().value;
+            next();
+
+            if (!expect(Token::Colon))
+                m_diags.fatal("expected parameter type", loc());
+
+            TypeUse param_type = parse_type();
+
+            ParameterDecl* param = ParameterDecl::create(
+                *m_context, since(param_start), param_name, param_type);
+
+            m_scope->add(param);
+            params.push_back(param);
+
+            if (expect(Token::EndParen))
+                break;
+
+            if (!expect(Token::Comma))
+                m_diags.fatal("expected ','", loc());
         }
 
         params.shrink_to_fit();

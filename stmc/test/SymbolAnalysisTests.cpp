@@ -32,7 +32,7 @@ protected:
     }
 };
 
-TEST_F(SymbolAnalysisTests, BasicRef_Positive) {
+TEST_F(SymbolAnalysisTests, VariableRef_Positive) {
     Parser parser(diags, "test", "test :: () -> s64 { let x: s64 = 0; ret x; }");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
@@ -40,12 +40,28 @@ TEST_F(SymbolAnalysisTests, BasicRef_Positive) {
     EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
 }
 
-TEST_F(SymbolAnalysisTests, BasicRef_Negative) {
+TEST_F(SymbolAnalysisTests, VariableRef_Negative) {
     Parser parser(diags, "test", "test :: () -> s64 { let x: s64 = 0; ret y; }");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     SymbolAnalysis syma(diags, opts);
     EXPECT_DEATH(unit->accept(syma), "");
+}
+
+TEST_F(SymbolAnalysisTests, CalleeRef_Positive) {
+    Parser parser(diags, "test", "foo :: () -> s64 { ret bar(); } bar :: () -> s64 { ret 0; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
+}
+
+TEST_F(SymbolAnalysisTests, ParamRef_Positive) {
+    Parser parser(diags, "test", "foo :: (a: s64) -> s64 { ret a; }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    SymbolAnalysis syma(diags, opts);
+    EXPECT_NO_FATAL_FAILURE(unit->accept(syma));
 }
 
 } // namespace stm::test
