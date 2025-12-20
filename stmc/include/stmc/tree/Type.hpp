@@ -125,7 +125,7 @@ public:
                                 uint32_t size);
 
     string to_string() const override {
-        return m_element.to_string() + '[' + std::to_string(m_size) + ']';
+        return '[' + std::to_string(m_size) + ']' + m_element.to_string();
     }
 
     const TypeUse& get_element_type() const { return m_element; }
@@ -146,7 +146,7 @@ public:
 
     bool is_pointer() const override { return true; }
 
-    string to_string() const override { return m_pointee.to_string() + '*'; }
+    string to_string() const override { return '*' + m_pointee.to_string(); }
 
     const TypeUse& get_pointee() const { return m_pointee; }
 };

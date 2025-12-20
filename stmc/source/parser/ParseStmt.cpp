@@ -115,8 +115,7 @@ Stmt* Parser::parse_declarative_statement() {
     if (!expect(Token::Colon))
         m_diags.fatal("expected ':'", loc());
 
-    TypeUse type;
-    parse_type_specifier(type);
+    TypeUse type = parse_type();
 
     SourceLocation end = loc();
     Expr* init = nullptr;

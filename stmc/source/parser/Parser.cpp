@@ -11,6 +11,7 @@
 #include "stmc/tree/Type.hpp"
 
 #include <cstring>
+#include <string>
 
 using namespace stm;
 
@@ -76,53 +77,56 @@ void Parser::exit_scope() {
     m_scope = m_scope->get_parent();
 }
 
-void Parser::parse_type_specifier(TypeUse& type) {
-    if (!match(Token::Identifier))
+TypeUse Parser::parse_type() {
+    TypeUse type = {};
+
+    while (expect("mut")) {
+        if (type.is_mut()) {
+            m_diags.warn("duplicate 'mut' keyword", loc());
+        } else {
+            type.as_mut();
+        }
+    }
+    
+    if (expect(Token::Star)) {
+        type.set_type(PointerType::get(*m_context, parse_type()));
+        return type;
+    } else if (expect(Token::SetBrack)) {
+        if (!match(Token::Integer))
+            m_diags.fatal("expected integer after '['", loc());
+
+        int32_t size = std::stoi(last().value);
+        if (size <= 0)
+            m_diags.fatal("array size must be greater than 0", loc());
+
+        next();
+
+        if (!expect(Token::EndBrack))
+            m_diags.fatal("expected ']'", loc());
+
+        type.set_type(ArrayType::get(*m_context, parse_type(), size));
+        return type;
+    } else if (match(Token::Identifier)) {
+        unordered_map<string, const Type*> types = {
+            { "void", BuiltinType::get(*m_context, BuiltinType::Void) },
+            { "bool", BuiltinType::get(*m_context, BuiltinType::Bool) },
+            { "char", BuiltinType::get(*m_context, BuiltinType::Char) },
+            { "s8", BuiltinType::get(*m_context, BuiltinType::Int8) },
+            { "s16", BuiltinType::get(*m_context, BuiltinType::Int16) },
+            { "s32", BuiltinType::get(*m_context, BuiltinType::Int32) },
+            { "s64", BuiltinType::get(*m_context, BuiltinType::Int64) },
+            { "u8", BuiltinType::get(*m_context, BuiltinType::UInt8) },
+            { "u16", BuiltinType::get(*m_context, BuiltinType::UInt16) },
+            { "u32", BuiltinType::get(*m_context, BuiltinType::UInt32) },
+            { "u64", BuiltinType::get(*m_context, BuiltinType::UInt64) },
+            { "f32", BuiltinType::get(*m_context, BuiltinType::Float32) },
+            { "f64", BuiltinType::get(*m_context, BuiltinType::Float64) },
+        };
+
+        type.set_type(types.at(last().value));
+        next();
+        return type;
+    } else {
         m_diags.fatal("expected type identifier", loc());
-
-    while (expect("mut")) {
-        if (type.is_mut()) {
-            m_diags.warn("duplicate 'mut' keyword", loc());
-        } else {
-            type.as_mut();
-        }
-
-        if (!match(Token::Identifier))
-            m_diags.fatal("expected type identifier after 'mut'", loc());
     }
-
-    unordered_map<string, const Type*> types = {
-        { "void", BuiltinType::get(*m_context, BuiltinType::Void) },
-        { "bool", BuiltinType::get(*m_context, BuiltinType::Bool) },
-        { "char", BuiltinType::get(*m_context, BuiltinType::Char) },
-        { "s8", BuiltinType::get(*m_context, BuiltinType::Int8) },
-        { "s16", BuiltinType::get(*m_context, BuiltinType::Int16) },
-        { "s32", BuiltinType::get(*m_context, BuiltinType::Int32) },
-        { "s64", BuiltinType::get(*m_context, BuiltinType::Int64) },
-        { "u8", BuiltinType::get(*m_context, BuiltinType::UInt8) },
-        { "u16", BuiltinType::get(*m_context, BuiltinType::UInt16) },
-        { "u32", BuiltinType::get(*m_context, BuiltinType::UInt32) },
-        { "u64", BuiltinType::get(*m_context, BuiltinType::UInt64) },
-        { "f32", BuiltinType::get(*m_context, BuiltinType::Float32) },
-        { "f64", BuiltinType::get(*m_context, BuiltinType::Float64) },
-    };
-
-    type.set_type(types[last().value]);
-    next();
-
-    while (expect(Token::Star))
-        type = PointerType::get(*m_context, type);
-
-    /*
-    @Todo: support mutable pointer types, the previous mut modifiers effect the
-    pointee only.
-
-    while (expect("mut")) {
-        if (type.is_mut()) {
-            m_diags.warn("duplicate 'mut' keyword", loc());
-        } else {
-            type.as_mut();
-        }
-    }
-    */
 }

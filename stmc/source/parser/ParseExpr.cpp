@@ -319,8 +319,7 @@ Expr* Parser::parse_type_cast() {
     if (!expect(Token::Left))
         m_diags.fatal("expected '<'", loc());
 
-    TypeUse type;
-    parse_type_specifier(type);
+    TypeUse type = parse_type();
 
     if (!expect(Token::Right))
         m_diags.fatal("expected '>'", loc());
@@ -363,8 +362,7 @@ Expr* Parser::parse_sizeof_operator() {
     if (!expect(Token::SetParen))
         m_diags.fatal("expected '('", loc());
 
-    TypeUse type;
-    parse_type_specifier(type);
+    TypeUse type = parse_type();
 
     if (!match(Token::EndParen))
         m_diags.fatal("expected ')'", loc());

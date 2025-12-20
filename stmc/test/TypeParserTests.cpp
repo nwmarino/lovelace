@@ -51,7 +51,7 @@ TEST_F(TypeParserTests, BuiltinType) {
 }
 
 TEST_F(TypeParserTests, PointerType) {
-    Parser parser(diags, "test", "test :: () -> bool*;");
+    Parser parser(diags, "test", "test :: () -> *bool;");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
@@ -60,7 +60,7 @@ TEST_F(TypeParserTests, PointerType) {
     EXPECT_NE(FD, nullptr);
 
     const TypeUse& return_type = FD->get_return_type();
-    EXPECT_EQ(return_type.to_string(), "bool*");
+    EXPECT_EQ(return_type.to_string(), "*bool");
 
     const PointerType* PT = dynamic_cast<const PointerType*>(return_type.get_type());
     EXPECT_NE(PT, nullptr);
@@ -91,35 +91,8 @@ TEST_F(TypeParserTests, MutableType) {
     EXPECT_EQ(BT->get_kind(), BuiltinType::Void);
 }
 
-TEST_F(TypeParserTests, PointerToMutableType) {
-    Parser parser(diags, "test", "test :: () -> mut void*;");
-    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
-
-    EXPECT_EQ(unit->num_decls(), 1);
-
-    FunctionDecl* FD = dynamic_cast<FunctionDecl*>(unit->get_decls()[0]);
-    EXPECT_NE(FD, nullptr);
-
-    const TypeUse& return_type = FD->get_return_type();
-    EXPECT_FALSE(return_type.is_mut());
-    EXPECT_EQ(return_type.to_string(), "mut void*");
-
-    const PointerType* PT = dynamic_cast<const PointerType*>(return_type.get_type());
-    EXPECT_NE(PT, nullptr);
-    EXPECT_EQ(PT->to_string(), "mut void*");
-
-    const TypeUse& pointee = PT->get_pointee();
-    EXPECT_TRUE(pointee.is_mut());
-    EXPECT_EQ(pointee.to_string(), "mut void");
-
-    const BuiltinType* BT = dynamic_cast<const BuiltinType*>(pointee.get_type());
-    EXPECT_NE(BT, nullptr);
-    EXPECT_EQ(BT->get_kind(), BuiltinType::Void);
-}
-
-/*
-TEST_F(TypeParserTests, MutablePointerToMutableType) {
-    Parser parser(diags, "test", "test :: () -> mut void* mut;");
+TEST_F(TypeParserTests, MutablePointerToVoidType) {
+    Parser parser(diags, "test", "test :: () -> mut *void;");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);
@@ -129,11 +102,37 @@ TEST_F(TypeParserTests, MutablePointerToMutableType) {
 
     const TypeUse& return_type = FD->get_return_type();
     EXPECT_TRUE(return_type.is_mut());
-    EXPECT_EQ(return_type.to_string(), "mut void* mut");
+    EXPECT_EQ(return_type.to_string(), "mut *void");
 
     const PointerType* PT = dynamic_cast<const PointerType*>(return_type.get_type());
     EXPECT_NE(PT, nullptr);
-    EXPECT_EQ(PT->to_string(), "mut void*");
+    EXPECT_EQ(PT->to_string(), "*void");
+
+    const TypeUse& pointee = PT->get_pointee();
+    EXPECT_FALSE(pointee.is_mut());
+    EXPECT_EQ(pointee.to_string(), "void");
+
+    const BuiltinType* BT = dynamic_cast<const BuiltinType*>(pointee.get_type());
+    EXPECT_NE(BT, nullptr);
+    EXPECT_EQ(BT->get_kind(), BuiltinType::Void);
+}
+
+TEST_F(TypeParserTests, PointerToMutableVoidType) {
+    Parser parser(diags, "test", "test :: () -> *mut void;");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    FunctionDecl* FD = dynamic_cast<FunctionDecl*>(unit->get_decls()[0]);
+    EXPECT_NE(FD, nullptr);
+
+    const TypeUse& return_type = FD->get_return_type();
+    EXPECT_FALSE(return_type.is_mut());
+    EXPECT_EQ(return_type.to_string(), "*mut void");
+
+    const PointerType* PT = dynamic_cast<const PointerType*>(return_type.get_type());
+    EXPECT_NE(PT, nullptr);
+    EXPECT_EQ(PT->to_string(), "*mut void");
 
     const TypeUse& pointee = PT->get_pointee();
     EXPECT_TRUE(pointee.is_mut());
@@ -143,6 +142,31 @@ TEST_F(TypeParserTests, MutablePointerToMutableType) {
     EXPECT_NE(BT, nullptr);
     EXPECT_EQ(BT->get_kind(), BuiltinType::Void);
 }
-*/
+
+TEST_F(TypeParserTests, MutablePointerToMutableVoidType) {
+    Parser parser(diags, "test", "test :: () -> mut *mut void;");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    FunctionDecl* FD = dynamic_cast<FunctionDecl*>(unit->get_decls()[0]);
+    EXPECT_NE(FD, nullptr);
+
+    const TypeUse& return_type = FD->get_return_type();
+    EXPECT_TRUE(return_type.is_mut());
+    EXPECT_EQ(return_type.to_string(), "mut *mut void");
+
+    const PointerType* PT = dynamic_cast<const PointerType*>(return_type.get_type());
+    EXPECT_NE(PT, nullptr);
+    EXPECT_EQ(PT->to_string(), "*mut void");
+
+    const TypeUse& pointee = PT->get_pointee();
+    EXPECT_TRUE(pointee.is_mut());
+    EXPECT_EQ(pointee.to_string(), "mut void");
+
+    const BuiltinType* BT = dynamic_cast<const BuiltinType*>(pointee.get_type());
+    EXPECT_NE(BT, nullptr);
+    EXPECT_EQ(BT->get_kind(), BuiltinType::Void);
+}
 
 } // namespace stm::test

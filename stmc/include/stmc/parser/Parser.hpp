@@ -75,7 +75,8 @@ class Parser final {
     UnaryOp::Operator get_unary_oper(Token::Kind kind) const;
 
     void parse_rune_decorator_list();
-    void parse_type_specifier(TypeUse& type);
+    
+    TypeUse parse_type();
 
     Decl* parse_initial_declaration();
     Decl* parse_binding_declaration(const Token name);

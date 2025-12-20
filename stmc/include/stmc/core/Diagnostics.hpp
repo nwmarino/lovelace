@@ -81,12 +81,15 @@ public:
     void warn(const string& msg, SourceSpan span);
 
     /// Log a fatal error message \p msg.
+    __attribute__((noreturn))
     void fatal(const string& msg);
 
     /// Log a fatal error message \p msg at source location \p loc.
+    __attribute__((noreturn))
     void fatal(const string& msg, SourceLocation loc);
 
     /// Log a fatal error message \p msg at source span \p span.
+    __attribute__((noreturn))
     void fatal(const string& msg, SourceSpan span);
 };
 

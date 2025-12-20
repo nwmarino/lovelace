@@ -40,12 +40,10 @@ Decl* Parser::parse_binding_declaration(const Token name) {
 
         params.shrink_to_fit();
 
-        TypeUse ret_type;
-        if (expect(Token::Arrow)) {
-            parse_type_specifier(ret_type);
-        } else {
+        if (!expect(Token::Arrow))
             m_diags.fatal("expected '->' after parameter list", loc());
-        }
+
+        TypeUse ret_type = parse_type();
 
         BlockStmt* body = nullptr;
         SourceLocation end = loc();

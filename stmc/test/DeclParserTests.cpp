@@ -48,7 +48,7 @@ TEST_F(DeclParserTests, Positive_SimpleVoidFunction) {
 }
 
 TEST_F(DeclParserTests, Positive_ReturnZero) {
-    Parser parser(diags, "test", "test :: () -> i64 { ret 0; }");
+    Parser parser(diags, "test", "test :: () -> s64 { ret 0; }");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);

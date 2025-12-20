@@ -8,7 +8,6 @@
 #include "stmc/types/SourceSpan.hpp"
 
 #include <cassert>
-#include <filesystem>
 #include <string>
 #include <vector>
 
