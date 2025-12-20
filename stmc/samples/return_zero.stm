@@ -5,3 +5,7 @@ bar :: () -> s64 {
 test :: () -> s64 {
     ret bar();
 }
+
+main :: () -> s64 {
+    ret test();
+}

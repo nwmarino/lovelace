@@ -135,7 +135,7 @@ int32_t main(int32_t argc, char** argv) {
         goto CLEANUP;
 
     {
-        string link = "ld -o " + options.output;
+        string link = "ld -o " + options.output + " std/rt.o";
         for (uint32_t i = 0, e = files.size(); i < e; ++i)
             link += ' ' + with_object_extension(files[i]);
         

@@ -23,7 +23,7 @@ void SPBECodegen::define_spbe_global(VariableDecl& decl) {
 }
 
 void SPBECodegen::declare_spbe_function(FunctionDecl& decl) {
-    spbe::Function::LinkageType linkage = spbe::Function::Internal;
+    spbe::Function::LinkageType linkage = spbe::Function::External;
 
     vector<const spbe::Type*> arg_types(decl.num_params(), nullptr);
     vector<spbe::Argument*> args(decl.num_params(), nullptr);
