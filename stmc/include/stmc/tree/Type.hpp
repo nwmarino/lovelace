@@ -77,7 +77,7 @@ public:
     };
 
 private:
-    /// The type of builtin kind this is.
+    // The type of builtin kind this is.
     const Kind m_kind;
 
     BuiltinType(Kind kind) : m_kind(kind) {}

@@ -78,7 +78,18 @@ void Parser::exit_scope() {
 
 void Parser::parse_type_specifier(TypeUse& type) {
     if (!match(Token::Identifier))
-        m_diags.fatal("expected identifier", loc());
+        m_diags.fatal("expected type identifier", loc());
+
+    while (expect("mut")) {
+        if (type.is_mut()) {
+            m_diags.warn("duplicate 'mut' keyword", loc());
+        } else {
+            type.as_mut();
+        }
+
+        if (!match(Token::Identifier))
+            m_diags.fatal("expected type identifier after 'mut'", loc());
+    }
 
     unordered_map<string, const Type*> types = {
         { "void", BuiltinType::get(*m_context, BuiltinType::Void) },
@@ -98,4 +109,20 @@ void Parser::parse_type_specifier(TypeUse& type) {
 
     type.set_type(types[last().value]);
     next();
+
+    while (expect(Token::Star))
+        type = PointerType::get(*m_context, type);
+
+    /*
+    @Todo: support mutable pointer types, the previous mut modifiers effect the
+    pointee only.
+
+    while (expect("mut")) {
+        if (type.is_mut()) {
+            m_diags.warn("duplicate 'mut' keyword", loc());
+        } else {
+            type.as_mut();
+        }
+    }
+    */
 }

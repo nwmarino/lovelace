@@ -20,10 +20,10 @@ string BuiltinType::to_string() const {
     case Void:      return "void";
     case Bool:      return "bool";
     case Char:      return "char";
-    case Int8:      return "i8";
-    case Int16:     return "i16";
-    case Int32:     return "i32";
-    case Int64:     return "i64";
+    case Int8:      return "s8";
+    case Int16:     return "s16";
+    case Int32:     return "s32";
+    case Int64:     return "s64";
     case UInt8:     return "u8";
     case UInt16:    return "u16";
     case UInt32:    return "u32";
