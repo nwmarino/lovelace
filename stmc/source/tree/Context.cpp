@@ -11,7 +11,7 @@ using namespace stm;
 Context::Context() {
     // Initialize all built-in types.
     for (uint32_t i = static_cast<uint32_t>(BuiltinType::Void); 
-         i < static_cast<uint32_t>(BuiltinType::Float64); 
+         i <= static_cast<uint32_t>(BuiltinType::Float64); 
          ++i) {
         BuiltinType::Kind kind = static_cast<BuiltinType::Kind>(i);
         m_builtins[kind] = new BuiltinType(kind);

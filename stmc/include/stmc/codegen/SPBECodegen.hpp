@@ -63,21 +63,21 @@ class SPBECodegen final : public Visitor {
     void declare_spbe_structure(StructDecl& decl);
     void define_spbe_structure(StructDecl& decl);
 
-    void gen_binary_assign(const BinaryOp& op);
-    void gen_binary_add(const BinaryOp& op);
-    void gen_binary_mul(const BinaryOp& op);
-    void gen_binary_mod(const BinaryOp& op);
-    void gen_binary_bitwise_arithmetic(const BinaryOp& op);
-    void gen_binary_numerical_cmp(const BinaryOp& op);
-    void gen_binary_bitwise_cmp(const BinaryOp& op);
-    void gen_binary_logical_and(const BinaryOp& op);
-    void gen_binary_logical_or(const BinaryOp& op);
+    void gen_binary_assign(BinaryOp& op);
+    void gen_binary_add(BinaryOp& op);
+    void gen_binary_mul(BinaryOp& op);
+    void gen_binary_mod(BinaryOp& op);
+    void gen_binary_bitwise_arithmetic(BinaryOp& op);
+    void gen_binary_numerical_cmp(BinaryOp& op);
+    void gen_binary_bitwise_cmp(BinaryOp& op);
+    void gen_binary_logical_and(BinaryOp& op);
+    void gen_binary_logical_or(BinaryOp& op);
         
-    void gen_unary_addition(const UnaryOp& op);
-    void gen_unary_memory(const UnaryOp& op);
-    void gen_unary_negation(const UnaryOp& op);
-    void gen_unary_bitwise_not(const UnaryOp& op);
-    void gen_unary_logical_not(const UnaryOp& op);
+    void gen_unary_addition(UnaryOp& op);
+    void gen_unary_memory(UnaryOp& op);
+    void gen_unary_negation(UnaryOp& op);
+    void gen_unary_bitwise_not(UnaryOp& op);
+    void gen_unary_logical_not(UnaryOp& op);
 
 public:
     SPBECodegen(Diagnostics& diags, Options& options, spbe::CFG& graph);

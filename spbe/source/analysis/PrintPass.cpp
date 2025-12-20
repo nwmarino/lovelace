@@ -48,11 +48,15 @@ static void print_inst(std::ostream& os, Instruction* inst) {
     if (inst->is_def())
         os << 'v' << inst->result_id() << " = ";
 
-    os << opcode_to_string(inst->opcode()) << ' ';
+    os << opcode_to_string(inst->opcode());
+    
+    if (inst->is_load() || inst->is_store())
+        os << '|' << inst->get_data();
 
-    if (inst->is_def()) {
+    os << ' ';
+
+    if (inst->is_def())
         os << inst->get_type()->to_string() << (inst->is_call() ? " " : ", ");
-    }
 
     for (uint32_t idx = 0, e = inst->num_operands(); idx != e; ++idx) {
         Value* operand = inst->get_operand(idx);
@@ -78,14 +82,11 @@ static void print_inst(std::ostream& os, Instruction* inst) {
     if (inst->is_call())
         os << ')';
 
-    if (inst->is_load() || inst->is_store()) {
-        os << ", align " << inst->get_data();
-    }
-
     if (inst->is_def()) {
-        os << " ... " << inst->num_uses() << " uses";
+        os << " ... " << inst->num_uses() 
+           << (inst->num_uses() > 1 ? " uses" : " use");
     }
-
+    
     os << '\n';
 }
 

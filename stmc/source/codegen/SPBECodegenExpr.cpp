@@ -11,59 +11,69 @@
 
 using namespace stm;
 
-void SPBECodegen::gen_binary_assign(const BinaryOp& op) {
+void SPBECodegen::gen_binary_assign(BinaryOp& op) {
+    m_vctx = RValue;
+    op.get_rhs()->accept(*this);
+    assert(m_temp && "right hand side operand does not produce a value!");
+    spbe::Value* rhs = m_temp;
+
+    m_vctx = LValue;
+    op.get_lhs()->accept(*this);
+    assert(m_temp && "left hand side operand does not produce a value!");
+    spbe::Value* lhs = m_temp;
+
+    m_builder.build_store(rhs, lhs);
+}
+
+void SPBECodegen::gen_binary_add(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_add(const BinaryOp& op) {
+void SPBECodegen::gen_binary_mul(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_mul(const BinaryOp& op) {
+void SPBECodegen::gen_binary_mod(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_mod(const BinaryOp& op) {
+void SPBECodegen::gen_binary_bitwise_arithmetic(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_bitwise_arithmetic(const BinaryOp& op) {
+void SPBECodegen::gen_binary_numerical_cmp(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_numerical_cmp(const BinaryOp& op) {
+void SPBECodegen::gen_binary_bitwise_cmp(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_bitwise_cmp(const BinaryOp& op) {
+void SPBECodegen::gen_binary_logical_and(BinaryOp& op) {
 
 }
 
-void SPBECodegen::gen_binary_logical_and(const BinaryOp& op) {
-
-}
-
-void SPBECodegen::gen_binary_logical_or(const BinaryOp& op) {
+void SPBECodegen::gen_binary_logical_or(BinaryOp& op) {
 
 }
     
-void SPBECodegen::gen_unary_addition(const UnaryOp& op) {
+void SPBECodegen::gen_unary_addition(UnaryOp& op) {
 
 }
 
-void SPBECodegen::gen_unary_memory(const UnaryOp& op) {
+void SPBECodegen::gen_unary_memory(UnaryOp& op) {
 
 }
 
-void SPBECodegen::gen_unary_negation(const UnaryOp& op) {
+void SPBECodegen::gen_unary_negation(UnaryOp& op) {
 
 }
 
-void SPBECodegen::gen_unary_bitwise_not(const UnaryOp& op) {
+void SPBECodegen::gen_unary_bitwise_not(UnaryOp& op) {
 
 }
 
-void SPBECodegen::gen_unary_logical_not(const UnaryOp& op) {
+void SPBECodegen::gen_unary_logical_not(UnaryOp& op) {
 
 }
 

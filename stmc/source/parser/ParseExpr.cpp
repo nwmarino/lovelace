@@ -265,12 +265,29 @@ Expr* Parser::parse_integer_literal() {
     const Token lit = last();
     next();
 
-    // @Todo: support suffix type inference.
+    BuiltinType::Kind kind = BuiltinType::Int64;
+    if (expect("b")) {
+        kind = BuiltinType::Int8;
+    } else if (expect("ub")) {
+        kind = BuiltinType::UInt8;
+    } else if (expect("s")) {
+        kind = BuiltinType::Int16;
+    } else if (expect("us")) {
+        kind = BuiltinType::UInt16;
+    } else if (expect("i")) {
+        kind = BuiltinType::Int32;
+    } else if (expect("ui")) {
+        kind = BuiltinType::UInt32;
+    } else if (expect("l")) {
+        kind = BuiltinType::Int64;
+    } else if (expect("ul")) {
+        kind = BuiltinType::UInt64;
+    }
 
     return IntegerLiteral::create(
         *m_context, 
         lit.loc, 
-        BuiltinType::get(*m_context, BuiltinType::Int64), 
+        BuiltinType::get(*m_context, kind), 
         std::stoll(lit.value));
 }
 
@@ -278,12 +295,17 @@ Expr* Parser::parse_floating_point_literal() {
     const Token lit = last();
     next();
 
-    // @Todo: support suffix type inference.
+    BuiltinType::Kind kind = BuiltinType::Float64;
+    if (expect("f")) {
+        kind = BuiltinType::Float32;
+    } else if (expect("d")) {
+        kind = BuiltinType::Float64;
+    }
 
     return FPLiteral::create(
         *m_context, 
         lit.loc, 
-        BuiltinType::get(*m_context, BuiltinType::Float64), 
+        BuiltinType::get(*m_context, kind), 
         std::stod(lit.value));
 }
 
