@@ -43,6 +43,13 @@ public:
     const Type& operator*() const { return *m_type; }
     const Type* operator->() const { return m_type; }
 
+    /// Compare this type with \p other.
+    bool compare(const TypeUse& other) const;
+
+    /// Test if this type can be casted to \p other. The \p implicitly flag
+    /// determines if casting should follow implicit or explicit casting rules.
+    bool can_cast(const TypeUse& other, bool implicitly = false) const;
+
     void set_type(const Type* type) { m_type = type; }
     const Type* get_type() const { return m_type; }
 

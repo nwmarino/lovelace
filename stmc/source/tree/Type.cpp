@@ -34,6 +34,36 @@ string BuiltinType::to_string() const {
     }
 }
 
+bool BuiltinType::compare(const Type* other) const {
+    assert(other && "other type cannot be null!");
+
+    auto BT = dynamic_cast<const BuiltinType*>(other);
+    return BT && get_kind() == BT->get_kind();
+}
+
+bool BuiltinType::can_cast(const Type* other, bool implicitly) const {
+    assert(other && "other type cannot be null!");
+
+    auto BT = dynamic_cast<const BuiltinType*>(other);
+    if (implicitly) {
+        if (!BT)
+            return false;
+
+        if (is_floating_point() && other->is_integer())
+            return false;
+
+        return is_void() == BT->is_void();
+    } else {
+        if (BT)
+            return is_void() == BT->is_void();
+
+        if (other->is_pointer())
+            return is_integer();
+
+        return false;
+    }
+}
+
 const ArrayType* ArrayType::get(
         Context &ctx, const TypeUse &element, uint32_t size) {
     auto type_it = ctx.m_arrays.find(element);
@@ -53,6 +83,25 @@ const ArrayType* ArrayType::get(
     return type;
 }
 
+bool ArrayType::compare(const Type* other) const {
+    assert(other && "other type cannot be null!");
+
+    auto AT = dynamic_cast<const ArrayType*>(other);
+    return AT && get_size() == AT->get_size() 
+        && get_element_type().compare(AT->get_element_type());
+}
+
+bool ArrayType::can_cast(const Type* other, bool implicitly) const {
+    assert(other && "other type cannot be null!");
+
+    // Can only cast [...]T -> *T.
+    if (!other->is_pointer())
+        return false;
+
+    return get_element_type().can_cast(
+        static_cast<const PointerType*>(other)->get_pointee());
+}
+
 const PointerType* PointerType::get(Context &ctx, const TypeUse &pointee) {
     auto it = ctx.m_pointers.find(pointee);
     if (it != ctx.m_pointers.end())
@@ -61,6 +110,33 @@ const PointerType* PointerType::get(Context &ctx, const TypeUse &pointee) {
     PointerType* type = new PointerType(pointee);
     ctx.m_pointers[pointee] = type;
     return type;
+}
+
+bool PointerType::compare(const Type* other) const {
+    assert(other && "other type cannot be null!");
+
+    auto PT = dynamic_cast<const PointerType*>(other);
+    return PT && get_pointee().compare(PT->get_pointee());
+}
+
+bool PointerType::can_cast(const Type* other, bool implicitly) const {
+    assert(other && "other type cannot be null!");
+
+    if (implicitly) {
+        // Can implicitly cast *void -> *T.
+        if (get_pointee()->is_void())
+            return true;
+
+        // Cannot implicitly cast away pointer indirection.
+        if (!other->is_pointer())
+            return false;
+
+        // Can implicitly cast *T -> *void.
+        return static_cast<const PointerType*>(other)->get_pointee()->is_void();
+    } else {
+        // Can explicitly cast to other pointer types or integers.
+        return other->is_pointer() || other->is_integer();
+    }
 }
 
 const FunctionType* FunctionType::get(
@@ -102,6 +178,11 @@ const AliasType* AliasType::get(Context &ctx, const string &name) {
 string AliasType::to_string() const {
     assert(m_decl && "type has no declaration set!");
     return m_decl->get_name();
+}
+
+bool AliasType::can_cast(const Type* other, bool implicitly) const {
+    assert(other && "other type cannot be null!");
+    return get_underlying().can_cast(other, implicitly);
 }
 
 const StructType* StructType::create(Context &ctx, const StructDecl *decl) {
@@ -148,6 +229,11 @@ const EnumType* EnumType::get(Context &ctx, const string &name) {
 string EnumType::to_string() const {
     assert(m_decl && "type has no declaration set!");
     return m_decl->get_name();
+}
+
+bool EnumType::can_cast(const Type* other, bool implicitly) const {
+    assert(other && "other type cannot be null!");
+    return other->is_integer();
 }
 
 const NamedTypeRef* NamedTypeRef::get(Context& ctx, const string& name) {

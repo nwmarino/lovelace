@@ -23,7 +23,29 @@ static inline bool is_boolean_evaluable(const Type* type) {
 SemanticAnalysis::TypeCheckResult SemanticAnalysis::type_check(
         const TypeUse& actual, const TypeUse& expected, 
         SemanticAnalysis::TypeCheckMode mode) const {
-    return Match;
+    if (actual.compare(expected))
+        return Match;
+
+    switch (mode) {
+    case Explicit:
+        return Mismatch;
+
+    case AllowImplicit:
+        if (actual.can_cast(expected, true))
+            return Cast;
+
+        return Mismatch;
+
+    case Loose:
+        if (actual.can_cast(expected, true))
+            return Cast;
+
+        if ((actual->is_integer() && expected->is_pointer()) 
+          || (actual->is_pointer() && expected->is_integer()))
+            return Match;
+
+        return Mismatch;
+    }
 }
 
 SemanticAnalysis::SemanticAnalysis(Diagnostics& diags, Options& options)
@@ -31,6 +53,7 @@ SemanticAnalysis::SemanticAnalysis(Diagnostics& diags, Options& options)
 
 void SemanticAnalysis::visit(TranslationUnitDecl& node) {
     m_diags.set_path(node.get_file());
+    m_context = &node.get_context();
 
     for (uint32_t i = 0, e = node.num_decls(); i < e; ++i)
         node.get_decl(i)->accept(*this);
@@ -44,6 +67,8 @@ void SemanticAnalysis::visit(VariableDecl& node) {
         const SourceSpan span = node.get_span();
         if (node.is_global() && !init->is_constant())
             m_diags.fatal("globals cannot be initialized with non-constants", span);
+
+        init->get_type().as_mut();
 
         const TypeUse& actual = init->get_type();
         const TypeUse& expected = node.get_type();
@@ -61,6 +86,12 @@ void SemanticAnalysis::visit(VariableDecl& node) {
 
 void SemanticAnalysis::visit(FunctionDecl& node) {
     m_function = &node;
+
+    if (node.is_main()) {
+        const TypeUse& ret_type = node.get_return_type();
+        if (!ret_type.compare(BuiltinType::get(*m_context, BuiltinType::Int64)))
+            m_diags.fatal("'main' must return 's64'", node.get_span());
+    }
     
     if (node.has_body())
         node.get_body()->accept(*this);

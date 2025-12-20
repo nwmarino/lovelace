@@ -31,6 +31,15 @@ public:
     /// Returns the string equivelant of this type.
     virtual string to_string() const = 0;
 
+    /// Compare this type with \p other.
+    virtual bool compare(const Type* other) const { return false; }
+
+    /// Returns true if this type can be casted to \p other. The \p implicitly
+    /// flag determines if the cast follows implicit or explicit casting rules.
+    virtual bool can_cast(const Type* other, bool implicitly = false) const {
+        return false;
+    }
+
     /// Test if this is the 'void' type.
     virtual bool is_void() const { return false; }
 
@@ -45,6 +54,9 @@ public:
 
     /// Test if this is a floating point type.
     virtual bool is_floating_point() const { return false; }
+
+    /// Test if this is an array type.
+    virtual bool is_array() const { return false; }
 
     /// Test if this is a pointer type.
     virtual bool is_pointer() const { return false; }
@@ -87,6 +99,10 @@ public:
 
     string to_string() const override;
 
+    bool compare(const Type* other) const override;
+
+    bool can_cast(const Type* other, bool implicitly = false) const override;
+
     bool is_void() const override { return m_kind == Void; }
 
     bool is_integer() const override { 
@@ -128,6 +144,12 @@ public:
         return '[' + std::to_string(m_size) + ']' + m_element.to_string();
     }
 
+    bool compare(const Type* other) const override;
+
+    bool can_cast(const Type* other, bool implicitly = false) const override;
+
+    bool is_array() const override { return true; }
+
     const TypeUse& get_element_type() const { return m_element; }
 
     uint32_t get_size() const { return m_size; }
@@ -144,9 +166,13 @@ private:
 public:
     static const PointerType* get(Context& ctx, const TypeUse& pointee);
 
-    bool is_pointer() const override { return true; }
-
     string to_string() const override { return '*' + m_pointee.to_string(); }
+
+    bool compare(const Type* other) const override;
+
+    bool can_cast(const Type* other, bool implicitly = false) const override;
+
+    bool is_pointer() const override { return true; }
 
     const TypeUse& get_pointee() const { return m_pointee; }
 };
@@ -186,8 +212,10 @@ public:
 /// Returns named type aliases defined by an alias declaration.
 class AliasType final : public Type {
 private:
-    /// The declaration that defines this type.
+    // The declaration that defines this type.
     const AliasDecl* m_decl;
+
+    TypeUse m_underlying;
 
     AliasType(const AliasDecl* decl) : m_decl(decl) {}
 
@@ -197,9 +225,16 @@ public:
 
     string to_string() const override;
 
-    const AliasDecl* get_decl() const { return m_decl; }
+    bool compare(const Type* other) const override { 
+        return to_string() == other->to_string();
+    }
+
+    bool can_cast(const Type* other, bool implicitly = false) const override;
 
     void set_decl(const AliasDecl* decl) { m_decl = decl; }
+    const AliasDecl* get_decl() const { return m_decl; }
+
+    const TypeUse& get_underlying() const { return m_underlying; }
 };
 
 /// Represents named types defined by a struct declaration.
@@ -212,11 +247,15 @@ private:
 
 public:
     static const StructType* create(Context& ctx, const StructDecl* decl);
-    static const StructType* get(Context& ctx, const string& name);
-
-    bool is_struct() const override { return true; }
+    static const StructType* get(Context& ctx, const string& name);    
 
     string to_string() const override;
+
+    bool compare(const Type* other) const override { 
+        return to_string() == other->to_string(); 
+    }
+
+    bool is_struct() const override { return true; }
 
     const StructDecl* get_decl() const { return m_decl; }
 
@@ -236,6 +275,12 @@ public:
     static const EnumType* get(Context& ctx, const string& name);
 
     string to_string() const override;
+
+    bool compare(const Type* other) const override {
+        return to_string() == other->to_string();
+    }
+
+    bool can_cast(const Type* other, bool implicitly = false) const override;
 
     const EnumDecl* get_decl() const { return m_decl; }
 

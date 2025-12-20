@@ -280,6 +280,9 @@ public:
 
     void accept(Visitor& visitor) override { visitor.visit(*this); }
 
+    /// Test if this is the main function, i.e. a function named "main".
+    bool is_main() const { return get_name() == "main"; }
+
     const TypeUse& get_return_type() const {
         return static_cast<const FunctionType*>(
             m_type.get_type())->get_return_type();
@@ -297,7 +300,7 @@ public:
     uint32_t num_params() const { return m_params.size(); }
     bool has_params() const { return !m_params.empty(); }
 
-    void setParams(const Params& params) { m_params = params; }
+    void set_params(const Params& params) { m_params = params; }
     const Params& get_params() const { return m_params; }
     Params& get_params() { return m_params; }
 
