@@ -33,6 +33,37 @@ class SPBECodegen final : public Visitor {
         Define,
     };
 
+    enum class AddOp : uint8_t {
+        Add,
+        Sub,
+    };
+
+    enum class MulOp : uint8_t {
+        Mul,
+        Div,
+        Mod,
+    };
+
+    enum class BitwiseOp : uint8_t {
+        And,
+        Or,
+        Xor,
+    };
+
+    enum class ShiftOp : uint8_t {
+        LShift,
+        RShift,
+    };
+
+    enum class ComparisonOp : uint8_t {
+        Equals,
+        NEquals,
+        Less,
+        LessEquals,
+        Greater,
+        GreaterEquals,
+    };
+
     Diagnostics& m_diags;
     Options& m_options;
 
@@ -50,7 +81,7 @@ class SPBECodegen final : public Visitor {
     spbe::Function* get_intrinsic(const string& name, const spbe::Type* ret,
                                   const vector<const spbe::Type*>& params = {});
 
-    const spbe::Type* lower_type_to_spbe(const Type* type);
+    const spbe::Type* lower_type(const Type* type);
 
     spbe::Value* inject_bool_comparison(spbe::Value* value);
 
@@ -63,20 +94,20 @@ class SPBECodegen final : public Visitor {
     void declare_spbe_structure(StructDecl& decl);
     void define_spbe_structure(StructDecl& decl);
 
-    void gen_binary_assign(BinaryOp& op);
-    void gen_binary_add(BinaryOp& op);
-    void gen_binary_mul(BinaryOp& op);
-    void gen_binary_mod(BinaryOp& op);
-    void gen_binary_bitwise_arithmetic(BinaryOp& op);
-    void gen_binary_numerical_cmp(BinaryOp& op);
-    void gen_binary_bitwise_cmp(BinaryOp& op);
-    void gen_binary_logical_and(BinaryOp& op);
-    void gen_binary_logical_or(BinaryOp& op);
-        
-    void gen_unary_addition(UnaryOp& op);
-    void gen_unary_negation(UnaryOp& op);
-    void gen_unary_bitwise_not(UnaryOp& op);
-    void gen_unary_logical_not(UnaryOp& op);
+    void codegen_assignment(BinaryOp& op);
+    void codegen_addition(BinaryOp& node, AddOp op, bool assign);
+    void codegen_multiplication(BinaryOp& node, MulOp op, bool assign);
+    void codegen_bitwise_arithmetic(BinaryOp& node, BitwiseOp op, bool assign);
+    void codegen_bitwise_shift(BinaryOp& node, ShiftOp op, bool assign);
+    void codegen_comparison(BinaryOp& node, ComparisonOp op);
+    void codegen_logical_and(BinaryOp& node);
+    void codegen_logical_or(BinaryOp& node);
+
+    void codegen_cast_integer(spbe::Value* value, const spbe::Type* dst, 
+                              bool is_signed);
+    void codegen_cast_float(spbe::Value* value, const spbe::Type* dst);
+    void codegen_cast_array(spbe::Value* value, const spbe::Type* dst);
+    void codegen_cast_pointer(spbe::Value* value, const spbe::Type* dst);
 
 public:
     SPBECodegen(Diagnostics& diags, Options& options, spbe::CFG& graph);

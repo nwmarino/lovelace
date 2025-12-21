@@ -22,7 +22,7 @@ spbe::Function* SPBECodegen::get_intrinsic(
     return nullptr;
 }
 
-const spbe::Type* SPBECodegen::lower_type_to_spbe(const Type* type) {
+const spbe::Type* SPBECodegen::lower_type(const Type* type) {
     if (auto BT = dynamic_cast<const BuiltinType*>(type)) {
         switch (BT->get_kind()) {
         case BuiltinType::Void:
@@ -58,12 +58,12 @@ const spbe::Type* SPBECodegen::lower_type_to_spbe(const Type* type) {
     } else if (auto AT = dynamic_cast<const ArrayType*>(type)) {
         return spbe::ArrayType::get(
             m_graph, 
-            lower_type_to_spbe(AT->get_element_type()), 
+            lower_type(AT->get_element_type()), 
             AT->get_size());
     } else if (auto PT = dynamic_cast<const PointerType*>(type)) {
         return spbe::PointerType::get(
             m_graph, 
-            lower_type_to_spbe(PT->get_pointee()));
+            lower_type(PT->get_pointee()));
     }
 
     assert(false && "type does not have an spbe equivelant!");
