@@ -18,16 +18,10 @@ class InlineAsm final : public Value {
     /// The list of constraints for this inline asm.
     std::vector<std::string> m_constraints;
 
-    /// If true, then this assembly block has been marked with some sort of 
-    /// side effects that means it cannot be optimized away or reordered freely.
-    bool m_side_effects;
-
 public:
     InlineAsm(const FunctionType* type, const std::string& iasm, 
-              const std::vector<std::string>& constraints = {}, 
-              bool side_effects = false)
-        : Value(type), m_iasm(iasm), m_constraints(constraints), 
-          m_side_effects(side_effects) {}
+              const std::vector<std::string>& constraints = {})
+        : Value(type), m_iasm(iasm), m_constraints(constraints) {}
 
     InlineAsm(const InlineAsm&) = delete;
     InlineAsm& operator = (const InlineAsm&) = delete;
@@ -39,9 +33,6 @@ public:
     const std::vector<std::string>& constraints() const { 
         return m_constraints; 
     }
-
-    /// Returns true if this inline asm is said to have side effects.
-    bool has_side_effects() const { return m_side_effects; }
 
     void print(std::ostream& os) const override;
 };

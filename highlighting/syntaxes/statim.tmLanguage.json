@@ -96,7 +96,7 @@
 		},
 
 		"function_use": {
-			"match": "(?!(__asm__|volatile|match|defer|while|if|ret)\\s+)([a-zA-Z_]\\w*)\\s*[\\(]",
+			"match": "(?!(asm|volatile|match|defer|while|until|for|loop|if|ret)\\s+)([a-zA-Z_]\\w*)\\s*[\\(]",
 			"captures": {
 				"2": { "name": "entity.name.function.statim" }
 			}
@@ -199,7 +199,7 @@
 				},
 				{
 					"name": "keyword.control.statim",
-					"match": "\\b(?:if|defer|else|while|ret|match|break|continue)\\b"
+					"match": "\\b(?:if|defer|else|while|until|for|loop|ret|match|break|continue)\\b"
 				},
 				{
 					"name": "entity.name.function.sizeof.statim",

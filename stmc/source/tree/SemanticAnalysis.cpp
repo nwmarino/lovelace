@@ -102,6 +102,47 @@ void SemanticAnalysis::visit(FunctionDecl& node) {
 void SemanticAnalysis::visit(AsmStmt& node) {
     for (uint32_t i = 0, e = node.num_args(); i < e; ++i)
         node.get_arg(i)->accept(*this);
+
+    const SourceSpan span = node.get_span();
+
+    uint32_t arg_refs = 0;
+    for (char c : node.get_assembly_string())
+        if (c == '^')
+            ++arg_refs;
+
+    if (arg_refs > node.num_args())
+        m_diags.fatal("'asm' references more arguments than provided", span);
+
+    // Output constraints can be:
+    //
+    // (|r) write to register
+    // (|m) write to memory
+    // (&r) read-write to/from register
+    // (&m) read-write to/from memory
+    auto is_valid_output_constraint = [](const string& constraint) {
+        return constraint == "|r" || constraint == "|m" 
+            || constraint == "&r" || constraint == "&m";
+    };
+
+    // Input constraints can be:
+    //
+    // (r) read from register
+    // (m) read from memory
+    auto is_valid_input_constraint = [](const string& constraint) {
+        return constraint == "r" || constraint == "m";
+    };
+
+    for (uint32_t i = 0, e = node.num_output_constraints(); i < e; ++i) {
+        const string& constraint = node.get_output_constraint(i);
+        if (!is_valid_output_constraint(constraint))
+            m_diags.fatal("invalid output constraint: '" + constraint + "'", span);
+    }
+
+    for (uint32_t i = 0, e = node.num_input_constraints(); i < e; ++i) {
+        const string& constraint = node.get_input_constraint(i);
+        if (!is_valid_input_constraint(constraint))
+            m_diags.fatal("invalid input constraint: '" + constraint + "'", span);
+    }
 }
 
 void SemanticAnalysis::visit(BlockStmt& node) {

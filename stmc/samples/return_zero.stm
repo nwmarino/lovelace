@@ -1,19 +1,24 @@
 main :: () -> s64 {
+    let ptr: *void = null;
+
     asm (
-        "movq %0, %%rdi\n"
+        "movq $12, %rax\n"
+        "movq $0, %rdi\n"
+        "syscall\n"
+        "movq %rax, ^0"
+        : "|m" (ptr)
         :
-        : "r" (code)
-        : "rax", "rdi"
+        : "rax", "rdi"  
     );
 
-    asm volatile (
-        "movq %0, %%rdi\n"
-        "movq $60, %%rax\n"
+    asm (
+        "movq &0, %rdi\n"
+        "movq $60, %rax\n"
         "syscall\n"
         :
-        : "r" (code)
+        : "r" (42)
         : "rax", "rdi"
     );
 
-    ret z;
+    ret 0;
 }

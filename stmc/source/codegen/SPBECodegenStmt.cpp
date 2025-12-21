@@ -6,11 +6,44 @@
 #include "stmc/codegen/SPBECodegen.hpp"
 
 #include "spbe/graph/BasicBlock.hpp"
+#include "spbe/graph/InlineAsm.hpp"
+#include "spbe/graph/Type.hpp"
+
+#include <vector>
 
 using namespace stm;
 
 void SPBECodegen::visit(AsmStmt& node) {
+    const vector<string>& outs = node.get_output_constraints();
+    const vector<string>& ins = node.get_input_constraints();
+    
+    vector<string> constraints = {};
+    constraints.reserve(outs.size() + ins.size());
 
+    constraints.insert(constraints.end(), outs.begin(), outs.end());
+    constraints.insert(constraints.end(), ins.begin(), ins.end());
+
+    for (uint32_t i = 0, e = node.num_clobbers(); i < e; ++i)
+        constraints.push_back('~' + node.get_clobber(i));
+
+    vector<spbe::Value*> args(node.num_args(), nullptr);
+    vector<const spbe::Type*> arg_types(node.num_args(), nullptr);
+
+    for (uint32_t i = 0, e = node.num_args(); i < e; ++i) {
+        // Load outputs as lvalues.
+        m_vctx = i < outs.size() ? LValue : RValue;
+        node.get_arg(i)->accept(*this);
+        args[i] = m_temp;
+        arg_types[i] = m_temp->get_type();
+    }
+
+    const spbe::FunctionType* type = spbe::FunctionType::get(
+        m_graph, arg_types, nullptr);
+
+    m_temp = m_builder.build_call(
+        type, 
+        new spbe::InlineAsm(type, node.get_assembly_string(), constraints), 
+        args);
 }
 
 void SPBECodegen::visit(BlockStmt& node) {

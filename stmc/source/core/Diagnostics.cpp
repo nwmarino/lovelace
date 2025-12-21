@@ -52,12 +52,16 @@ void Diagnostics::print_source(SourceSpan span) const {
     vector<string> lines = read_source(m_path, span);
     for (const string& line : lines) {
         if (m_color) {
-            *m_output << "\e[38;5;240m" << line_n++ << "\033[0m" 
-                << string(line_len + 2 - std::to_string(line_n).length(), ' ') 
+            string line_str = std::to_string(line_n);
+
+            *m_output << "\e[38;5;240m" << line_str << "\033[0m" 
+                << string(line_len + 2 - line_str.length(), ' ') 
                 << "│ " << line << '\n';
         } else {
-            *m_output << line_n++ << ' ' << line << '\n';
+            *m_output << line_n << ' ' << line << '\n';
         }
+
+        ++line_n;
     }
     
     *m_output << string(line_len + 2, ' ') << "╰──\n";
