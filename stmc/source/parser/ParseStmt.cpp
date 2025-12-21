@@ -26,7 +26,101 @@ Stmt* Parser::parse_initial_statement() {
 }
 
 Stmt* Parser::parse_inline_assembly_statement() {
-    return nullptr;
+    const SourceLocation start = loc();
+    next(); // 'asm'
+
+    if (!expect(Token::SetParen))
+        m_diags.fatal("expected '('", loc());
+
+    string iasm;
+    vector<Expr*> args = {};
+    vector<string> outs = {};
+    vector<string> ins = {};
+    vector<string> clobbers = {};
+
+    // Parse the assembly template (between '(' and the first ':').
+    while (!expect(Token::Colon)) {
+        if (!match(Token::String))
+            m_diags.fatal("expected inline assembly string literal", loc());
+
+        iasm += last().value;
+        next();
+    }
+
+    // Parse the output constraints (between the first ':' and the second ':').
+    while (!expect(Token::Colon)) {
+        if (!match(Token::String))
+            m_diags.fatal("expected output constraint string", loc());
+
+        outs.push_back(last().value);
+        next();
+
+        if (!expect(Token::SetParen))
+            m_diags.fatal("expected '('", loc());
+
+        Expr* arg = parse_initial_expression();
+        if (!arg)
+            m_diags.fatal("expected expression", loc());
+
+        args.push_back(arg);
+
+        if (!expect(Token::EndParen))
+            m_diags.fatal("expected ')'", loc());
+
+        if (expect(Token::Colon))
+            break;
+
+        if (!expect(Token::Comma))
+            m_diags.fatal("expected ','", loc());
+    }
+
+    // Parse the input constraints (between the second ':' and the third ':').
+    while (!expect(Token::Colon)) {
+        if (!match(Token::String))
+            m_diags.fatal("expected input constraint string", loc());
+
+        ins.push_back(last().value);
+        next();
+
+        if (!expect(Token::SetParen))
+            m_diags.fatal("expected '('", loc());
+
+        Expr* arg = parse_initial_expression();
+        if (!arg)
+            m_diags.fatal("expected expression", loc());
+
+        args.push_back(arg);
+
+        if (!expect(Token::EndParen))
+            m_diags.fatal("expected ')'", loc());
+
+        if (expect(Token::Colon))
+            break;
+
+        if (!expect(Token::Comma))
+            m_diags.fatal("expected ','", loc());
+    }
+
+    // Parse the clobbers (between the third ':' and the ')').
+    while (!match(Token::EndParen)) {
+        if (!match(Token::String))
+            m_diags.fatal("expected clobber string", loc());
+
+        clobbers.push_back(last().value);
+        next();
+
+        if (match(Token::EndParen))
+            break;
+
+        if (!expect(Token::Comma))
+            m_diags.fatal("expected ','", loc());
+    }
+
+    const SourceLocation end = loc();
+    next(); // ')'
+
+    return AsmStmt::create(
+        *m_context, SourceSpan(start, end), iasm, outs, ins, args, clobbers);
 }
 
 Stmt* Parser::parse_block_statement() {

@@ -40,15 +40,24 @@ public:
 };
 
 /// Represents an inline assembly 'asm' statement.
+///
+/// Inline assembly appears in the form of:
+///
+/// asm (
+///     template
+///     : output constraints
+///     : input constraints
+///     : clobbers
+/// )
 class AsmStmt final : public Stmt {
     // The inline assembly string.
-    string m_asms;
-
-    // The list of input constraints.
-    vector<string> m_ins;
+    string m_iasm;
 
     // The list of output constraints.
     vector<string> m_outs;
+
+    // The list of input constraints.
+    vector<string> m_ins;
 
     // The list of read/write expression arguments.
     vector<Expr*> m_args;
@@ -56,20 +65,16 @@ class AsmStmt final : public Stmt {
     // The list of register/memory clobbers.
     vector<string> m_clobbers;
 
-    // If this inline assembly is volatile, i.e. should not be modified.
-    bool m_volatile;
-
-    AsmStmt(SourceSpan span, const string& asms, const vector<string>& ins, 
-            const vector<string>& outs, const vector<Expr*>& args, 
-            const vector<string>& clobbers, bool is_volatile)
-      : Stmt(span), m_asms(asms), m_ins(ins), m_outs(outs), m_args(args), 
-        m_clobbers(clobbers), m_volatile(is_volatile) {}
+    AsmStmt(SourceSpan span, const string& iasm, const vector<string>& outs, 
+            const vector<string>& ins, const vector<Expr*>& args, 
+            const vector<string>& clobbers)
+      : Stmt(span), m_iasm(iasm), m_outs(outs), m_ins(ins), m_args(args), 
+        m_clobbers(clobbers) {}
 
 public:
-    static AsmStmt* create(Context& ctx, SourceSpan span, const string& asms,
-                           const vector<string>& ins, const vector<string>& outs,
-                           const vector<Expr*>& args, 
-                           const vector<string>& clobbers, bool is_volatile);
+    static AsmStmt* create(Context& ctx, SourceSpan span, const string& iasm,
+                           const vector<string>& outs, const vector<string>& ins,
+                           const vector<Expr*>& args, const vector<string>& clobbers);
 
     ~AsmStmt() override;
 
@@ -81,8 +86,19 @@ public:
 
     void accept(Visitor& visitor) override { visitor.visit(*this); }
 
-    const string& get_assembly_string() const { return m_asms; }
-    string& get_assembly_string() { return m_asms; }
+    const string& get_assembly_string() const { return m_iasm; }
+    string& get_assembly_string() { return m_iasm; }
+
+    uint32_t num_output_constraints() const { return m_outs.size(); }
+    bool has_output_constraints() const { return !m_outs.empty(); }
+
+    const vector<string>& get_output_constraints() const { return m_outs; }
+    vector<string>& get_output_constraints() { return m_outs; }
+
+    const string& get_output_constraint(uint32_t i) const {
+        assert(i < num_output_constraints() && "index out of bounds!");
+        return m_outs[i];
+    }
 
     uint32_t num_input_constraints() const { return m_ins.size(); }
     bool has_input_constraints() const { return !m_ins.empty(); }
@@ -90,11 +106,10 @@ public:
     const vector<string>& get_input_constraints() const { return m_ins; }
     vector<string>& get_input_constraints() { return m_ins; }
 
-    uint32_t num_output_constraints() const { return m_outs.size(); }
-    bool has_output_constraints() const { return !m_outs.empty(); }
-
-    const vector<string>& get_output_constraints() const { return m_outs; }
-    vector<string>& get_output_constraints() { return m_outs; }
+    const string& get_input_constraint(uint32_t i) const {
+        assert(i < num_input_constraints() && "index out of bounds!");
+        return m_ins[i];
+    }
 
     uint32_t num_args() const { return m_args.size(); }
     bool has_args() const { return !m_args.empty(); }
@@ -118,8 +133,10 @@ public:
     const vector<string>& get_clobbers() const { return m_clobbers; }
     vector<string>& get_clobbers() { return m_clobbers; }
 
-    void set_is_volatile(bool is_volatile = true) { m_volatile = is_volatile; }
-    bool is_volatile() const { return m_volatile; }
+    const string& get_clobber(uint32_t i) const {
+        assert(i < num_clobbers() && "index out of bounds!");
+        return m_clobbers[i];
+    }
 };
 
 /// Represents a list of statement enclosed by curly braces '{, }'.

@@ -1,3 +1,8 @@
+- Inline assembly
+- Structs (StructDecl, StructType, AccessExpr)
+- Enums
+- Unions
+
 - For, Until Loops
 - Ternary '?' operator
 - CTFE

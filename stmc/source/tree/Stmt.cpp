@@ -22,11 +22,10 @@ AsmStmt::~AsmStmt() {
 }
 
 AsmStmt* AsmStmt::create(
-        Context &ctx, SourceSpan span, const string &asms, 
-        const vector<string> &ins, const vector<string> &outs, 
-        const vector<Expr*> &args, const vector<string> &clobbers, 
-        bool is_volatile) {
-    return new AsmStmt(span, asms, ins, outs, args, clobbers, is_volatile);
+        Context &ctx, SourceSpan span, const string& iasm, 
+        const vector<string> &outs, const vector<string> &ins, 
+        const vector<Expr*> &args, const vector<string> &clobbers) {
+    return new AsmStmt(span, iasm, outs, ins, args, clobbers);
 }
 
 BlockStmt::~BlockStmt() {

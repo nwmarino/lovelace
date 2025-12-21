@@ -133,4 +133,33 @@ TEST_F(StmtParserTests, WhileStatementNoBody_Positive) {
     EXPECT_FALSE(WS->has_body());
 }
 
+TEST_F(StmtParserTests, AsmStatement_Positive) {
+    Parser parser(diags, "test", "test :: () -> void { asm (\"movq ^0, %rax\n\" \"syscall\n\" : : \"r\" (x) : \"rax\"); }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    FunctionDecl* FD = dynamic_cast<FunctionDecl*>(unit->get_decls()[0]);
+    EXPECT_NE(FD, nullptr);
+    EXPECT_TRUE(FD->has_body());
+
+    BlockStmt* BS = dynamic_cast<BlockStmt*>(FD->get_body());
+    EXPECT_NE(BS, nullptr);
+    EXPECT_EQ(BS->num_stmts(), 1);
+
+    AsmStmt* AS = dynamic_cast<AsmStmt*>(BS->get_stmt(0));
+    EXPECT_NE(AS, nullptr);
+    EXPECT_EQ(AS->num_output_constraints(), 0);
+    EXPECT_EQ(AS->num_input_constraints(), 1);
+    EXPECT_EQ(AS->num_args(), 1);
+    EXPECT_EQ(AS->num_clobbers(), 1);
+    
+    EXPECT_EQ(AS->get_input_constraint(0), "r");
+    EXPECT_EQ(AS->get_clobber(0), "rax");
+
+    DeclRefExpr* A1 = dynamic_cast<DeclRefExpr*>(AS->get_arg(0));
+    EXPECT_NE(A1, nullptr);
+    EXPECT_EQ(A1->get_name(), "x");   
+}
+
 } // namespace stm::test

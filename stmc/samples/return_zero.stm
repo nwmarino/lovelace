@@ -1,7 +1,19 @@
 main :: () -> s64 {
-    let x: s64 = 42;
-    let y: *s64 = &x;
-    let z: s64 = *y;
+    asm (
+        "movq %0, %%rdi\n"
+        :
+        : "r" (code)
+        : "rax", "rdi"
+    );
+
+    asm volatile (
+        "movq %0, %%rdi\n"
+        "movq $60, %%rax\n"
+        "syscall\n"
+        :
+        : "r" (code)
+        : "rax", "rdi"
+    );
 
     ret z;
 }
