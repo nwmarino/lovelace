@@ -134,7 +134,7 @@ TEST_F(StmtParserTests, WhileStatementNoBody_Positive) {
 }
 
 TEST_F(StmtParserTests, AsmStatement_Positive) {
-    Parser parser(diags, "test", "test :: () -> void { asm (\"movq ^0, %rax\n\" \"syscall\n\" : : \"r\" (x) : \"rax\"); }");
+    Parser parser(diags, "test", "test :: () -> void { asm {\"movq ^0, %rax\n\" \"syscall\n\" : : \"r\" (x) : \"rax\"}; }");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
 
     EXPECT_EQ(unit->num_decls(), 1);

@@ -11,19 +11,6 @@
 // clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -c <file>.c
 //
 
-void __attribute__((noreturn)) exit(long code) {
-    asm volatile (
-        "movq %0, %%rdi\n"
-        "movq $60, %%rax\n"
-        "syscall\n"
-        :
-        : "r" (code)
-        : "rax", "rdi"
-    );
-    
-    __builtin_unreachable();
-}
-
 void __attribute__((naked)) _start(void) {
     asm volatile (
         "xorl %%ebp, %%ebp\n"

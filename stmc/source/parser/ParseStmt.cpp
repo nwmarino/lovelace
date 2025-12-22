@@ -29,8 +29,8 @@ Stmt* Parser::parse_inline_assembly_statement() {
     const SourceLocation start = loc();
     next(); // 'asm'
 
-    if (!expect(Token::SetParen))
-        m_diags.fatal("expected '('", loc());
+    if (!expect(Token::SetBrace))
+        m_diags.fatal("expected '{'", SourceSpan(loc()));
 
     string iasm;
     vector<Expr*> args = {};
@@ -38,82 +38,85 @@ Stmt* Parser::parse_inline_assembly_statement() {
     vector<string> ins = {};
     vector<string> clobbers = {};
 
-    // Parse the assembly template (between '(' and the first ':').
+    // Parse the assembly template (between '{' and the first ':').
     while (!expect(Token::Colon)) {
         if (!match(Token::String))
-            m_diags.fatal("expected inline assembly string literal", loc());
+            m_diags.fatal("expected inline assembly string literal", SourceSpan(loc()));
 
         iasm += last().value;
+        if (iasm.back() != '\n')
+            iasm.push_back('\n');
+        
         next();
     }
 
     // Parse the output constraints (between the first ':' and the second ':').
     while (!expect(Token::Colon)) {
         if (!match(Token::String))
-            m_diags.fatal("expected output constraint string", loc());
+            m_diags.fatal("expected output constraint string", SourceSpan(loc()));
 
         outs.push_back(last().value);
         next();
 
         if (!expect(Token::SetParen))
-            m_diags.fatal("expected '('", loc());
+            m_diags.fatal("expected '('", SourceSpan(loc()));
 
         Expr* arg = parse_initial_expression();
         if (!arg)
-            m_diags.fatal("expected expression", loc());
+            m_diags.fatal("expected expression", SourceSpan(loc()));
 
         args.push_back(arg);
 
         if (!expect(Token::EndParen))
-            m_diags.fatal("expected ')'", loc());
+            m_diags.fatal("expected ')'", SourceSpan(loc()));
 
         if (expect(Token::Colon))
             break;
 
         if (!expect(Token::Comma))
-            m_diags.fatal("expected ','", loc());
+            m_diags.fatal("expected ','", SourceSpan(loc()));
     }
 
     // Parse the input constraints (between the second ':' and the third ':').
     while (!expect(Token::Colon)) {
         if (!match(Token::String))
-            m_diags.fatal("expected input constraint string", loc());
+            m_diags.fatal("expected input constraint string", SourceSpan(loc()));
 
         ins.push_back(last().value);
         next();
 
         if (!expect(Token::SetParen))
-            m_diags.fatal("expected '('", loc());
+            m_diags.fatal("expected '('", SourceSpan(loc()));
 
         Expr* arg = parse_initial_expression();
         if (!arg)
-            m_diags.fatal("expected expression", loc());
+            m_diags.fatal("expected expression", SourceSpan(loc()));
 
         args.push_back(arg);
 
         if (!expect(Token::EndParen))
-            m_diags.fatal("expected ')'", loc());
+            m_diags.fatal("expected ')'", SourceSpan(loc()));
 
         if (expect(Token::Colon))
             break;
 
         if (!expect(Token::Comma))
-            m_diags.fatal("expected ','", loc());
+            m_diags.fatal("expected ','", SourceSpan(loc()));
     }
 
-    // Parse the clobbers (between the third ':' and the ')').
-    while (!match(Token::EndParen)) {
+    // Parse the clobbers (between the third ':' and the '}').
+    while (!match(Token::EndBrace)) {
         if (!match(Token::String))
-            m_diags.fatal("expected clobber string", loc());
+            m_diags.fatal("expected clobber string", SourceSpan(loc()));
 
         clobbers.push_back(last().value);
         next();
 
-        if (match(Token::EndParen))
+        if (match(Token::EndBrace))
             break;
 
         if (!expect(Token::Comma))
-            m_diags.fatal("expected ','", loc());
+            m_diags.fatal("expected ','", SourceSpan(loc()));
     }
 
     const SourceLocation end = loc();

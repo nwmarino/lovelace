@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace spbe {
 
@@ -26,7 +27,7 @@ namespace x64 {
 enum Opcode : uint32_t {
     NO_OPC = 0x0,
 
-    NOP, JMP, UD2, CQO, MOV,
+    NOP, JMP, UD2, CQO, SYSCALL, MOV,
 
     CALL64, RET64, 
     LEA32, LEA64, 
@@ -119,6 +120,14 @@ bool is_caller_saved(x64::Register reg);
 
 /// Return the target registers for x64.
 TargetRegisters get_registers();
+
+/// Attempt to parse an opcode from \p str. Returns NO_OPC if an opcode could
+/// not be parsed.
+x64::Opcode parse_opcode(const std::string& str);
+
+/// Attempt to parse a register and a potential subregister from \p str. 
+/// Returns { NO_REG, 0 } if a register could not be parsed.
+std::pair<x64::Register, uint16_t> parse_register(const std::string& str);
 
 /// Returns the string representation of the opcode |op|. This is used for
 /// dumping purposes, and does not represent the recognized x64 assembly

@@ -1,24 +1,15 @@
+exit :: (code: s64) -> void {
+    asm {
+        "movq #0, %rdi"
+        "movq $60, %rax"
+        "syscall"
+        :
+        : "r" (code)
+        : "rdi", "rax"
+    };
+}
+
 main :: () -> s64 {
-    let ptr: *void = null;
-
-    asm (
-        "movq $12, %rax\n"
-        "movq $0, %rdi\n"
-        "syscall\n"
-        "movq %rax, ^0"
-        : "|m" (ptr)
-        :
-        : "rax", "rdi"  
-    );
-
-    asm (
-        "movq &0, %rdi\n"
-        "movq $60, %rax\n"
-        "syscall\n"
-        :
-        : "r" (42)
-        : "rax", "rdi"
-    );
-
+    exit(102);
     ret 0;
 }

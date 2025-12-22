@@ -100,14 +100,21 @@ void SemanticAnalysis::visit(FunctionDecl& node) {
 }
 
 void SemanticAnalysis::visit(AsmStmt& node) {
-    for (uint32_t i = 0, e = node.num_args(); i < e; ++i)
-        node.get_arg(i)->accept(*this);
-
     const SourceSpan span = node.get_span();
+
+    for (uint32_t i = 0, e = node.num_args(); i < e; ++i) {
+        Expr* arg = node.get_arg(i);
+        arg->accept(*this);
+
+        if (i < node.num_output_constraints()) {
+            if (!arg->get_type().is_mut())
+                m_diags.fatal("immutable value cannot be used as 'asm' output", span);
+        }
+    }
 
     uint32_t arg_refs = 0;
     for (char c : node.get_assembly_string())
-        if (c == '^')
+        if (c == '#')
             ++arg_refs;
 
     if (arg_refs > node.num_args())
@@ -129,7 +136,7 @@ void SemanticAnalysis::visit(AsmStmt& node) {
     // (r) read from register
     // (m) read from memory
     auto is_valid_input_constraint = [](const string& constraint) {
-        return constraint == "r" || constraint == "m";
+        return constraint == "r" || constraint == "m" || constraint == "...";
     };
 
     for (uint32_t i = 0, e = node.num_output_constraints(); i < e; ++i) {

@@ -844,6 +844,12 @@ void SPBECodegen::visit(DeclRefExpr& node) {
 
         if (m_vctx == RValue)
             m_temp = m_builder.build_load(lower_type(node.get_type()), m_temp);
+    } else if (auto param = dynamic_cast<const ParameterDecl*>(node.get_decl())) {
+        m_temp = m_function->get_local(node.get_name());
+        assert(m_temp && "local not declared for parameter!");
+
+        if (m_vctx == RValue)
+            m_temp = m_builder.build_load(lower_type(node.get_type()), m_temp);
     } else if (auto function = dynamic_cast<const FunctionDecl*>(node.get_decl())) {
         m_temp = m_graph.get_function(node.get_name());
         assert(m_vctx != RValue && 

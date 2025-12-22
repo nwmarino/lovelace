@@ -17,6 +17,9 @@
 #include "spbe/X64/X64InstrSelector.hpp"
 
 #include <algorithm>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 
 using namespace spbe;
@@ -62,6 +65,8 @@ uint16_t X64InstrSelector::get_subregister(const Type* type) const {
 
 MachOperand X64InstrSelector::as_operand(const Value* value) {
     if (auto integer = dynamic_cast<const ConstantInt*>(value)) {
+        return MachOperand::create_imm(integer->get_value());
+
         MachOperand reg = MachOperand::create_reg(
             get_temporary(GeneralPurpose), 
             get_subregister(value->get_type()), 
@@ -958,15 +963,133 @@ void X64InstrSelector::select_return(const Instruction* inst) {
 }
 
 void X64InstrSelector::select_call(const Instruction* inst) {
-    assert(inst->num_operands() <= 7 && 
+    assert(inst->num_operands() <= 6 && 
         "cannot call a function with more than 6 arguments!");
     
     const Value* first_oper = inst->get_operand(0);
-    if (const auto* iasm = dynamic_cast<const InlineAsm*>(first_oper))
-        // TODO: Implement inline assembly selection.
-        return;
+    if (const auto* iasm = dynamic_cast<const InlineAsm*>(first_oper)) {
+        const std::string& str = iasm->string();
+        std::size_t pos = 0;
 
-    // TODO: Add stack spilling for calls with more than 6 arguments.
+        while (pos != std::string::npos) {
+            // Instructions are either divided by newlines '\n' or are the
+            // substrings after the last newline. 
+            std::size_t line_end = str.find_first_of('\n', pos);
+            std::string line = (line_end == std::string::npos)
+                ? str.substr(pos)
+                : str.substr(pos, line_end - pos);
+
+            if (line.empty()) {
+                // If the line is empty (either intentionally or cause the real 
+                // last line used a newline), then we can either stop now or
+                // loop if there is more to the template string.
+                if (line_end == std::string::npos)
+                    break;
+
+                pos = line_end + 1;
+                continue;
+            }
+
+            std::size_t mnemonic_end = line.find_first_of(' ');
+            std::string mnemonic_str = (mnemonic_end == std::string::npos)
+                ? line.substr(0)
+                : line.substr(0, mnemonic_end);
+            
+            x64::Opcode mnemonic = x64::parse_opcode(mnemonic_str);
+            assert(mnemonic != NO_OPC && "unrecognized mnemonic!");
+            MachInstruction& minst = emit(mnemonic);
+
+            std::string post_mnemonic = (mnemonic_end == std::string::npos)
+                ? ""
+                : line.substr(mnemonic_end + 1);
+            
+            std::vector<std::string> operands = {};
+            std::string curr = "";
+            for (std::size_t i = 0, e = post_mnemonic.size(); i < e; ++i) {
+                char c = post_mnemonic[i];
+                if (c == ' ')
+                    continue;
+                
+                if (c == ',' || c == '\n') {
+                    operands.push_back(curr);
+                    curr.clear();
+                } else {
+                    curr.push_back(c);
+                }
+
+                if (i + 1 == e)
+                    operands.push_back(curr);
+            }
+
+            for (uint32_t i = 0, e = operands.size(); i < e; ++i) {
+                const std::string& op = operands[i];
+
+                switch (op[0]) {
+                case '%': {
+                    std::pair<x64::Register, uint16_t> reg = 
+                        parse_register(op.substr(1));
+                    assert(reg.first != x64::NO_REG);
+
+                    if (i + 1 == e) {
+                        minst.add_reg(reg.first, reg.second, true);
+                    } else {
+                        minst.add_reg(reg.first, reg.second, false);
+                    }
+                    
+                    break;
+                }
+
+                case '$': {
+                    minst.add_imm(std::stoll(op.substr(1)));
+                    break;
+                }
+
+                case '#': {
+                    uint32_t index = std::stoul(op.substr(1));
+
+                    MachOperand oper = as_operand(inst->get_operand(index + 1));
+
+                    const std::string& constraint = iasm->constraints()[index];
+
+                    // @Todo: figure out these actual constraints, and deal 
+                    // with clobbers.
+                    if (constraint == "|m") {
+                        //oper.set_is_def();
+                    } else if (constraint == "|r") {
+                        oper.set_is_def();
+                    } else if (constraint == "&m") {
+                        //oper.set_is_use();
+                        //oper.set_is_def();
+                    } else if (constraint == "&r") {
+                        oper.set_is_use();
+                        oper.set_is_def();
+                    } else if (constraint == "m") {
+                        //oper.set_is_use();
+                    } else if (constraint == "r") {
+                        oper.set_is_use();
+                    } else if (constraint == "...") {
+
+                    }
+
+                    minst.add_operand(oper);
+                    break;
+                }
+
+                default:
+                    assert(false && "unknown inline assembly operand type!");
+                }
+            }
+
+            if (line_end == std::string::npos)
+                break;
+
+            pos = line_end + 1;
+        }
+
+        return;
+    }
+
+    // @Todo: Add stack spilling for calls with more than 6 arguments.
 
     std::vector<MachRegister> regs = {};
     regs.reserve(inst->num_operands() - 1);

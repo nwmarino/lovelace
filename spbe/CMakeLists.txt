@@ -35,6 +35,7 @@ set(SPBE_HEADERS
     include/spbe/X64/X64.hpp
     include/spbe/X64/X64AsmWriter.hpp
     include/spbe/X64/X64InstrSelector.hpp
+    include/spbe/X64/X64Printer.hpp
 )
 
 set(SPBE_SOURCES
@@ -65,6 +66,7 @@ set(SPBE_SOURCES
     source/X64/X64.cpp
     source/X64/X64AsmWriter.cpp
     source/X64/X64InstrSelector.cpp
+    source/X64/X64Printer.cpp
 )
 
 add_library(spbe ${SPBE_SOURCES} ${SPBE_HEADERS})

@@ -27,7 +27,7 @@ class MachInstruction final {
     
     /// The operands of this instruction.
     ///
-    /// TODO: Pack this into a MachOperand* array, and optimize allocations
+    /// @Todo: Pack this into a MachOperand* array, and optimize allocations
     /// to reduce on instruction size.
     std::vector<MachOperand> m_operands;
 

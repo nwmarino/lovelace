@@ -27,6 +27,7 @@ const char* X64AsmWriter::opcode_to_string(x64::Opcode op) const {
     case JMP:         return "jmp";
     case UD2:         return "ud2";
     case CQO:         return "cqo";
+    case SYSCALL:     return "syscall";
     case MOV:         return "mov ";
     case CALL64:      return "callq";
     case RET64:       return "retq";

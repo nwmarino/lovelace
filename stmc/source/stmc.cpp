@@ -3,6 +3,7 @@
 // All rights reserved.
 //
 
+#include "spbe/X64/X64Printer.hpp"
 #include "stmc/codegen/SPBECodegen.hpp"
 #include "stmc/core/Diagnostics.hpp"
 #include "stmc/core/Options.hpp"
@@ -66,6 +67,10 @@ int32_t main(int32_t argc, char** argv) {
                 diags.fatal("expected filename after -o");
 
             options.output = argv[++i];
+        } else if (arg == "-S") {
+            options.stop = Options::StopPoint::Assembly;
+        } else if (arg == "-c") {
+            options.stop = Options::StopPoint::Object;
         } else {
             files.push_back(arg);
         }
@@ -116,8 +121,14 @@ int32_t main(int32_t argc, char** argv) {
         spbe::TargetLoweringPass lower(graph, obj);
         lower.run();
 
+        spbe::x64::X64Printer printer(obj);
+        printer.run(std::cout);
+
         spbe::RegisterAnalysis rega(obj);
         rega.run();
+
+        
+        
 
         ofstream out(with_assembly_extension(files[i]));
         if (!out.is_open())

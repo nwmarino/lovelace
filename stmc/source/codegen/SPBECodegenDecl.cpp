@@ -54,9 +54,9 @@ void SPBECodegen::declare_spbe_function(FunctionDecl& decl) {
     for (uint32_t i = 0, e = decl.num_params(); i < e; ++i) {
         const ParameterDecl* param = decl.get_param(i);
         const spbe::Type* type = lower_type(param->get_type());
-        arg_types.push_back(type);
-
-        args.push_back(new spbe::Argument(type, param->get_name(), i, nullptr));
+        
+        arg_types[i] = type;
+        args[i] = new spbe::Argument(type, param->get_name(), i, nullptr);
     }
 
     const spbe::FunctionType* type = spbe::FunctionType::get(
