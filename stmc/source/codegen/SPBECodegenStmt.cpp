@@ -126,7 +126,8 @@ void SPBECodegen::visit(WhileStmt& node) {
     m_cond = cond_bb;
     m_merge = merge_bb;
 
-    node.get_body()->accept(*this);
+    if (node.has_body())
+        node.get_body()->accept(*this);
 
     if (!m_builder.get_insert()->terminates())
         m_builder.build_jmp(cond_bb);

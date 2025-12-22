@@ -22,7 +22,17 @@ write :: (fd: u32, buf: *char, count: u64) -> void {
     };
 }
 
+strlen :: (str: *char) -> u64 {
+    let len: mut u64 = 0;
+    while str[len++] != '\0';
+    ret len;
+}
+
+print :: (str: *char) -> void {
+    write(1, str, strlen(str));
+}
+
 main :: () -> s64 {
-    write(1, "Hello, world!\n", 14);
+    print("Hello, world!\n");
     ret 0;
 }

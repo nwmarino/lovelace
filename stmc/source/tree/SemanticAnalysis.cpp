@@ -447,6 +447,8 @@ void SemanticAnalysis::visit(CallExpr& node) {
     if (!FT)
         m_diags.fatal("function call target is not a function", span);
 
+    node.set_type(FT->get_return_type());
+
     if (node.num_args() != FT->num_params())
         m_diags.fatal("argument count mismatch, expected " + 
             std::to_string(FT->num_params()), span);
