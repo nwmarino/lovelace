@@ -157,12 +157,13 @@ string FunctionType::to_string() const {
     return ") -> " + get_return_type()->to_string();
 }
 
-const AliasType* AliasType::create(Context &ctx, const AliasDecl *decl) {
+const AliasType* AliasType::create(Context &ctx, const TypeUse& underlying,
+                                   const AliasDecl *decl) {
     auto it = ctx.m_aliases.find(decl->get_name());
     if (it != ctx.m_aliases.end())
         return nullptr;
 
-    AliasType* type = new AliasType(decl);
+    AliasType* type = new AliasType(underlying, decl);
     ctx.m_aliases[decl->get_name()] = type;
     return type;
 }
@@ -208,12 +209,13 @@ string StructType::to_string() const {
     return m_decl->get_name();
 }
 
-const EnumType* EnumType::create(Context &ctx, const EnumDecl *decl) {
+const EnumType* EnumType::create(
+        Context &ctx, const TypeUse& underlying, const EnumDecl *decl) {
     auto it = ctx.m_enums.find(decl->get_name());
     if (it != ctx.m_enums.end())
         return nullptr;
 
-    EnumType* type = new EnumType(decl);
+    EnumType* type = new EnumType(underlying, decl);
     ctx.m_enums[decl->get_name()] = type;
     return type;
 }

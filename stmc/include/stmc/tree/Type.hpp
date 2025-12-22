@@ -212,15 +212,18 @@ public:
 /// Returns named type aliases defined by an alias declaration.
 class AliasType final : public Type {
 private:
-    // The declaration that defines this type.
-    const AliasDecl* m_decl;
-
+    // The type being aliased.
     TypeUse m_underlying;
 
-    AliasType(const AliasDecl* decl) : m_decl(decl) {}
+    // The declaration that defines this type.
+    mutable const AliasDecl* m_decl;
+
+    AliasType(const TypeUse& underlying, const AliasDecl* decl) 
+      : m_underlying(underlying), m_decl(decl) {}
 
 public:
-    static const AliasType* create(Context& ctx, const AliasDecl* decl);
+    static const AliasType* create(Context& ctx, const TypeUse& underlying,
+                                   const AliasDecl* decl);
     static const AliasType* get(Context& ctx, const string& name);
 
     string to_string() const override;
@@ -231,10 +234,10 @@ public:
 
     bool can_cast(const Type* other, bool implicitly = false) const override;
 
-    void set_decl(const AliasDecl* decl) { m_decl = decl; }
-    const AliasDecl* get_decl() const { return m_decl; }
-
     const TypeUse& get_underlying() const { return m_underlying; }
+
+    void set_decl(const AliasDecl* decl) const { m_decl = decl; }
+    const AliasDecl* get_decl() const { return m_decl; }
 };
 
 /// Represents named types defined by a struct declaration.
@@ -257,21 +260,24 @@ public:
 
     bool is_struct() const override { return true; }
 
-    const StructDecl* get_decl() const { return m_decl; }
-
     void set_decl(const StructDecl* decl) { m_decl = decl; }
+    const StructDecl* get_decl() const { return m_decl; }
 };
 
 /// Represents named types defined by an enum declaration.
 class EnumType final : public Type {
 private:
-    /// The declaration that defines this type.
-    const EnumDecl* m_decl;
+    const TypeUse& m_underlying;
 
-    EnumType(const EnumDecl* decl) : m_decl(decl) {}
+    /// The declaration that defines this type.
+    mutable const EnumDecl* m_decl;
+
+    EnumType(const TypeUse& underlying, const EnumDecl* decl) 
+      : m_underlying(underlying), m_decl(decl) {}
 
 public:
-    static const EnumType* create(Context& ctx, const EnumDecl* decl);
+    static const EnumType* create(Context& ctx, const TypeUse& underlying, 
+                                  const EnumDecl* decl);
     static const EnumType* get(Context& ctx, const string& name);
 
     string to_string() const override;
@@ -282,9 +288,10 @@ public:
 
     bool can_cast(const Type* other, bool implicitly = false) const override;
 
-    const EnumDecl* get_decl() const { return m_decl; }
+    const TypeUse& get_underlying() const { return m_underlying; }
 
-    void set_decl(const EnumDecl* decl) { m_decl = decl; }
+    void set_decl(const EnumDecl* decl) const { m_decl = decl; }
+    const EnumDecl* get_decl() const { return m_decl; }
 };
 
 /// Represents the usage of a named type which was deferred at parse-time.

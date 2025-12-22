@@ -1,3 +1,9 @@
+Colors :: enum u8 {
+    Red,
+    Blue = 0,
+    Yellow = 6,
+}
+
 exit :: (code: s64) -> void {
     asm {
         "movq #0, %rdi"

@@ -491,6 +491,16 @@ public:
     void set_variants(const Variants& variants) { m_variants = variants; }
     const Variants& get_variants() const { return m_variants; }
     Variants& get_variants() { return m_variants; }
+
+    const VariantDecl* get_variant(uint32_t i) const {
+        assert(i < num_variants() && "index out of bounds!");
+        return m_variants[i];
+    }
+
+    VariantDecl* get_variant(uint32_t i) {
+        assert(i < num_variants() && "index out of bounds!");
+        return m_variants[i];
+    }
 };
 
 } // namespace stm

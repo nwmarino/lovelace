@@ -98,7 +98,79 @@ Decl* Parser::parse_binding_declaration(const Token name) {
     } else if (expect("struct")) {
 
     } else if (expect("enum")) {
+        TypeUse underlying;
+        if (match(Token::Identifier)) {
+            underlying = parse_type();
+        } else {
+            underlying = BuiltinType::get(*m_context, BuiltinType::Int64);
+        }
 
+        EnumDecl* decl = EnumDecl::create(
+            *m_context, name.loc, name.value, {}, underlying);
+
+        const EnumType* type = EnumType::create(
+            *m_context, underlying, decl);
+
+        decl->set_type(type);
+        
+        if (!expect(Token::SetBrace))
+            m_diags.fatal("expected '{'", SourceSpan(loc()));
+
+        vector<VariantDecl*> variants = {};
+        variants.reserve(4);
+
+        int64_t value = 0;
+        SourceLocation end = loc();
+        while (!expect(Token::EndBrace)) {
+            if (!match(Token::Identifier))
+                m_diags.fatal("expected name", SourceSpan(loc()));
+
+            const Token variant_name = last();
+            next();
+
+            if (expect(Token::Eq)) {
+                bool neg = false;
+
+                if (expect(Token::Minus))
+                    neg = true;
+
+                if (!match(Token::Integer))
+                    m_diags.fatal("expected integer", SourceSpan(loc()));
+
+                value = std::stoll(last().value);
+
+                if (neg)
+                    value = -value;
+
+                next();
+            }
+
+            VariantDecl* variant = VariantDecl::create(
+                *m_context, 
+                since(variant_name.loc), 
+                variant_name.value, 
+                {}, 
+                type, 
+                value++);
+
+            m_scope->add(variant);
+            variants.push_back(variant);
+
+            if (match(Token::EndBrace)) {
+                end = loc();
+                next(); // '}'
+                break;
+            }
+
+            if (!expect(Token::Comma))
+                m_diags.fatal("expected ','", SourceSpan(loc()));
+        }
+
+        variants.shrink_to_fit();
+
+        decl->set_variants(variants);
+        m_scope->add(decl);
+        return decl;
     } else {
         // Assume global variable declaration.
         
