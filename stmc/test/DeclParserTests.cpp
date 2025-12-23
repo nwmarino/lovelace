@@ -125,6 +125,40 @@ TEST_F(DeclParserTests, GlobalWithInitializer) {
     EXPECT_EQ(IL->get_value(), 5);
 }
 
+TEST_F(DeclParserTests, Struct) {
+    Parser parser(diags, "test", "Box :: struct { x: s32, y: f32, z: bool }");
+    EXPECT_NO_FATAL_FAILURE(unit = parser.parse());
+
+    EXPECT_EQ(unit->num_decls(), 1);
+
+    const StructDecl* SD = dynamic_cast<const StructDecl*>(unit->get_decl(0));
+    EXPECT_NE(SD, nullptr);
+    EXPECT_EQ(SD->get_name(), "Box");
+    EXPECT_EQ(SD->num_fields(), 3);
+
+    const StructType* ST = dynamic_cast<const StructType*>(SD->get_type());
+    EXPECT_NE(ST, nullptr);
+    EXPECT_EQ(ST->get_decl(), SD);
+
+    const FieldDecl* F1 = SD->get_field("x");
+    EXPECT_NE(F1, nullptr);
+    EXPECT_EQ(F1, SD->get_field(0));
+    EXPECT_EQ(F1->get_name(), "x");
+    EXPECT_EQ(F1->get_type().to_string(), "s32");
+
+    const FieldDecl* F2 = SD->get_field("y");
+    EXPECT_NE(F2, nullptr);
+    EXPECT_EQ(F2, SD->get_field(1));
+    EXPECT_EQ(F2->get_name(), "y");
+    EXPECT_EQ(F2->get_type().to_string(), "f32");
+
+    const FieldDecl* F3 = SD->get_field("z");
+    EXPECT_NE(F3, nullptr);
+    EXPECT_EQ(F3, SD->get_field(2));
+    EXPECT_EQ(F3->get_name(), "z");
+    EXPECT_EQ(F3->get_type().to_string(), "bool");
+}
+
 TEST_F(DeclParserTests, EnumDefaultType) {
     Parser parser(diags, "test", "Colors :: enum { Red, Blue = 0, Yellow = -7 }");
     EXPECT_NO_FATAL_FAILURE(unit = parser.parse());

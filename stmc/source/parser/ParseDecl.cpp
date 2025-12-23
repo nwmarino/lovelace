@@ -96,7 +96,56 @@ Decl* Parser::parse_binding_declaration(const Token name) {
         m_scope->add(FN);
         return FN;
     } else if (expect("struct")) {
+        if (!expect(Token::SetBrace))
+            m_diags.fatal("expectd '{'", since(loc()));
 
+        vector<FieldDecl*> fields = {};
+        fields.reserve(2);
+
+        SourceLocation end = loc();
+        while (!expect(Token::EndBrace)) {
+            if (!match(Token::Identifier))
+                m_diags.fatal("expected field name", since(loc()));
+
+            const Token field_name = last();
+            next();
+
+            if (!expect(Token::Colon))
+                m_diags.fatal("expected ':'", since(loc()));
+
+            TypeUse field_type = parse_type();
+
+            FieldDecl* field = FieldDecl::create(*
+                m_context, 
+                since(field_name.loc), 
+                field_name.value, 
+                {}, 
+                field_type);
+
+            fields.push_back(field);
+
+            if (match(Token::EndBrace)) {
+                end = loc();
+                next(); // '}'
+                break;
+            }
+
+            if (!expect(Token::Comma))
+                m_diags.fatal("expected ','", since(loc()));
+        }
+
+        fields.shrink_to_fit();
+        
+        StructDecl* decl = StructDecl::create(
+            *m_context, SourceSpan(name.loc, end), name.value, {}, nullptr);
+
+        const StructType* type = StructType::create(*m_context, decl);
+        
+        decl->set_type(type);
+        decl->set_fields(fields);
+        
+        m_scope->add(decl);
+        return decl;
     } else if (expect("enum")) {
         TypeUse underlying;
         if (match(Token::Identifier)) {
@@ -172,8 +221,6 @@ Decl* Parser::parse_binding_declaration(const Token name) {
         m_scope->add(decl);
         return decl;
     } else {
-        // Assume global variable declaration.
-        
         TypeUse type = parse_type();
 
         Expr* init = nullptr;

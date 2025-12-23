@@ -1,7 +1,13 @@
-Colors :: enum u8 {
+Colors :: enum {
     Red,
     Blue = 0,
     Yellow = 6,
+}
+
+vec3 :: struct {
+    x: f64,
+    y: f64,
+    z: f64,
 }
 
 exit :: (code: s64) -> void {

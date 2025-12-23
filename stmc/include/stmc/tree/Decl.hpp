@@ -445,6 +445,16 @@ public:
     const Fields& get_fields() const { return m_fields; }
     Fields& get_fields() { return m_fields; }
 
+    const FieldDecl* get_field(uint32_t i) const {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
+
+    FieldDecl* get_field(uint32_t i) {
+        assert(i < num_fields() && "index out of bounds!");
+        return m_fields[i];
+    }
+
     const FieldDecl* get_field(const string& name) const {
         for (const auto& field : m_fields)
             if (field->get_name() == name)
