@@ -39,7 +39,7 @@ Context::~Context() {
     for (auto& [name, type] : m_enums)
         delete type;
 
-    for (auto& [name, type] : m_deferred)
+    for (auto& [name, type] : m_unresolved)
         delete type;
 
     for (auto& type : m_functions)
@@ -51,6 +51,6 @@ Context::~Context() {
     m_aliases.clear();
     m_structs.clear();
     m_enums.clear();
-    m_deferred.clear();
+    m_unresolved.clear();
     m_functions.clear();
 }

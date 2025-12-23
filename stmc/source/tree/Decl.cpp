@@ -79,8 +79,8 @@ FunctionDecl* FunctionDecl::create(
 
 FieldDecl* FieldDecl::create(
         Context &ctx, SourceSpan span, const string &name, const RuneVec &runes, 
-        const TypeUse &type) {
-    return new FieldDecl(span, name, runes, type);
+        const TypeUse &type, uint32_t index) {
+    return new FieldDecl(span, name, runes, type, index);
 }
 
 VariantDecl* VariantDecl::create(

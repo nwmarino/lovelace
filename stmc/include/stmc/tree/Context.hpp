@@ -32,6 +32,7 @@ using std::unordered_map;
 using std::vector;
 
 class Context final {
+    friend class SymbolAnalysis;
     friend class TranslationUnitDecl;
     friend class BuiltinType;
     friend class ArrayType;
@@ -40,7 +41,7 @@ class Context final {
     friend class AliasType;
     friend class StructType;
     friend class EnumType;
-    friend class NamedTypeRef;
+    friend class UnresolvedType;
 
     using BuiltinTypePool = unordered_map<BuiltinType::Kind, BuiltinType*>;
     using ArrayTypePool = unordered_map<TypeUse, unordered_map<uint32_t, ArrayType*>>;
@@ -48,7 +49,7 @@ class Context final {
     using AliasTypePool = unordered_map<string, AliasType*>;
     using StructTypePool = unordered_map<string, StructType*>;
     using EnumTypePool = unordered_map<string, EnumType*>;
-    using DeferredTypePool = unordered_map<string, NamedTypeRef*>;
+    using UnresolvedTypePool = unordered_map<string, UnresolvedType*>;
     using FunctionTypePool = vector<FunctionType*>;
 
     BuiltinTypePool m_builtins = {};
@@ -57,7 +58,7 @@ class Context final {
     AliasTypePool m_aliases = {};
     StructTypePool m_structs = {};
     EnumTypePool m_enums = {};
-    DeferredTypePool m_deferred = {};
+    UnresolvedTypePool m_unresolved = {};
     FunctionTypePool m_functions = {};
 
 public:
@@ -76,7 +77,7 @@ public:
             m_aliases = std::move(other.m_aliases);
             m_structs = std::move(other.m_structs);
             m_enums = std::move(other.m_enums);
-            m_deferred = std::move(other.m_deferred);
+            m_unresolved = std::move(other.m_unresolved);
             m_functions = std::move(other.m_functions);
         }
     }
@@ -89,7 +90,7 @@ public:
             m_aliases = std::move(other.m_aliases);
             m_structs = std::move(other.m_structs);
             m_enums = std::move(other.m_enums);
-            m_deferred = std::move(other.m_deferred);
+            m_unresolved = std::move(other.m_unresolved);
             m_functions = std::move(other.m_functions);
         }
     }

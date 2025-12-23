@@ -64,6 +64,15 @@ const spbe::Type* SPBECodegen::lower_type(const Type* type) {
         return spbe::PointerType::get(
             m_graph, 
             lower_type(PT->get_pointee()));
+    } else if (auto ST = dynamic_cast<const StructType*>(type)) {
+        spbe::StructType* spbe_type = spbe::StructType::get(
+            m_graph, ST->to_string());
+        assert(spbe_type);
+        return spbe_type;
+    } else if (auto ET = dynamic_cast<const EnumType*>(type)) {
+        return lower_type(ET->get_underlying());
+    } else if (auto UN = dynamic_cast<const UnresolvedType*>(type)) {
+        return lower_type(UN->get_underlying());
     }
 
     assert(false && "type does not have an spbe equivelant!");

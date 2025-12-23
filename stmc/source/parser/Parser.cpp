@@ -123,7 +123,13 @@ TypeUse Parser::parse_type() {
             { "f64", BuiltinType::get(*m_context, BuiltinType::Float64) },
         };
 
-        type.set_type(types.at(last().value));
+        auto it = types.find(last().value);
+        if (it != types.end()) {
+            type.set_type(it->second);
+        } else {
+            type.set_type(UnresolvedType::get(*m_context, last().value, loc()));
+        }
+
         next();
         return type;
     } else {

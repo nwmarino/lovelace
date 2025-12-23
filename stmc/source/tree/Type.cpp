@@ -5,6 +5,7 @@
 
 #include "stmc/tree/Context.hpp"
 #include "stmc/tree/Decl.hpp"
+#include "stmc/types/SourceLocation.hpp"
 #include "stmc/tree/Type.hpp"
 
 #include <cassert>
@@ -238,12 +239,13 @@ bool EnumType::can_cast(const Type* other, bool implicitly) const {
     return other->is_integer();
 }
 
-const NamedTypeRef* NamedTypeRef::get(Context& ctx, const string& name) {
-    auto it = ctx.m_deferred.find(name);
-    if (it != ctx.m_deferred.end())
+const UnresolvedType* UnresolvedType::get(
+        Context& ctx, const string& name, SourceLocation loc) {
+    auto it = ctx.m_unresolved.find(name);
+    if (it != ctx.m_unresolved.end())
         return it->second;
 
-    NamedTypeRef* type = new NamedTypeRef(name);
-    ctx.m_deferred.emplace(name, type);
+    UnresolvedType* type = new UnresolvedType(name, loc);
+    ctx.m_unresolved.emplace(name, type);
     return type;
 }

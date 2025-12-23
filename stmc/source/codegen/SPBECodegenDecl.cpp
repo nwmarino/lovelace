@@ -111,11 +111,15 @@ void SPBECodegen::define_spbe_function(FunctionDecl& decl) {
 }
 
 void SPBECodegen::declare_spbe_structure(StructDecl& decl) {
-
+    spbe::StructType::create(m_graph, decl.get_name(), {});
 }
 
 void SPBECodegen::define_spbe_structure(StructDecl& decl) {
-    spbe::StructType::create(m_graph, decl.get_name(), {});
+    spbe::StructType* ST = spbe::StructType::get(m_graph, decl.get_name());
+    assert(ST && "struct type not declared yet!");
+
+    for (const auto& field : decl.get_fields())
+        ST->append_field(lower_type(field->get_type()));
 }
 
 void SPBECodegen::visit(TranslationUnitDecl& node) {

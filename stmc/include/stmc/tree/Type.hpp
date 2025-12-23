@@ -7,6 +7,7 @@
 #define STATIM_TYPE_H_
 
 #include "stmc/tree/TypeUse.hpp"
+#include "stmc/types/SourceLocation.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -294,28 +295,30 @@ public:
     const EnumDecl* get_decl() const { return m_decl; }
 };
 
-/// Represents the usage of a named type which was deferred at parse-time.
-///
-/// Instances of this class are given when an identifier is used in the 
-/// context of a type signature but a type declaring symbol of the same name
-/// could not be found. This typically results in either a resolution during
-/// translation unit loads, or an unresolved type reference. 
-class NamedTypeRef final : public Type {
+/// Represents a potentially (un)resolved type.
+class UnresolvedType final : public Type {
 private:
-    /// The name of the type referenced.
+    // The name of the type referenced.
     string m_name;
+
+    // The location that the type was referenced.
+    SourceLocation m_loc;
 
     const Type* m_underlying = nullptr;
 
-    NamedTypeRef(const string& name) : m_name(name) {}
+    UnresolvedType(const string& name, SourceLocation loc) 
+      : m_name(name), m_loc(loc) {}
 
 public:
-    static const NamedTypeRef* get(Context& ctx, const string& name);
+    static const UnresolvedType* get(Context& ctx, const string& name, 
+                                     SourceLocation loc);
 
     string to_string() const override { return m_name; }
 
     const string& get_name() const { return m_name; }
     string& get_name() { return m_name; }
+
+    SourceLocation get_location() const { return m_loc; }
 
     bool has_underlying() const { return m_underlying != nullptr; }
 

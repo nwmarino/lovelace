@@ -122,13 +122,10 @@ int32_t main(int32_t argc, char** argv) {
         lower.run();
 
         spbe::x64::X64Printer printer(obj);
-        printer.run(std::cout);
+        //printer.run(std::cout);
 
         spbe::RegisterAnalysis rega(obj);
         rega.run();
-
-        
-        
 
         ofstream out(with_assembly_extension(files[i]));
         if (!out.is_open())

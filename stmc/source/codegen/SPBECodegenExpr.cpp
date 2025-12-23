@@ -795,7 +795,34 @@ void SPBECodegen::visit(SizeofExpr& node) {
 }
 
 void SPBECodegen::visit(AccessExpr& node) {
+    ValueContext ctx = m_vctx;
+    spbe::Value* base = nullptr;
 
+    const spbe::Type* base_type = lower_type(node.get_base()->get_type());
+    const spbe::StructType* struct_type = nullptr;
+
+    if (base_type->is_pointer_type()) {
+        base_type = static_cast<const spbe::PointerType*>(
+            base_type)->get_pointee();
+    }
+
+    struct_type = static_cast<const spbe::StructType*>(base_type);
+    m_vctx = base_type->is_pointer_type() ? RValue : LValue;
+    
+    node.get_base()->accept(*this);
+
+    const FieldDecl* field = node.get_field();
+    const spbe::Type* field_type = lower_type(field->get_type());
+    uint32_t field_index = field->get_index();
+
+    spbe::Constant* index = spbe::ConstantInt::get(
+        m_graph, spbe::Type::get_i64_type(m_graph), field->get_index());
+
+    m_temp = m_builder.build_ap(
+        spbe::PointerType::get(m_graph, field_type), m_temp, index);
+
+    if (ctx == RValue)
+        m_temp = m_builder.build_load(field_type, m_temp);
 }
 
 void SPBECodegen::visit(SubscriptExpr& node) {

@@ -323,13 +323,16 @@ public:
 
 /// Represents a field declaration within a structure.
 class FieldDecl final : public ValueDecl {
+    uint32_t m_index;
+
     FieldDecl(SourceSpan span, const string& name, const RuneVec& runes, 
-              const TypeUse& type)
-      : ValueDecl(span, name, runes, type) {}
+              const TypeUse& type, uint32_t index)
+      : ValueDecl(span, name, runes, type), m_index(index) {}
 
 public:
     static FieldDecl* create(Context& ctx, SourceSpan span, const string& name,
-                             const RuneVec& runes, const TypeUse& type);
+                             const RuneVec& runes, const TypeUse& type, 
+                             uint32_t index);
 
     ~FieldDecl() = default;
 
@@ -340,6 +343,8 @@ public:
     void operator=(FieldDecl&&) noexcept = delete;
 
     void accept(Visitor& visitor) override { visitor.visit(*this); }
+
+    uint32_t get_index() const { return m_index; }
 };
 
 /// Represents an enum variant declaration.

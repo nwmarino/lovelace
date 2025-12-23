@@ -120,7 +120,8 @@ Decl* Parser::parse_binding_declaration(const Token name) {
                 since(field_name.loc), 
                 field_name.value, 
                 {}, 
-                field_type);
+                field_type,
+                fields.size());
 
             fields.push_back(field);
 

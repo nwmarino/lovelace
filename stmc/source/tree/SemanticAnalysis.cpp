@@ -390,7 +390,12 @@ void SemanticAnalysis::visit(CastExpr& node) {
     Expr* expr = node.get_expr();
     expr->accept(*this);
 
-    // @Todo: check that the cast is valid.
+    const TypeUse& src = expr->get_type();
+    const TypeUse& dst = node.get_type();
+    const SourceSpan span = node.get_span();
+
+    if (!src.can_cast(dst))
+        m_diags.fatal("unsupported cast", span);
 }
 
 void SemanticAnalysis::visit(ParenExpr& node) {
