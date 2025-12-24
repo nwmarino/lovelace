@@ -268,7 +268,7 @@ public:
 /// Represents named types defined by an enum declaration.
 class EnumType final : public Type {
 private:
-    const TypeUse& m_underlying;
+    TypeUse m_underlying;
 
     /// The declaration that defines this type.
     mutable const EnumDecl* m_decl;

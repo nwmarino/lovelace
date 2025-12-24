@@ -266,7 +266,11 @@ void SemanticAnalysis::visit(BinaryOp& node) {
     const TypeUse& lhs_type = lhs->get_type();
     const TypeUse& rhs_type = rhs->get_type();
 
-    TypeCheckResult TC = type_check(rhs_type, lhs_type);
+    BinaryOp::Operator op = node.get_operator();
+    bool supports_ptr_arith = op == BinaryOp::Add || op == BinaryOp::Sub;
+
+    TypeCheckMode mode = supports_ptr_arith ? Loose : AllowImplicit;
+    TypeCheckResult TC = type_check(rhs_type, lhs_type, mode);
     if (TC == TypeCheckResult::Mismatch) {
         m_diags.fatal("operand type mismatch; got '" + 
             rhs_type.to_string() + "'", span);
@@ -277,7 +281,6 @@ void SemanticAnalysis::visit(BinaryOp& node) {
 
     // Set the resulting type of the operator to a 'bool' if the operator is
     // a boolean comparison.
-    BinaryOp::Operator op = node.get_operator();
     if (BinaryOp::is_comparison(op)) {
         node.set_type(BuiltinType::get(*m_context, BuiltinType::Bool));
         return;

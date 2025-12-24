@@ -874,8 +874,7 @@ Instruction* InstrBuilder::build_i2p(const Type* type, Value* value) {
 
 Instruction* InstrBuilder::build_reint(const Type* type, Value* value) {
     assert(value && "value cannot be null");
-    assert(value->get_type()->is_pointer_type() && 
-        "value type must be a pointer type");
+    assert(value->get_type()->is_pointer_type() || value->get_type()->is_array_type());
     assert(type->is_pointer_type() &&
         "type must be a pointer type");
 

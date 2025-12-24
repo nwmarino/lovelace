@@ -963,9 +963,6 @@ void X64InstrSelector::select_return(const Instruction* inst) {
 }
 
 void X64InstrSelector::select_call(const Instruction* inst) {
-    assert(inst->num_operands() <= 6 && 
-        "cannot call a function with more than 6 arguments!");
-    
     const Value* first_oper = inst->get_operand(0);
     if (const auto* iasm = dynamic_cast<const InlineAsm*>(first_oper)) {
         const std::string& str = iasm->string();

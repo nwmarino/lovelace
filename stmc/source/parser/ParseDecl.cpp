@@ -97,7 +97,7 @@ Decl* Parser::parse_binding_declaration(const Token name) {
         return FN;
     } else if (expect("struct")) {
         if (!expect(Token::SetBrace))
-            m_diags.fatal("expectd '{'", since(loc()));
+            m_diags.fatal("expected '{'", since(loc()));
 
         vector<FieldDecl*> fields = {};
         fields.reserve(2);
