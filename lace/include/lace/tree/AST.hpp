@@ -84,6 +84,7 @@ private:
     Context m_context = {};
     std::string m_file;
     std::vector<Defn*> m_defns = {};
+    std::vector<Defn*> m_loaded = {};
     Scope* m_scope = nullptr;
 
     AST(const std::string& file);
@@ -121,6 +122,11 @@ public:
 
     uint32_t num_defns() const { return m_defns.size(); }
     bool has_defns() const { return !m_defns.empty(); }
+
+    const Defns& get_loaded() const { return m_loaded; }
+    Defns& get_loaded() { return m_loaded; }
+
+    uint32_t num_loaded() const { return m_loaded.size(); }
 
     const Scope* get_scope() const { return m_scope; }
     Scope* get_scope() { return m_scope; }

@@ -1,0 +1,6 @@
+load "A.lace";
+
+mango :: () -> void {
+    let a: Box = foo();
+    ret;
+}

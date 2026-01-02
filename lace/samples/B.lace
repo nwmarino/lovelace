@@ -1,0 +1,8 @@
+Box :: struct {
+    a: s32,
+    b: s32,
+}
+
+bar :: () -> void {
+    ret;
+}

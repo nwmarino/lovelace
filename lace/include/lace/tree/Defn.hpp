@@ -100,7 +100,7 @@ public:
 
 /// Represents a top-level load definition.
 class LoadDefn : public Defn {
-    const std::string m_path;
+    std::string m_path;
 
     LoadDefn(SourceSpan span, const std::string& path) 
       : Defn(Defn::Load, span), m_path(path) {}
@@ -120,7 +120,9 @@ public:
 
     void accept(Visitor& visitor) override { visitor.visit(*this); }
 
+    void set_path(const std::string& path) { m_path = path; }
     const std::string& get_path() const { return m_path; }
+    std::string& get_path() { return m_path; }
 };
 
 /// Base class for definitions with a name and potential rune set.

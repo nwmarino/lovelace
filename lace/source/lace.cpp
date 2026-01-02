@@ -12,13 +12,125 @@
 #include "lace/tree/SymbolAnalysis.hpp"
 
 #include <cstdint>
+#include <filesystem>
+#include <functional>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define LACE_VERSION_MAJOR 1
 #define LACE_VERSION_MINOR 0
 
 using namespace lace;
+
+std::vector<AST*> compute_dependency_order(const std::vector<AST*>& asts) {
+    // Map absolute file paths to their corresponding AST.
+    std::unordered_map<std::string, AST*> path_to_ast = {};
+    path_to_ast.reserve(asts.size());
+    for (AST* ast : asts)
+        path_to_ast[std::filesystem::absolute(ast->get_file()).string()] = ast;
+
+    // Map each AST to the ASTs it loads/depends on, using resolved absolute paths.
+    std::unordered_map<AST*, std::vector<AST*>> deps;
+    for (AST* ast : asts) {
+        std::filesystem::path parent_path = 
+            std::filesystem::absolute(ast->get_file()).parent_path();
+    
+        for (Defn* defn : ast->get_defns()) {
+            LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
+            if (!load)
+                continue;
+
+            std::filesystem::path loaded_path = parent_path / load->get_path();
+            loaded_path = std::filesystem::weakly_canonical(loaded_path);
+            auto it = path_to_ast.find(loaded_path.string());
+            if (it != path_to_ast.end()) {
+                deps[ast].push_back(it->second);
+                load->set_path(loaded_path.string());
+            } else {
+                log::fatal("unresolved file: " + loaded_path.string(), 
+                    log::Span(ast->get_file(), load->get_span()));
+            }
+        }
+    }
+
+    std::vector<AST*> order;
+    std::unordered_set<AST*> visited;
+    std::unordered_set<AST*> visiting;
+
+    std::function<void(AST*)> dfs = [&](AST* ast) {
+        if (visited.count(ast)) 
+            return;
+
+        if (visiting.count(ast))
+            log::fatal("cyclic dependency found");
+        
+        visiting.insert(ast);
+        
+        for (AST* dep : deps[ast])
+            dfs(dep);
+
+        visiting.erase(ast);
+        visited.insert(ast);
+        order.push_back(ast);
+    };
+
+    for (AST* ast : asts)
+        dfs(ast);
+
+    return order;
+}
+
+std::vector<NamedDefn*> get_symbols(
+        const std::unordered_map<std::string, AST*>& path_to_asts, AST* ast) {
+    std::vector<NamedDefn*> res = {};
+
+    for (Defn* defn : ast->get_defns()) {
+        if (LoadDefn* load = dynamic_cast<LoadDefn*>(defn)) {
+            AST* dep = path_to_asts.at(load->get_path());
+
+            std::vector<NamedDefn*> dep_symbols = get_symbols(path_to_asts, dep);
+            for (NamedDefn* sym : dep_symbols)
+                res.push_back(sym);
+        } else if (NamedDefn* named = dynamic_cast<NamedDefn*>(defn)) {
+            res.push_back(named);
+        }
+    }
+
+    return res;
+}
+
+/// Resolve the definition dependencies for each tree in |asts|. Assumes that
+/// |asts| contains syntax trees per their dependency order.
+void resolve_dependencies(std::vector<AST*>& asts) {
+    std::unordered_map<std::string, AST*> path_to_asts;
+    for (AST* ast : asts)
+        path_to_asts[ast->get_file()] = ast;
+
+    for (AST* ast : asts) {
+        Scope* scope = ast->get_scope();
+        std::vector<NamedDefn*> deps = {};
+        for (Defn* defn : ast->get_defns()) {
+            LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
+            if (!load)
+                continue;
+
+            AST* dep = path_to_asts[load->get_path()];
+            assert(dep);
+
+            std::vector<NamedDefn*> dep_deps = get_symbols(path_to_asts, dep);
+            for (NamedDefn* sym : dep_deps)
+                deps.push_back(sym);
+        }
+
+        for (NamedDefn* dep : deps) {
+            scope->add(dep);
+            ast->get_loaded().push_back(dep);
+            log::note("added '" + dep->get_name() + "' to file " + ast->get_file());
+        }
+    }
+}
 
 int32_t main(int32_t argc, char** argv) {
     Options options;
@@ -37,9 +149,11 @@ int32_t main(int32_t argc, char** argv) {
         log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + '.' + 
             std::to_string(LACE_VERSION_MINOR));
 
-    std::vector<std::string> files = { "samples/return_zero.stm" };
-    std::vector<AST*> asts = {};
-    asts.reserve(files.size());
+    std::vector<std::string> files = { 
+        "/home/statim/lace/samples/A.lace", 
+        "/home/statim/lace/samples/B.lace", 
+        "/home/statim/lace/samples/C.lace",
+    };
 
     for (int32_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -50,12 +164,20 @@ int32_t main(int32_t argc, char** argv) {
 
             options.output = argv[++i];
         } else {
-            files.push_back(arg);
+            if (arg.size() < 4 || arg.substr(arg.size() - 5) != ".lace")
+                log::error("expected source file ending with \".lace\", got " + arg);
+
+            files.push_back(std::filesystem::absolute(arg).string());
         }
     }
 
     if (files.empty())
         log::fatal("no input files");
+
+    log::flush();
+
+    std::vector<AST*> asts = {};
+    asts.reserve(files.size());
 
     for (const std::string& file : files) {
         Parser parser(read_file(file), file);
@@ -64,8 +186,15 @@ int32_t main(int32_t argc, char** argv) {
         if (options.verbose)
             log::note("parsed file: " + file);
     }
+
+    log::flush();
+
+    std::vector<AST*> ordered = compute_dependency_order(asts);
+    resolve_dependencies(ordered);
     
-    for (AST* ast : asts) {
+    log::flush();
+
+    for (AST* ast : ordered) {
         SymbolAnalysis syma(options);
         ast->accept(syma);
 
@@ -73,13 +202,17 @@ int32_t main(int32_t argc, char** argv) {
             log::note("ran symbol analysis on file: " + ast->get_file());
     }
 
-    for (AST* ast : asts) {
+    log::flush();
+
+    for (AST* ast : ordered) {
         SemanticAnalysis sema(options);
         ast->accept(sema);
 
         if (options.verbose)
             log::note("ran semantic analysis on file: " + ast->get_file());
     }
+
+    log::flush();
 
     for (AST* ast : asts)
         delete ast;

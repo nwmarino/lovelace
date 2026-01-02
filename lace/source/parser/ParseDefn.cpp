@@ -16,7 +16,7 @@ Defn* Parser::parse_initial_definition() {
     if (!match(Token::Identifier))
         log::fatal("expected identifier", log::Location(m_file, loc()));
 
-    if (expect("load"))
+    if (match("load"))
         return parse_load_definition();
 
     const Token name = curr();
@@ -272,5 +272,17 @@ Defn* Parser::parse_binding_definition(const Token name) {
 }
 
 Defn* Parser::parse_load_definition() {
-    return nullptr;
+    const SourceLocation start = loc();
+    next(); // 'load'
+
+    if (!match(Token::String))
+        log::fatal("expected file path", log::Span(m_file, since(start)));
+
+    const Token path = curr();
+    next();
+
+    while (expect(Token::Semi));
+
+    return LoadDefn::create(
+        *m_context, SourceSpan(start, path.loc), path.value);
 }

@@ -1,0 +1,5 @@
+load "B.lace";
+
+foo :: () -> Box {
+    
+}

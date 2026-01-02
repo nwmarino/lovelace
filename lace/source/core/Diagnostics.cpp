@@ -86,9 +86,10 @@ void log::clear_output_stream() {
 }
 
 void log::flush() {
-    // @Todo: add message.
-    if (g_errors)
+    if (g_errors) {
+        log::fatal("unrecoverable errors found, stopping");
         std::exit(1);
+    }
 }
 
 void log::note(const std::string& msg) {
@@ -141,7 +142,7 @@ void log::warn(const std::string& msg, const Span& span) {
 
 void log::error(const std::string& msg) {
     if (g_out) {
-        *g_out << (g_color ? "\033[1;31mfatal:\033[0m " : "fatal: ") << msg 
+        *g_out << (g_color ? "\033[1;31merror:\033[0m " : "error: ") << msg 
                << '\n';
     }
 
@@ -151,7 +152,7 @@ void log::error(const std::string& msg) {
 void log::error(const std::string& msg, const Location& loc) {
     if (g_out) {
         *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
-               << (g_color ? " \033[1;31mfatal:\033[0m " : " fatal: ") << msg 
+               << (g_color ? " \033[1;31merror:\033[0m " : " error: ") << msg 
                << '\n';
     }
 
@@ -168,12 +169,21 @@ void log::error(const std::string& msg, const Span& span) {
 }
 
 void log::fatal(const std::string& msg) {
-    error(msg);
+    if (g_out) {
+        *g_out << (g_color ? "\033[1;31mfatal:\033[0m " : "fatal: ") << msg 
+               << '\n';
+    }
+
     std::exit(1);
 }
 
 void log::fatal(const std::string& msg, const Location& loc) {
-    error(msg, loc);
+    if (g_out) {
+        *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
+               << (g_color ? " \033[1;31mfatal:\033[0m " : " fatal: ") << msg 
+               << '\n';
+    }
+
     std::exit(1);
 }
 
