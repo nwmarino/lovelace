@@ -1,0 +1,464 @@
+//
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
+//
+
+#include "lace/core/Diagnostics.hpp"
+#include "lace/tree/Defn.hpp"
+#include "lace/tree/Expr.hpp"
+#include "lace/tree/SemanticAnalysis.hpp"
+#include "lace/tree/Stmt.hpp"
+#include "lace/tree/Type.hpp"
+
+#include <cassert>
+
+using namespace lace;
+
+/// Test if |type| can be evaluated to a boolean (either trivially or through 
+/// a comparison).
+static inline bool is_boolean_evaluable(const QualType& type) {
+    const Type* ty = type.get_type();
+    return ty->is_integer() || ty->is_floating_point() || ty->is_pointer();
+}
+
+SemanticAnalysis::TypeCheckResult SemanticAnalysis::type_check(
+        const QualType& actual, const QualType& expected, 
+        SemanticAnalysis::TypeCheckMode mode) const {
+    if (actual.compare(expected))
+        return Match;
+
+    switch (mode) {
+        case Explicit:
+            return Mismatch;
+
+        case AllowImplicit:
+            if (actual.can_cast(expected, true))
+                return Cast;
+
+            return Mismatch;
+
+        case Loose:
+            if (actual.can_cast(expected, true))
+                return Cast;
+
+            if ((actual->is_integer() && expected->is_pointer()) 
+            || (actual->is_pointer() && expected->is_integer()))
+                return Match;
+
+            return Mismatch;
+    }
+}
+
+SemanticAnalysis::SemanticAnalysis(const Options& options) 
+  : m_options(options) {}
+
+void SemanticAnalysis::visit(AST& ast) {
+    m_ast = &ast;
+    m_context = &ast.get_context();
+    m_scope = ast.get_scope();
+
+    for (Defn* defn : ast.get_defns())
+        defn->accept(*this);
+}
+
+void SemanticAnalysis::visit(VariableDefn& node) {
+    if (node.has_init()) {
+        Expr* init = node.get_init();;
+        init->accept(*this);
+
+        const log::Span span = log::Span(m_ast->get_file(), node.get_span());
+        if (node.is_global() && !init->is_constant())
+            log::fatal("globals cannot be initialized with non-constants", span);
+
+        init->get_type().with_mut();
+
+        const QualType& actual = init->get_type();
+        const QualType& expected = node.get_type();
+
+        TypeCheckResult TC = type_check(actual, expected);
+        if (TC == TypeCheckResult::Mismatch) {
+            log::fatal("initializer type mismatch; got " + actual.to_string(), span);
+        } else if (TC == TypeCheckResult::Cast) {
+            node.m_init = CastExpr::create(
+                *m_context, init->get_span(), expected, init);
+        }
+    }
+}
+
+void SemanticAnalysis::visit(FunctionDefn& node) {
+    m_function = &node;
+
+    if (node.is_main()) {
+        const QualType& ret_type = node.get_return_type();
+        if (!ret_type.compare(BuiltinType::get(*m_context, BuiltinType::Int64)))
+            log::fatal("'main' must return 's64'", 
+                log::Span(m_ast->get_file(), node.get_span()));
+    }
+    
+    if (node.has_body())
+        node.get_body()->accept(*this);
+
+    m_function = nullptr;
+}
+
+/*
+void SemanticAnalysis::visit(AsmStmt& node) {
+    const SourceSpan span = node.get_span();
+
+    for (uint32_t i = 0, e = node.num_args(); i < e; ++i) {
+        Expr* arg = node.get_arg(i);
+        arg->accept(*this);
+
+        if (i < node.num_output_constraints()) {
+            if (!arg->get_type().is_mut())
+                m_diags.fatal("immutable value cannot be used as 'asm' output", span);
+        }
+    }
+
+    uint32_t arg_refs = 0;
+    for (char c : node.get_assembly_string())
+        if (c == '#')
+            ++arg_refs;
+
+    if (arg_refs > node.num_args())
+        m_diags.fatal("'asm' references more arguments than provided", span);
+
+    // Output constraints can be:
+    //
+    // (|r) write to register
+    // (|m) write to memory
+    // (&r) read-write to/from register
+    // (&m) read-write to/from memory
+    auto is_valid_output_constraint = [](const string& constraint) {
+        return constraint == "|r" || constraint == "|m" 
+            || constraint == "&r" || constraint == "&m";
+    };
+
+    // Input constraints can be:
+    //
+    // (r) read from register
+    // (m) read from memory
+    auto is_valid_input_constraint = [](const string& constraint) {
+        return constraint == "r" || constraint == "m" || constraint == "...";
+    };
+
+    for (uint32_t i = 0, e = node.num_output_constraints(); i < e; ++i) {
+        const string& constraint = node.get_output_constraint(i);
+        if (!is_valid_output_constraint(constraint))
+            m_diags.fatal("invalid output constraint: '" + constraint + "'", span);
+    }
+
+    for (uint32_t i = 0, e = node.num_input_constraints(); i < e; ++i) {
+        const string& constraint = node.get_input_constraint(i);
+        if (!is_valid_input_constraint(constraint))
+            m_diags.fatal("invalid input constraint: '" + constraint + "'", span);
+    }
+}
+*/
+
+void SemanticAnalysis::visit(AdapterStmt& node) {
+    switch (node.get_flavor()) {
+    case AdapterStmt::Definitive:
+        node.get_defn()->accept(*this);
+        break;
+
+    case AdapterStmt::Expressive:
+        node.get_expr()->accept(*this);
+        break;
+    }
+}
+
+void SemanticAnalysis::visit(BlockStmt& node) {
+    for (Stmt* stmt : node.get_stmts())
+        stmt->accept(*this);
+}
+
+void SemanticAnalysis::visit(IfStmt& node) {
+    Expr* cond = node.get_cond();
+    cond->accept(*this);
+
+    // Check that the if condition can be evaluated to a boolean.
+    if (!is_boolean_evaluable(cond->get_type().get_type()))
+        log::fatal("'if' condition must be a boolean", 
+            log::Span(m_ast->get_file(), cond->get_span()));
+
+    node.get_then()->accept(*this);
+
+    if (node.has_else())
+        node.get_else()->accept(*this);
+}
+
+void SemanticAnalysis::visit(RestartStmt& node) {
+    // Check that restart statements are inside loop bodies.
+    if (m_loop == None)
+        log::fatal("'restart' outside of loop", log::Span(m_ast->get_file(), node.get_span()));
+}
+
+void SemanticAnalysis::visit(RetStmt& node) {
+    const log::Span span = log::Span(m_ast->get_file(), node.get_span());
+    if (!m_function)
+        log::fatal("'ret' outside of function", span);
+ 
+    if (!node.has_expr()) {
+        if (!m_function->is_void_return())
+            log::fatal("function does not return 'void'", span);
+
+        return;
+    }
+
+    Expr* expr = node.get_expr();
+    expr->accept(*this);
+
+    const QualType& val_type = expr->get_type();
+    const QualType& ret_type = m_function->get_return_type();
+    TypeCheckResult TC = type_check(val_type, ret_type);
+    if (TC == TypeCheckResult::Mismatch) {
+        log::fatal("return type mismatch; got " + val_type.to_string(), span);
+    } else if (TC == TypeCheckResult::Cast) {
+        node.m_expr = CastExpr::create(
+            *m_context, expr->get_span(), ret_type, expr);
+    }
+}
+
+void SemanticAnalysis::visit(StopStmt& node) {
+    // Check that stop statements are inside loop bodies.
+    if (m_loop == None)
+        log::fatal("'stop' outside of loop", 
+            log::Span(m_ast->get_file(), node.get_span()));
+}
+
+void SemanticAnalysis::visit(UntilStmt& node) {
+    Expr* cond = node.get_cond();
+    cond->accept(*this);
+
+    // Check that the while condition can be evaluated to a boolean.
+    if (!is_boolean_evaluable(cond->get_type()))
+        log::fatal("'until' condition must be a boolean",
+            log::Span(m_ast->get_file(), cond->get_span()));
+
+    if (node.has_body()) {
+        Loop prev_loop = m_loop;
+        m_loop = Until;
+        node.get_body()->accept(*this);
+
+        m_loop = prev_loop;
+    }
+}
+
+void SemanticAnalysis::visit(BinaryOp& node) {
+    Expr* lhs = node.get_lhs();
+    Expr* rhs = node.get_rhs();
+
+    lhs->accept(*this);
+    rhs->accept(*this);
+
+    const log::Span span = log::Span(m_ast->get_file(), node.get_span());
+    const QualType& lhs_type = lhs->get_type();
+    const QualType& rhs_type = rhs->get_type();
+
+    BinaryOp::Operator op = node.get_operator();
+    bool supports_ptr_arith = op == BinaryOp::Add || op == BinaryOp::Sub;
+
+    TypeCheckMode mode = supports_ptr_arith ? Loose : AllowImplicit;
+    TypeCheckResult TC = type_check(rhs_type, lhs_type, mode);
+    if (TC == TypeCheckResult::Mismatch) {
+        log::fatal("operand type mismatch; got " + rhs_type.to_string(), span);
+    } else if (TC == TypeCheckResult::Cast) {
+        node.m_rhs = CastExpr::create(
+            *m_context, rhs->get_span(), lhs_type, rhs);
+    }
+
+    // Set the resulting type of the operator to a 'bool' if the operator is
+    // a boolean comparison.
+    if (BinaryOp::is_comparison(op)) {
+        node.set_type(BuiltinType::get(*m_context, BuiltinType::Bool));
+        return;
+    } else {
+        // Default the type of the operator to the LHS type.
+        node.set_type(lhs_type);
+    }
+
+    if (BinaryOp::is_assignment(op)) {
+        // Check that left hand operands of assignments are lvalues.
+        if (!lhs->is_lvalue())
+            log::fatal("left hand operand must be an lvalue", span);
+    
+        // Check that left hand operands of assignments are mutable.
+        if (!lhs_type.is_mut())
+            log::fatal("left hand operand must be mutable", span);
+    }
+}
+
+void SemanticAnalysis::visit(UnaryOp& node) {
+    Expr* expr = node.get_expr();
+    expr->accept(*this);
+
+    const log::Span span = log::Span(m_ast->get_file(), node.get_span());
+    const QualType& type = expr->get_type();
+
+    switch (node.get_operator()) {
+        /*
+        case UnaryOp::Increment: {
+            // Check operator type compatibility (numerics and pointers only).
+            if (!(type->is_integer() || type->is_floating_point() || type->is_pointer()))
+                m_diags.fatal("'++' operator incompatible with '" + 
+                    type.to_string() + "'", span);
+            
+            if (!expr->is_lvalue())
+                m_diags.fatal("'++' base must be an lvalue", span);
+
+            if (!type.is_mut())
+                m_diags.fatal("'++' base must be mutable", span);
+
+            node.set_type(type);
+            break;
+        }
+
+        case UnaryOp::Decrement: {
+            // Check operator type compatibility (numerics and pointers only).
+            if (!(type->is_integer() || type->is_floating_point() || type->is_pointer()))
+                m_diags.fatal("'--' operator incompatible with '" + 
+                    type.to_string() + "'", span);
+            
+            if (!expr->is_lvalue())
+                m_diags.fatal("'--' base must be an lvalue", span);
+
+            if (!type.is_mut())
+                m_diags.fatal("'++' base must be mutable", span);
+
+            node.set_type(type);
+            break;
+        }
+        */
+        case UnaryOp::Negate: {
+            // Check operator type compatibility (numerics only).
+            if (!(type->is_integer() || type->is_floating_point()))
+                log::fatal("'-' operator incompatible with " + type.to_string(), span);
+
+            node.set_type(type);
+            break;
+        }
+
+        case UnaryOp::Not: {
+            // Check operator type compatibility (integers only).
+            if (!type->is_integer())
+                log::fatal("'~' operator incompatible with " + type.to_string(), span);
+
+            node.set_type(type);
+            break;
+        }
+
+        case UnaryOp::LogicNot: {
+            // @Todo: force scalar types arguments.
+            node.set_type(type);
+            break;
+        }
+
+        case UnaryOp::AddressOf: {
+            if (!expr->is_lvalue())
+                log::fatal("'&' base must be an lvalue", span);
+
+            node.set_type(PointerType::get(*m_context, type));
+            break;
+        }
+
+        case UnaryOp::Dereference: {
+            if (!type->is_pointer())
+                log::fatal("'*' operator incompatible with " + type.to_string(), span);
+
+            node.set_type(static_cast<const PointerType*>(
+                type.get_type())->get_pointee());
+            break;
+        }
+
+        case UnaryOp::Unknown:
+            log::fatal("unknown unary operator", span);
+    }
+}
+
+void SemanticAnalysis::visit(CastExpr& node) {
+    Expr* expr = node.get_expr();
+    expr->accept(*this);
+
+    if (!expr->get_type().can_cast(node.get_type()))
+        log::fatal("unsupported cast", 
+            log::Span(m_ast->get_file(), node.get_span()));
+}
+
+void SemanticAnalysis::visit(ParenExpr& node) {
+    Expr* expr = node.get_expr();
+    expr->accept(*this);
+    
+    node.set_type(expr->get_type());
+}
+
+void SemanticAnalysis::visit(AccessExpr& node) {
+    const FieldDefn* field = node.get_field();
+    assert(field && "field access left unresolved!");
+
+    node.set_type(field->get_type());
+}
+
+void SemanticAnalysis::visit(SubscriptExpr& node) {
+    Expr* base = node.get_base();
+    base->accept(*this);
+
+    Expr* index = node.get_index();
+    index->accept(*this);
+
+    const Type* base_type = base->get_type().get_type();
+    if (auto AT = dynamic_cast<const ArrayType*>(base_type)) {
+        node.set_type(AT->get_element_type());
+    } else if (auto PT = dynamic_cast<const PointerType*>(base_type)) {
+        node.set_type(PT->get_pointee());
+    } else {
+        const QualType& qual_type = base->get_type();
+
+        log::fatal("invalid argument type to '[]' operator: " 
+            + qual_type.to_string(), log::Span(m_ast->get_file(), node.get_span()));
+    }
+}
+
+void SemanticAnalysis::visit(RefExpr& node) {
+    const ValueDefn* defn = node.get_defn();
+    assert(defn && "named reference left unresolved!");
+
+    node.set_type(defn->get_type());
+}
+
+void SemanticAnalysis::visit(CallExpr& node) {
+    Expr* callee = node.get_callee();
+    callee->accept(*this);
+
+    const log::Span span = log::Span(m_ast->get_file(), node.get_span());
+    const QualType& callee_type = callee->get_type();
+    const FunctionType* FT = dynamic_cast<const FunctionType*>(
+        callee_type.get_type());
+
+    if (!FT)
+        log::fatal("function call target is not a function", span);
+
+    node.set_type(FT->get_return_type());
+
+    if (node.num_args() != FT->num_params())
+        log::fatal("argument count mismatch, expected " + 
+            std::to_string(FT->num_params()), span);
+
+    // Pass over each argument and compare its type to the functions expected
+    // parameter type.
+    for (uint32_t i = 0, e = node.num_args(); i < e; ++i) {
+        Expr* arg = node.get_arg(i);
+        arg->accept(*this);
+
+        const QualType& actual = arg->get_type();
+        const QualType& expected = FT->get_param(i);
+
+        TypeCheckResult TC = type_check(actual, expected);
+        if (TC == TypeCheckResult::Mismatch) {
+            log::fatal("argument type mismatch; got " + actual.to_string(), span);
+        } else if (TC == TypeCheckResult::Cast) {
+            node.m_args[i] = CastExpr::create(
+                *m_context, arg->get_span(), expected, arg);
+        }
+    }
+}

@@ -2,7 +2,8 @@ CompileFlags:
   Add: [
     -std=c++20,
     -stdlib=libstdc++,
-    -I/home/statim/stmc/include,
+    -I/home/statim/lace/include,
+    -I/home/statim/lir/include,
     -Wno-unknown-warning-option
   ]
   Remove: [-m*, -f*]

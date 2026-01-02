@@ -1,0 +1,368 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "lovelace",
+	"fileTypes": [
+		"stm"
+	],
+	"scopeName": "source.stm",
+	"patterns": [
+		{ "include": "#translation_unit" }
+    ],
+    "repository": {
+        "translation_unit": {
+			"patterns": [
+				{ "include": "#runes" },
+				{ "include": "#load" },
+				{ "include": "#cast" },
+				{ "include": "#function" },
+				{ "include": "#struct" },
+				{ "include": "#enum" },
+				{ "include": "#enum-noname" },
+				{ "include": "#keywords" },
+				{ "include": "#comments" },
+				{ "include": "#constants" },
+				{ "include": "#storage" },
+				{ "include": "#operators" },
+				{ "include": "#variables" },
+				{ "include": "#types" }
+			]
+        },
+
+		"runes": {
+			"patterns": [
+				{
+					"name": "meta.rune.list.lovelace",
+					"begin": "(\\$)\\[",
+					"end": "\\]",
+					"beginCaptures": {
+						"0": { "name": "meta.rune.list.lovelace" },
+						"1": { "name": "keyword.other.rune.lovelace" }
+					},
+					"endCaptures": {
+						"0": { "name": "meta.rune.list.lovelace" }
+					},
+					"patterns": [
+						{
+							"name": "meta.decl.rune.lovelace",
+							"match": "\\b(abi|alignas|deprecated|dump|inline|intrinsic|no_discard|no_opt|no_return|no_scope|packed|public|private|unsafe)",
+							"captures": {
+								"1": { "name": "entity.name.tag.rune.lovelace" }
+							}
+						}
+					]
+				}
+			]
+		},
+
+		"load": {
+			"name": "meta.load.lovelace",
+			"begin": "\\b(load)\\b",
+			"beginCaptures": {
+				"1": { "name": "keyword.other.load.lovelace" }
+			},
+			"end": ";",
+			"patterns": [
+				{
+					"name": "meta.load.direct.lovelace",
+					"match": "\\\"[^\\\"]+\\\"",
+					"captures": {
+						"0": { "name": "string.quoted.filename.lovelace" }
+					}
+				}
+			]
+		},
+
+        "cast": {
+            "match": "\\b(cast)\\s*\\<(?:\\*|\\^)*(.+?)\\>",
+            "captures": {
+				"1": { "name": "keyword.other.cast.lovelace" },
+				"2": { "name": "storage.type.lovelace" }
+            }
+        },
+		
+		"function": {
+			"patterns": [
+				{ "include": "#function_decl" },
+				{ "include": "#function_use" }
+			]
+		},
+
+		"function_decl": {
+			"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b\\s*(::)\\s*[\\(]",
+			"captures": {
+				"1": { "name": "meta.function.lovelace entity.name.function.lovelace" },
+				"2": { "name": "keyword.operator.colon.lovelace" }
+			}
+		},
+
+		"function_use": {
+			"match": "(?!(asm|volatile|match|defer|while|until|for|loop|if|ret)\\s+)([a-zA-Z_]\\w*)\\s*[\\(]",
+			"captures": {
+				"2": { "name": "entity.name.function.lovelace" }
+			}
+		},
+
+		"struct": {
+			"begin": "\\b(\\w*)\\b\\s*(::)\\s*\\b(struct)\\b\\s*\\{",
+			"beginCaptures": {
+				"1": { "name": "support.type.struct.lovelace entity.name.type.struct.lovelace" },
+				"2": { "name": "keyword.operator.colon.lovelace" },
+				"3": { "name": "keyword.declaration.struct.lovelace" }
+			},
+			"end": "\\}",
+			"patterns": [
+				{
+					"name": "meta.struct.access.modifier.lovelace",
+					"match": "\\b(public|private)(:)",
+					"captures": {
+						"1": { "name": "keyword.control.access.modifier.lovelace" },
+						"2": { "name": "keyword.operator.colon.lovelace" }
+					}
+				},
+				{
+					"name": "meta.struct.field.lovelace",
+					"match": "\\b(\\w*)\\b(:)\\s*",
+					"captures": {
+						"2": { "name": "keyword.operator.colon.lovelace" }
+					},
+					"patterns": [
+						{
+							"include": "#types"
+						}
+					]
+				},
+				{
+					"include": "#comments"
+				},
+				{
+					"include": "#storage"
+				},
+				{
+					"include": "#types"
+				}
+			]
+		},
+
+		"enum": {
+			"begin": "\\b(\\w*)\\b\\s*(::)\\s*\\b(enum)\\b\\s+(s8|s16|s32|s64|u8|u16|u32|u64|bool|char)\\s*\\{",
+			"beginCaptures": {
+				"1": { "name": "support.type.enum.lovelace entity.name.type.enum.lovelace" },
+				"2": { "name": "keyword.operator.colon.lovelace" },
+				"3": { "name": "keyword.declaration.enum.lovelace" },
+				"4": { "name": "storage.type.lovelace" }
+			},
+			"end": "\\}",
+			"patterns": [
+				{
+					"name": "meta.enum.variant.lovelace",
+					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(\\s*=\\s*([^,\\s]+))?",
+					"captures": {
+						"1": { "name": "constant.other.enum.variant.lovelace" },
+						"2": { "name": "keyword.operator.assignment.equal.lovelace" },
+						"3": { "name": "constant.numeric.integer.lovelace" }
+					}
+				},
+				{ "include": "#comments" }
+			]
+		},
+
+		"enum-noname": {
+			"begin": "\\b(enum)\\b\\s+(s8|s16|s32|s64|u8|u16|u32|u64|bool|char)\\s*\\{",
+			"beginCaptures": {
+				"1": { "name": "keyword.declaration.enum.lovelace" },
+				"2": { "name": "storage.type.lovelace" }
+			},
+			"end": "\\}",
+			"patterns": [
+				{
+					"name": "meta.enum.variant.lovelace",
+					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(\\s*=\\s*([^,\\s]+))?",
+					"captures": {
+						"1": { "name": "constant.other.enum.variant.lovelace" },
+						"2": { "name": "keyword.operator.assignment.equal.lovelace" },
+						"3": { "name": "constant.numeric.integer.lovelace" }
+					}
+				},
+				{ "include": "#comments" }
+			]
+		},
+
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.other.rune.lovelace",
+					"match": "\\$\\w*"
+				},
+				{
+					"name": "keyword.other.modifier.lovelace",
+					"match": "\\b(?:__asm__|volatile)\\b"
+				},
+				{
+					"name": "keyword.control.lovelace",
+					"match": "\\b(?:if|defer|else|while|until|for|loop|ret|match|break|continue)\\b"
+				},
+				{
+					"name": "entity.name.function.sizeof.lovelace",
+					"match": "\\b(?:sizeof)\\b"
+				}
+			]
+		},
+
+		"comments": {
+			"patterns": [
+				{ "include": "#line-comment" },
+				{ "include": "#block-comment" }
+			]
+		},
+
+		"line-comment": {
+			"name": "comment.line.lovelace",
+			"begin": "//",
+			"end": "$"
+		},
+
+		"block-comment": {
+			"name": "comment.block.lovelace",
+			"begin": "/\\*",
+			"end": "\\*/",
+			"patterns": [
+				{ "include": "#block-comment" }
+			]
+		},
+
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.language.lovelace",
+					"match": "\\b(true|false|null)\\b"
+				},
+				{
+					"name": "constant.numeric.decimal.lovelace",
+					"match": "(?<!\\w)\\d+(?:\\.\\d+)?"
+				}
+			]
+		},
+
+		"escapes": {
+			"patterns": [
+				{
+					"name": "constant.character.escape.lovelace",
+      				"match": "(\\\\)(?:(?:[0-7]{1,3})|(x[\\da-fA-F]{2})|(u(\\{)[\\da-fA-F]{4,6}(\\}))|.)",					
+					"captures": {
+						"1": { "name": "constant.character.escape.backslash.lovelace" },
+						"2": { "name": "constant.character.escape.bit.lovelace" },
+						"3": { "name": "constant.character.escape.unicode.lovelace" },
+						"4": { "name": "constant.character.escape.unicode.punctuation.lovelace" },
+						"5": { "name": "constant.character.escape.unicode.punctuation.lovelace" }
+					}
+				}
+			]
+		},
+
+		"storage": {
+			"patterns": [
+				{
+					"name": "storage.modifier.lovelace",
+					"match": "\\b(?:let|mut)\\b"
+				},
+				{
+					"name": "storage.type.lovelace",
+					"match": "\\b(?:void|char|bool|u8|u16|u32|u64|s8|s16|s32|s64|f32|f64)\\b"
+				},
+				{
+					"name": "storage.constant.lovelace",
+					"match": "\\b[A-Z_](?![a-z])[A-Z0-9]+\\b"
+				},
+				{
+					"name": "string.quoted.single.lovelace",
+					"begin": "'",
+					"end": "'",
+					"patterns": [
+						{ "include": "#escapes" }
+					]
+				},
+				{
+					"name": "string.quoted.double.lovelace",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [
+						{ "include": "#escapes" }
+					]
+				}
+			]
+		},
+
+		"operators": {
+			"patterns": [
+				{
+                    "name": "keyword.operator.logical.lovelace",
+                    "match": "(\\^|\\||\\|\\||&|&&|<<|>>|!)(?!=)"
+                },
+				{
+                    "name": "keyword.operator.assignment.lovelace",
+                    "match": "(\\+=|-=|\\*=|/=|%=|\\^=|&=|\\|=|<<=|>>=)"
+                },
+				{
+                    "name": "keyword.operator.assignment.equal.lovelace",
+                    "match": "(?<![<>])=(?!=|>)"
+                },
+                {
+                    "name": "keyword.operator.comparison.lovelace",
+                    "match": "(=(=)?(?!>)|!=|<=|(?<!=)>=|<|>|<>)"
+                },
+                {
+                    "name": "keyword.operator.math.lovelace",
+                    "match": "(([+%]|(\\*(?!\\w)))(?!=))|(-(?!>))|(/(?!/))"
+                },
+				{
+                    "name": "keyword.operator.namespace.lovelace",
+                    "match": "::"
+                },
+                {
+                    "name": "keyword.operator.access.dot.lovelace",
+                    "match": "\\.(?!\\.)"
+                },
+                {
+                    "name": "keyword.operator.arrow.skinny.lovelace",
+                    "match": "->"
+                },
+                {
+                    "name": "keyword.operator.arrow.fat.lovelace",
+                    "match": "=>"
+                }
+			]
+		},
+
+		"variables": {
+			"patterns": [
+				{
+					"name": "variable.other.lovelace",
+					"match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+				}
+			]
+		},
+
+		"types": {
+			"patterns": [
+				{
+					"name": "support.type.builtin.lovelace",
+					"match": "(\\*)*\\b(?:void|bool|char|u8|u16|u32|u64|s8|s16|s32|s64|f32|f64)\\b",
+					"captures": {
+						"1": {
+							"name": "storage.modifier.pointer.lovelace"
+						}
+					}
+				},
+				{
+					"name": "support.type.custom.lovelace",
+					"match": "(\\*+)?\\b[A-Z][A-Za-z0-9_]*\\b",
+					"captures": {
+						"1": {
+							"name": "storage.modifier.pointer.lovelace"
+						}
+					}
+				}
+			]
+		}
+    }
+}
