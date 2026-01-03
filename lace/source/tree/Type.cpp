@@ -188,12 +188,12 @@ FunctionType* FunctionType::get(AST::Context& ctx, const QualType& ret,
 std::string FunctionType::to_string() const {
     std::string res = "(";
     for (uint32_t i = 0, e = num_params(); i != e; ++i) {
-        res += get_param(i)->to_string();
+        res += get_param(i).to_string();
         if (i + 1 != e)
             res += ", ";
     }
 
-    return ") -> " + get_return_type()->to_string();
+    return res + ") -> " + get_return_type().to_string();
 }
 
 PointerType* PointerType::get(AST::Context& ctx, const QualType& pointee) {

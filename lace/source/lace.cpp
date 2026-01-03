@@ -8,6 +8,8 @@
 #include "lace/parser/Parser.hpp"
 #include "lace/tools/Files.hpp"
 #include "lace/tree/AST.hpp"
+#include "lace/tree/NameAnalysis.hpp"
+#include "lace/tree/Printer.hpp"
 #include "lace/tree/SemanticAnalysis.hpp"
 #include "lace/tree/SymbolAnalysis.hpp"
 
@@ -103,7 +105,7 @@ std::vector<NamedDefn*> get_symbols(
 
 /// Resolve the definition dependencies for each tree in |asts|. Assumes that
 /// |asts| contains syntax trees per their dependency order.
-void resolve_dependencies(std::vector<AST*>& asts) {
+void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
     std::unordered_map<std::string, AST*> path_to_asts;
     for (AST* ast : asts)
         path_to_asts[ast->get_file()] = ast;
@@ -129,6 +131,9 @@ void resolve_dependencies(std::vector<AST*>& asts) {
             ast->get_loaded().push_back(dep);
             log::note("added '" + dep->get_name() + "' to file " + ast->get_file());
         }
+
+        NameAnalysis nama(options);
+        nama.visit(*ast);
     }
 }
 
@@ -140,7 +145,7 @@ int32_t main(int32_t argc, char** argv) {
     options.time = true;
     options.verbose = true;
     options.version = true;
-    options.print_tree = false;
+    options.print_tree = true;
     options.print_spbe = false;
 
     log::init();
@@ -190,7 +195,7 @@ int32_t main(int32_t argc, char** argv) {
     log::flush();
 
     std::vector<AST*> ordered = compute_dependency_order(asts);
-    resolve_dependencies(ordered);
+    resolve_dependencies(options, ordered);
     
     log::flush();
 
@@ -210,6 +215,11 @@ int32_t main(int32_t argc, char** argv) {
 
         if (options.verbose)
             log::note("ran semantic analysis on file: " + ast->get_file());
+
+        if (options.print_tree) {
+            Printer printer(options, std::cout);
+            printer.visit(*ast);
+        }
     }
 
     log::flush();

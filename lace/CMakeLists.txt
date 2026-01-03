@@ -11,6 +11,8 @@ set(LACE_SOURCES
     source/tree/AST.cpp
     source/tree/Defn.cpp
     source/tree/Expr.cpp
+    source/tree/NameAnalysis.cpp
+    source/tree/Printer.cpp
     source/tree/Rune.cpp
     source/tree/Scope.cpp
     source/tree/SemanticAnalysis.cpp
@@ -48,6 +50,8 @@ add_executable(lace_test
     source/tree/AST.cpp
     source/tree/Defn.cpp
     source/tree/Expr.cpp
+    source/tree/NameAnalysis.cpp
+    source/tree/Printer.cpp
     source/tree/Rune.cpp
     source/tree/Scope.cpp
     source/tree/SemanticAnalysis.cpp

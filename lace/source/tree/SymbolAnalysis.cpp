@@ -67,60 +67,30 @@ void SymbolAnalysis::visit(AST& ast) {
     m_context = &ast.get_context();
     m_scope = ast.get_scope();
 
-    m_phase = Shallow;
     for (Defn* defn : ast.get_defns())
         defn->accept(*this);
-
-    m_phase = Deep;
-    for (Defn* defn : ast.get_defns())
-        defn->accept(*this);
-
-    m_scope = m_scope->get_parent();
 }
 
 void SymbolAnalysis::visit(VariableDefn& node) {
-    // We deal with types of all top-level declarations during the shallow phase
-    // cause they can be referenced from anywhere in the AST, locals can only
-    // be referenced in their scope, which is local.
-
-    if (m_phase == Shallow) {
-        if (!resolve_type(node.get_type()))
-            log::fatal("unresolved type: " + node.get_type().to_string());
-    } else if (m_phase == Deep) {
-        if (node.has_init())
-            node.get_init()->accept(*this);
-    }
+    if (!resolve_type(node.get_type()))
+        log::error("unresolved type: " + node.get_type().to_string(), 
+            log::Span(m_ast->get_file(), node.get_span()));
+            
+    if (node.has_init())
+        node.get_init()->accept(*this);
 }
 
 void SymbolAnalysis::visit(FunctionDefn& node) {
     m_scope = node.get_scope();
 
-    if (m_phase == Shallow) {
-        if (!resolve_type(node.get_type()))
-            log::fatal("unresolved type: " + node.get_type().to_string());
-
-        const FunctionType* type = static_cast<const FunctionType*>(
-            node.get_type().get_type());
-
-        for (uint32_t i = 0, e = node.num_params(); i < e; ++i)
-            node.get_params()[i]->set_type(type->get_param(i));
-    } else if (m_phase == Deep) {
-        if (node.has_body())
-            node.get_body()->accept(*this);
-    }
+    if (node.has_body())
+        node.get_body()->accept(*this);
 
     m_scope = m_scope->get_parent();
 }
 
 void SymbolAnalysis::visit(StructDefn& node) {
-    if (m_phase == Deep) {
-        for (FieldDefn* field : node.get_fields()) {
-            if (!resolve_type(field->get_type())) {
-                log::fatal("unresolved type: " + field->get_type().to_string(), 
-                    log::Span(m_ast->get_file(), field->get_span()));
-            }
-        }
-    }
+
 }
 
 /*

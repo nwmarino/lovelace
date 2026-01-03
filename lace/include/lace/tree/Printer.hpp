@@ -3,48 +3,56 @@
 //  All rights reserved.
 //
 
-#ifndef LOVELACE_SYMBOL_ANALYSIS_H_
-#define LOVELACE_SYMBOL_ANALYSIS_H_
-
-//
-//  This header file declares a syntax tree analysis pass to perform certain
-//  symbol-related checks like name and deferred type resolution, as well as
-//  type propogation in some cases.
-//
+#ifndef LOVELACE_PRINTER_H_
+#define LOVELACE_PRINTER_H_
 
 #include "lace/core/Options.hpp"
-#include "lace/tree/Scope.hpp"
 #include "lace/tree/Type.hpp"
 #include "lace/tree/Visitor.hpp"
 
 namespace lace {
 
-class SymbolAnalysis final : public Visitor {
+class Printer final : public Visitor {
     const Options& m_options;
-    
-    AST* m_ast = nullptr;
-    AST::Context* m_context = nullptr;
-    const Scope* m_scope = nullptr;
 
-    /// Replace all deferred types composed in |type| and return the new,
-    /// fully resolved type. If a part could not be resolved, then null is
-    /// returned.
-    bool resolve_type(const QualType& type) const;
+    uint32_t m_indent = 0;
+    std::ostream& m_out;
+
+    AST* m_ast = nullptr;
+
+    inline void print_indent() const {
+        m_out << std::string(m_indent * 2, ' ');
+    }
 
 public:
-    SymbolAnalysis(const Options& options);
+    Printer(const Options& options, std::ostream& out);
 
     void visit(AST& ast) override;
 
+    void visit(LoadDefn& node) override;
     void visit(VariableDefn& node) override;
+    void visit(ParameterDefn& node) override;
     void visit(FunctionDefn& node) override;
+    void visit(FieldDefn& node) override;
+    void visit(VariantDefn& node) override;
+    void visit(AliasDefn& node) override;
     void visit(StructDefn& node) override;
+    void visit(EnumDefn& node) override;
 
     void visit(AdapterStmt& node) override;
     void visit(BlockStmt& node) override;
     void visit(IfStmt& node) override;
+    void visit(RestartStmt& node) override;
     void visit(RetStmt& node) override;
+    void visit(StopStmt& node) override;
     void visit(UntilStmt& node) override;
+
+    void visit(BoolLiteral& node) override;
+    void visit(CharLiteral& node) override;
+    void visit(IntegerLiteral& node) override;
+    void visit(FloatLiteral& node) override;
+    void visit(NullLiteral& node) override;
+    void visit(StringLiteral& node) override;
     
     void visit(BinaryOp& node) override;
     void visit(UnaryOp& node) override;
@@ -60,4 +68,4 @@ public:
 
 } // namespace lace
 
-#endif // LOVELACE_SYMBOL_ANALYSIS_H_
+#endif // LOVELACE_PRINTER_H_
