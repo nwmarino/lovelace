@@ -1,86 +1,80 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/Function.hpp"
-#include "spbe/machine/MachFunction.hpp"
+#include "lir/graph/Function.hpp"
+#include "lir/machine/MachFunction.hpp"
 
-using namespace spbe;
+using namespace lir;
 
-MachFunction::MachFunction(const Function* fn, const Target& target)
-    : m_fn(fn), m_target(target) {}
+MachFunction::MachFunction(const Function* function, const Machine& mach)
+  : m_function(function), m_mach(mach) {}
 
 MachFunction::~MachFunction() {
-    auto curr = m_front;
-    while (curr != nullptr) {
-        auto tmp = curr->next();
-        curr->m_prev = nullptr;
-        curr->m_next = nullptr;
+    MachLabel* curr = m_head;
+    while (curr) {
+        MachLabel* tmp = curr->get_next();
+
+        curr->set_prev(nullptr);
+        curr->set_next(nullptr);
         delete curr;
 
         curr = tmp;
     }
 
-    m_front = m_back = nullptr;
+    m_head = m_tail = nullptr;
 }
 
 const std::string& MachFunction::get_name() const {
-    assert(m_fn != nullptr && 
-        "machine function does not have an SPBE function!");
-    return m_fn->get_name();
+    assert(m_function);
+    return m_function->get_name();
 }
 
-const MachBasicBlock* MachFunction::at(uint32_t idx) const {
+const MachLabel* MachFunction::at(uint32_t i) const {
+    const MachLabel* curr = m_head;
     uint32_t pos = 0;
-    for (auto* curr = m_front; curr != nullptr; curr = curr->next())
-        if (pos++ == idx) return curr;
 
-    return nullptr;
-}
+    while (pos++ < i) {
+        assert(curr && "index out of bounds!");
+        curr = curr->get_next();
+    }
 
-MachBasicBlock* MachFunction::at(uint32_t idx) {
-    uint32_t pos = 0;
-    for (auto* curr = m_front; curr != nullptr; curr = curr->next())
-        if (pos++ == idx) return curr;
-
-    return nullptr;
+    return curr;
 }
 
 uint32_t MachFunction::size() const {
     uint32_t size = 0;
-    for (auto* curr = m_front; curr != nullptr; curr = curr->next()) 
+    for (MachLabel* curr = m_head; curr; curr = curr->get_next()) 
         ++size;
 
     return size;
 }
 
-void MachFunction::prepend(MachBasicBlock* mbb) {
-    assert(mbb && "basic block cannot be null!");
+void MachFunction::prepend(MachLabel* label) {
+    assert(label && "label cannot be null!");
 
-    if (m_front != nullptr) {
-        m_front->set_prev(mbb);
-        mbb->set_next(m_front);
-        m_front = mbb;
+    if (m_head) {
+        m_head->set_prev(label);
+        label->set_next(m_head);
+        m_head = label;
     } else {    
-        m_front = mbb;
-        m_back = mbb;
+        m_head = m_tail = label;
     }
 
-    mbb->set_parent(this);
+    label->set_parent(this);
 }
 
-void MachFunction::append(MachBasicBlock* mbb) {
-    assert(mbb && "basic block cannot be null!");
+void MachFunction::append(MachLabel* label) {
+    assert(label && "label cannot be null!");
     
-    if (m_back != nullptr) {
-        m_back->set_next(mbb);
-        mbb->set_prev(m_back);
-        m_back = mbb;
+    if (m_tail) {
+        m_tail->set_next(label);
+        label->set_prev(m_tail);
+        m_tail = label;
     } else {
-        m_front = mbb;
-        m_back = mbb;
+        m_head = m_tail = label;
     }
 
-    mbb->set_parent(this);
+    label->set_parent(this);
 }

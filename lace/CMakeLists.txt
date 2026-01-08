@@ -1,5 +1,13 @@
 set(LACE_SOURCES
     source/lace.cpp
+    source/codegen/LIRCodegen.cpp
+    source/codegen/LIRCodegenBinary.cpp
+    source/codegen/LIRCodegenCall.cpp
+    source/codegen/LIRCodegenCast.cpp
+    source/codegen/LIRCodegenDefn.cpp
+    source/codegen/LIRCodegenExpr.cpp
+    source/codegen/LIRCodegenStmt.cpp
+    source/codegen/LIRCodegenUnary.cpp
     source/core/Diagnostics.cpp
     source/core/Lexer.cpp
     source/parser/ParseDefn.cpp
@@ -28,7 +36,7 @@ add_executable(lace ${LACE_SOURCES})
 target_compile_options(lace PRIVATE -g -D LACE_COMPILE_SAMPLES)
 
 target_link_libraries(lace PUBLIC
-    spbe
+    lir
 )
 
 target_include_directories(lace PUBLIC
@@ -76,7 +84,7 @@ target_include_directories(lace_test PUBLIC
 )
 
 target_link_libraries(lace_test PRIVATE
-    spbe
+    lir
     GTest::GTest
     GTest::Main
 )

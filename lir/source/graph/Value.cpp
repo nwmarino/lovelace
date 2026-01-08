@@ -1,14 +1,14 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/Use.hpp"
-#include "spbe/graph/Value.hpp"
+#include "lir/graph/Use.hpp"
+#include "lir/graph/Value.hpp"
 
 #include <algorithm>
 
-using namespace spbe;
+using namespace lir;
 
 void Value::del_use(Use* use) {
     auto it = std::find(m_uses.begin(), m_uses.end(), use);

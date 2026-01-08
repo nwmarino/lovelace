@@ -1,31 +1,30 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/CFG.hpp"
-#include "spbe/machine/MachBasicBlock.hpp"
-#include "spbe/machine/MachFunction.hpp"
-#include "spbe/machine/MachInstruction.hpp"
-#include "spbe/machine/MachObject.hpp"
-#include "spbe/machine/MachRegister.hpp"
-#include "spbe/machine/RegisterAllocator.hpp"
-#include "spbe/machine/RegisterAnalysis.hpp"
-#include "spbe/X64/X64.hpp"
+#include "lir/machine/MachFunction.hpp"
+#include "lir/machine/MachInst.hpp"
+#include "lir/machine/MachLabel.hpp"
+#include "lir/machine/Register.hpp"
+#include "lir/machine/RegisterAllocator.hpp"
+#include "lir/machine/RegisterAnalysis.hpp"
+#include "lir/machine/Segment.hpp"
 
-#ifdef SPBE_MACHINE_DEBUGGING
+#ifdef LIR_MACHINE_DEBUGGING
 #include <iostream>
-#endif // SPBE_MACHINE_DEBUGGING
+#endif // LIR_MACHINE_DEBUGGING
 
-using namespace spbe;
+using namespace lir;
 
 /// Implementation of a linear scan over the intermediate representation to
 /// identify live ranges of named producers.
 class LinearScan final {
     const MachFunction& m_function;
     std::vector<LiveRange>& m_ranges;
+    uint32_t m_position = 0;
 
-    LiveRange& update_range(MachRegister reg, RegisterClass cls, uint32_t pos) {
+    LiveRange& update_range(Register reg, RegisterClass cls, uint32_t pos) {
         // Attempt to find an existing range for |reg|.
         for (auto& range : m_ranges) {
             // The range has been killed, so we never update it.
@@ -44,7 +43,7 @@ class LinearScan final {
         range.start = range.end = pos;
         range.cls = cls;
         range.killed = false;
-        range.alloc = MachRegister::NoRegister;
+        range.alloc = Register::NoRegister;
 
         if (reg.is_physical())
             range.alloc = reg;
@@ -53,52 +52,53 @@ class LinearScan final {
         return m_ranges.back();
     }
 
+    void process_inst(const MachInst& inst) {
+        for (const MachOperand& op : inst.get_operands()) {
+            if (!op.is_reg() && !op.is_mem())
+                continue;
+
+            Register reg;
+            RegisterClass cls;
+
+            if (op.is_reg()) {
+                reg = op.get_reg();
+            } else if (op.is_mem()) {
+                reg = op.get_mem_base();
+            }
+
+            if (reg.is_physical()) {
+                cls = get_register_class(static_cast<X64_Register>(reg.id()));
+            } else {
+                // reg refers to a virtual register, whose
+                // information is stored in the parent function.
+                const MachFunction::RegisterTable& regs = 
+                    m_function.get_register_table();
+                assert(regs.count(reg.id()) != 0);
+                cls = regs.at(reg.id()).cls;
+            }
+
+            LiveRange& range = update_range(reg, cls, m_position);
+            if (op.is_reg() && op.is_kill()) {
+                range.end = m_position;
+                range.killed = true;
+            }
+        }
+    }
+
 public:
     LinearScan(const MachFunction& function, std::vector<LiveRange>& ranges)
-        : m_function(function), m_ranges(ranges) {}
-
-    LinearScan(const LinearScan&) = delete;
-    LinearScan& operator = (const LinearScan&) = delete;
+      : m_function(function), m_ranges(ranges) {}
 
     void run() {
-        uint32_t position = 0;
-
-        // TODO: Triple loop here should get factored away.
-        for (const auto* mbb = m_function.front(); mbb; mbb = mbb->next()) {
-            for (const auto& mi : mbb->insts()) {
-                for (const auto& mo : mi.operands()) {
-                    if (!mo.is_reg() && !mo.is_mem())
-                        continue;
-
-                    MachRegister reg;
-                    RegisterClass cls;
-
-                    if (mo.is_reg()) {
-                        reg = mo.get_reg();
-                    } else if (mo.is_mem()) {
-                        reg = mo.get_mem_base();
-                    }
-
-                    if (reg.is_physical()) {
-                        cls = x64::get_class(
-                            static_cast<x64::Register>(reg.id()));
-                    } else {
-                        // reg refers to a virtual register, whose
-                        // information is stored in the parent function.
-                        const auto& regi = m_function.get_register_info();
-                        assert(regi.vregs.count(reg.id()) != 0);
-                        cls = regi.vregs.at(reg.id()).cls;
-                    }
-
-                    LiveRange& range = update_range(reg, cls, position);
-                    if (mo.is_reg() && mo.is_kill()) {
-                        range.end = position;
-                        range.killed = true;
-                    }
-                }
-
-                ++position;
+        m_position = 0;
+        const MachLabel* curr = m_function.get_head();
+        while (curr) {
+            for (const MachInst& inst : curr->insts()) {
+                process_inst(inst);
+                ++m_position;
             }
+
+            curr = curr->get_next();
         }
     }
 };
@@ -108,73 +108,71 @@ public:
 class CallsiteAnalysis final {
     MachFunction& m_function;
     const std::vector<LiveRange>& m_ranges;
+    uint32_t m_position = 0;
+
+    void process_label(MachLabel& label) {
+        std::vector<MachInst> insts = {};
+        insts.reserve(label.size());
+
+        for (uint32_t i = 0, e = label.size(); i < e; ++m_position, ++i) {
+            MachInst& inst = label.insts().at(i);
+
+            X64_Mnemonic op = inst.op();
+            if (op == X64_Mnemonic::CALL) {
+                std::vector<Register> spill = {};
+
+                for (const LiveRange& range : m_ranges) {
+                    if (!range.overlaps(m_position))
+                        continue;
+
+                    X64_Register alloc = static_cast<X64_Register>(range.alloc.id());
+                    if ( m_function.get_machine().is_caller_saved(alloc))
+                        spill.push_back(alloc);
+                }
+
+                for (const Register& reg : spill) {
+                    MachOperand op = MachOperand::create_reg(reg, 8, false);
+                    insts.push_back(MachInst(
+                        X64_Mnemonic::PUSH, X64_Size::Quad, { op }));
+                }
+
+                insts.push_back(inst);
+
+                for (const Register& reg : spill) {
+                    MachOperand op = MachOperand::create_reg(reg, 8, true);
+                    insts.push_back(MachInst(X64_Mnemonic::POP, X64_Size::Quad, { op }));
+                }
+            } else {
+                insts.push_back(inst);
+            }
+        }
+
+        label.insts() = insts;
+    }
 
 public:
-    CallsiteAnalysis(
-            MachFunction& function, const std::vector<LiveRange>& ranges)
-        : m_function(function), m_ranges(ranges) {}
-
-    CallsiteAnalysis(const CallsiteAnalysis&) = delete;
-    CallsiteAnalysis& operator = (const CallsiteAnalysis&) = delete;
+    CallsiteAnalysis(MachFunction& function, 
+                     const std::vector<LiveRange>& ranges)
+      : m_function(function), m_ranges(ranges) {}
     
     void run() {
-        uint32_t position = 0;
-        for (auto* mbb = m_function.front(); mbb != nullptr; mbb = mbb->next()) {
-            std::vector<MachInstruction> insts;
-            insts.reserve(mbb->size());
-
-            for (uint32_t i = 0; i < mbb->size(); ++position, ++i) {
-                // TODO: Generalize for other targets.
-                if (x64::is_call_opcode(static_cast<x64::Opcode>(mbb->insts().at(i).opcode()))) {
-                    std::vector<MachRegister> save = {};
-
-                    for (auto& range : m_ranges) {
-                        if (range.overlaps(position)) {
-                            MachRegister range_alloc = range.alloc;
-                            if (x64::is_caller_saved(static_cast<x64::Register>(range.alloc.id())))
-                                save.push_back(range.alloc);
-                        }
-                    }
-
-                    for (const auto& reg : save) {
-                        MachOperand op = MachOperand::create_reg(reg, 8, false);
-                        insts.push_back({ x64::PUSH64, { op } });   
-                    }
-
-                    insts.push_back(mbb->insts().at(i));
-                    
-                    for (const auto& reg : save) {
-                        MachOperand op = MachOperand::create_reg(reg, 8, true);
-                        insts.push_back({ x64::POP64, { op } });
-                    }
-                } else {
-                    insts.push_back(mbb->insts().at(i));
-                }
-            }
-
-            mbb->insts() = insts;
+        m_position = 0;
+        MachLabel* curr = m_function.get_head();
+        while (curr) {
+            process_label(*curr);
+            curr = curr->get_next();
         }
     }
 };
 
 void RegisterAnalysis::run() {
-    for (const auto& [name, function] : m_obj.functions()) {
+    for (const auto& [name, function] : m_seg.get_functions()) {
         std::vector<LiveRange> ranges;
         
         LinearScan linscan { *function, ranges };
         linscan.run();
 
-        TargetRegisters tregs;
-        switch (m_obj.get_target()->arch()) {
-        case Target::Arch::x64:
-            tregs = x64::get_registers();
-            break;
-
-        default:
-            assert(false && "unsupported architecture!");
-        }
-
-#ifdef SPBE_MACHINE_DEBUGGING
+#ifdef LIR_MACHINE_DEBUGGING
         std::cerr << "Function '" << name << "' ranges:\n";
         for (const auto& range : ranges) {
             if (range.reg.is_virtual()) {
@@ -186,18 +184,18 @@ void RegisterAnalysis::run() {
 
             std::cerr << " [" << range.start << ", " << range.end << "]\n";
         }
-#endif // SPBE_MACHINE_DEBUGGING
+#endif // LIR_MACHINE_DEBUGGING
 
-        RegisterAllocator allocator { *function, tregs, ranges };
+        RegisterAllocator allocator { *function, ranges };
         allocator.run();
 
-        FunctionRegisterInfo& regi = function->get_register_info();
+        MachFunction::RegisterTable& regs = function->get_register_table();
         for (const auto& range : ranges) {
-            MachRegister reg = range.reg;
+            Register reg = range.reg;
             if (reg.is_physical())
                 continue;
 
-            regi.vregs[reg.id()].alloc = range.alloc;
+            regs[reg.id()].alloc = range.alloc;
         }
 
         CallsiteAnalysis CAN { *function, ranges };

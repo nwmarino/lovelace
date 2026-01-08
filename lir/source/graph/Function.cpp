@@ -1,47 +1,51 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/BasicBlock.hpp"
-#include "spbe/graph/CFG.hpp"
-#include "spbe/graph/Function.hpp"
+#include "lir/graph/BasicBlock.hpp"
+#include "lir/graph/CFG.hpp"
+#include "lir/graph/Function.hpp"
 
-using namespace spbe;
+using namespace lir;
 
-Argument::Argument(const Type* type, const std::string& name, uint32_t number, 
-                   Function* parent)
-    : Value(type), m_name(name), m_number(number), m_parent(parent) {}
+Function::Arg* Function::Arg::create(
+        Type *type, const std::string &name, Function* parent) {
+    Function::Arg* arg = new Function::Arg(type, parent, name);
+    if (parent)
+        parent->append_arg(arg);
 
-Function::Function(CFG& cfg, LinkageType linkage, const FunctionType* type,
-                   const std::string& name, const std::vector<Argument*>& args)
-    : Value(type), m_linkage(linkage), m_name(name), m_args(args) {
+    return arg;
+}
 
-    for (uint32_t idx = 0, e = args.size(); idx != e; ++idx) {
-        args[idx]->set_number(idx);
-        args[idx]->set_parent(this);
+uint32_t Function::Arg::get_index() const {
+    assert(m_parent && "argument does not belong to a function!");
+
+    const Function::Args& args = m_parent->get_args();
+    uint32_t i = 0;
+    for (Arg* arg : args) {
+        if (arg == this)
+            return i;
+
+        ++i;
     }
 
-    cfg.add_function(this);
+    __builtin_unreachable(); // The argument should be in the list...
 }
 
 Function::~Function() {
-    for (auto& arg : m_args) {
+    for (Arg* arg : m_args)
         delete arg;
-        arg = nullptr;
-    }
 
-    for (auto& [name, local] : m_locals) {
+    for (auto& [name, local] : m_locals)
         delete local;
-        local = nullptr;
-    }
 
     m_args.clear();
     m_locals.clear();
 
-    BasicBlock* curr = m_front;
+    BasicBlock* curr = m_head;
     while (curr != nullptr) {
-        BasicBlock* tmp = curr->next();
+        BasicBlock* tmp = curr->get_next();
 
         curr->set_prev(nullptr);
         curr->set_next(nullptr);
@@ -50,21 +54,40 @@ Function::~Function() {
         curr = tmp;
     }
 
-    m_front = m_back = nullptr;
+    m_head = m_tail = nullptr;
 }
 
-void Function::detach_from_parent() {
-    assert(m_parent != nullptr && "function does not have a parent graph!");
+Function* Function::create(CFG &cfg, LinkageType linkage, FunctionType *type, 
+                           const std::string &name, const Args &args) {
+    Function* function = new Function(type, &cfg, linkage, name, args);
+    cfg.add_function(function);
 
-    m_parent->remove_function(this);
-    m_parent = nullptr;
+    for (Arg* arg : args) {
+        assert(!arg->has_parent() && "argument already belongs to a function!");
+        arg->set_parent(function);
+    }
+
+    return function;
 }
 
-void Function::set_arg(uint32_t i, Argument* arg) {
-    assert(i <= num_args() && "index out of bounds!");
+void Function::detach() {
+    assert(m_parent && "function does not have a parent graph!");
+
+    m_parent->remove_function(this); // Updates parent pointer for us.
+}
+
+void Function::set_arg(uint32_t i, Function::Arg* arg) {
+    assert(i < num_args() && "index out of bounds!");
+    assert(!arg->has_parent() && "argument already belongs to a function!");
 
     m_args[i] = arg;
-    arg->set_number(i);
+    arg->set_parent(this);
+}
+
+void Function::append_arg(Function::Arg* arg) {
+    assert(!arg->has_parent() && "argument already belongs to a function!");
+
+    m_args.push_back(arg);
     arg->set_parent(this);
 }
 
@@ -78,7 +101,7 @@ const Local* Function::get_local(const std::string& name) const {
 
 void Function::add_local(Local* local) {
     assert(!get_local(local->get_name()) &&
-        "local with name already exists in function!");
+        "local with same name already exists in function!");
     
     m_locals.emplace(local->get_name(), local);
     local->set_parent(this);
@@ -92,61 +115,85 @@ void Function::remove_local(Local* local) {
         m_locals.erase(it);
 }
 
-void Function::push_front(BasicBlock* blk) {
-    assert(blk && "block cannot be null!");
+void Function::prepend(BasicBlock* block) {
+    assert(block && "block cannot be null!");
+    assert(!block->has_parent() && "block already belongs to a function!");
 
-    if (m_front != nullptr) {
-        blk->set_next(m_front);
-        m_front->set_prev(blk);
-        m_front = blk;
+    if (m_head) {
+        block->set_next(m_head);
+        m_head->set_prev(block);
+        m_head = block;
     } else {
-        m_front = m_back = blk;
+        m_head = m_tail = block;
     }
 }
 
-void Function::push_back(BasicBlock* blk) {
-    assert(blk && "block cannot be null!");
+void Function::append(BasicBlock* block) {
+    assert(block && "block cannot be null!");
+    assert(!block->has_parent() && "block already belongs to a function!");
 
-    if (m_back != nullptr) {
-        blk->set_prev(m_back);
-        m_back->set_next(blk);
-        m_back = blk;
+    if (m_tail) {
+        block->set_prev(m_tail);
+        m_tail->set_next(block);
+        m_tail = block;
     } else {
-        m_front = m_back = blk;
+        m_head = m_tail = block;
     }
 }
 
-void Function::insert(BasicBlock* blk, uint32_t idx) {
+void Function::insert(BasicBlock* block, uint32_t i) {
+    assert(block && "block cannot be null!");
+    assert(!block->has_parent() && "block already belongs to a function!");
+
     uint32_t pos = 0;
-    for (auto& curr = m_front; curr != nullptr; curr = curr->next()) {
-        if (pos == idx) {
-            blk->insert_before(curr);
-            return;
-        }
+    for (BasicBlock* curr = m_head; curr; curr = curr->get_next()) {
+        if (pos == i)
+            return block->insert_before(curr);
 
         ++pos;
     }
 
-    push_back(blk);
+    append(block);
 }
 
-void Function::insert(BasicBlock* blk, BasicBlock* insert_after) {
-    blk->insert_after(insert_after);
+void Function::insert(BasicBlock* block, BasicBlock* insert_after) {
+    assert(block && "block cannot be null!");
+
+    block->insert_after(insert_after);
 }
 
-void Function::remove(BasicBlock* blk) {
-    for (auto& curr = m_front; curr != nullptr; curr = curr->next()) {
-        if (curr != blk)
-            continue;
+void Function::remove(BasicBlock* block) {
+    assert(block && "block cannot be null!");
+    assert(block->get_parent() == this && 
+        "block does not belong to this function!");
 
-        if (curr->prev())
-            curr->prev()->set_next(blk->next());
+    // Update the next pointer for the block before the one to remove.
+    if (block->get_prev()) {
+        block->get_prev()->set_next(block->get_next());
+    } else {
+        if (block->get_next()) {
+            // Block is at the front of the function, so update the head.
+            m_head = block->get_next();
+        } else {
+            // Block was the last in the function.
+            m_head = m_tail = nullptr;
+        }
+    }
 
-        if (curr->next())
-            curr->next()->set_prev(blk->prev());
+    // Update the previous pointer for the block after the one to remove.
+    if (block->get_next()) {
+        block->get_next()->set_prev(block->get_prev());
+    } else {
+        if (block->get_prev()) {
+            // Block is at the back of the function, so update the tail.
+            m_tail = block->get_prev();
+        } else {
+            // Block was the last in the function.
+            m_head = m_tail = nullptr;
+        }
+    }
 
-        blk->set_prev(nullptr);
-        blk->set_next(nullptr);
-        blk->clear_parent();
-    } 
+    block->set_prev(nullptr);
+    block->set_next(nullptr);
+    block->clear_parent();
 }

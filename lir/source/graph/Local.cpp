@@ -1,27 +1,26 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/Function.hpp"
-#include "spbe/graph/Local.hpp"
-#include "spbe/graph/Type.hpp"
+#include "lir/graph/Function.hpp"
+#include "lir/graph/Local.hpp"
+#include "lir/graph/Type.hpp"
 
-using namespace spbe;
+using namespace lir;
 
-Local::Local(CFG& cfg, 
-			 const Type* type, 
-			 uint32_t align, 
-			 const std::string& name, 
-             Function* parent)
-    : Value(PointerType::get(cfg, type)), m_alloc_type(type), m_align(align),
-	  m_name(name), m_parent(parent) {
+Local* Local::create(CFG &cfg, Type *type, const std::string &name, 
+					 uint32_t align, Function* parent) {
+	Local* local = new Local(
+		PointerType::get(cfg, type), parent, name, type, align);
 
-	if (parent != nullptr)
-		parent->add_local(this);
+	if (parent)
+		parent->add_local(local);
+
+	return local;
 }
 
-void Local::detach_from_parent() {
+void Local::detach() {
 	assert(m_parent && "local does not belong to a function!");
 	m_parent->remove_local(this);
 }

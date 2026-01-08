@@ -1,165 +1,226 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/BasicBlock.hpp"
-#include "spbe/graph/Function.hpp"
-#include "spbe/graph/Instruction.hpp"
+#include "lir/graph/BasicBlock.hpp"
+#include "lir/graph/Function.hpp"
+#include "lir/graph/Instruction.hpp"
 
-using namespace spbe;
+using namespace lir;
 
-BasicBlock::BasicBlock(Function* parent) : m_parent(parent) {
-    if (parent != nullptr)
-        parent->push_back(this);
+BasicBlock::Arg* BasicBlock::Arg::create(Type* type, BasicBlock* parent) {
+    BasicBlock::Arg* arg = new BasicBlock::Arg(type, parent);
+    if (parent)
+        parent->append_arg(arg);
+
+    return arg;
+}
+
+uint32_t BasicBlock::Arg::get_index() const {
+    assert(m_parent && "argument does not belong to a block!");
+
+    const BasicBlock::Args& args = m_parent->get_args();
+    uint32_t i = 0;
+    for (Arg* arg : args) {
+        if (arg == this)
+            return i;
+
+        ++i;
+    }
+
+    __builtin_unreachable(); // The argument should be in the list...
 }
 
 BasicBlock::~BasicBlock() {
-    Instruction* curr = m_front;
+    for (Arg* arg : m_args)
+        delete arg;
+
+    Instruction* curr = m_head;
     while (curr) {
-        Instruction* tmp = curr->next();
+        Instruction* tmp = curr->get_next();
         delete curr;
         curr = tmp;
     }
 
-    m_front = m_back = nullptr;
+    m_head = m_tail = nullptr;
     m_prev = m_next = nullptr;
+    m_args.clear();
     m_preds.clear();
     m_succs.clear();
 }
 
-void BasicBlock::append_to_function(Function* parent) {
-    assert(parent && "new parent function cannot be null!");
-    assert(!m_parent && "basic block already belongs to a function!");
+BasicBlock* BasicBlock::create(const Args &args, Function* parent) {
+    BasicBlock* block = new BasicBlock(nullptr, args);
+    if (parent)
+        parent->append(block);
 
-    parent->push_back(this);
+    return block;
+}
+
+void BasicBlock::detach() {
+    assert(m_parent && "block does not belong to a function!");
+
+    m_parent->remove(this); // Updates parent pointer for us.
+}
+
+void BasicBlock::append_to(Function* parent) {
+    assert(parent && "parent cannot be null!");
+    assert(!m_parent && "block already belongs to a function!");
+
+    parent->append(this);
     m_parent = parent;
 }
 
-void BasicBlock::insert_before(BasicBlock* blk) {
-    assert(blk && "blk cannot be null!");
-    assert(!m_parent && "basic block already belongs to a function!");
+void BasicBlock::insert_before(BasicBlock* block) {
+    assert(block && "block cannot be null!");
+    assert(!m_parent && "block already belongs to a function!");
 
-    m_prev = blk->m_prev;
-    m_next = blk;
+    m_prev = block->m_prev;
+    m_next = block;
 
-    if (blk->m_prev != nullptr)
-        blk->m_prev->m_next = this;
+    if (block->m_prev != nullptr)
+        block->m_prev->m_next = this;
 
-    blk->m_prev = this;
-    m_parent = blk->m_parent;
+    block->m_prev = this;
+    m_parent = block->m_parent;
 }
 
-void BasicBlock::insert_after(BasicBlock* blk) {
-    assert(blk && "blk cannot be null!");
-    assert(!m_parent && "basic block already belongs to a function!");
+void BasicBlock::insert_after(BasicBlock* block) {
+    assert(block && "block cannot be null!");
+    assert(!m_parent && "block already belongs to a function!");
 
-    m_prev = blk;
-    m_next = blk->m_next;
+    m_prev = block;
+    m_next = block->m_next;
 
-    if (blk->m_next != nullptr)
-        blk->m_next->m_prev = this;
+    if (block->m_next != nullptr)
+        block->m_next->m_prev = this;
 
-    blk->m_next = this;
-    m_parent = blk->m_parent;
+    block->m_next = this;
+    m_parent = block->m_parent;
 }
 
-void BasicBlock::remove_inst(Instruction* inst) {
-    for (auto& curr = m_front; curr; curr = curr->next()) {
-        if (curr != inst)
-            continue;
+void BasicBlock::remove(Instruction* inst) {
+    assert(inst && "instruction cannot be null!");
+    assert(inst->get_parent() == this && 
+        "instruction does not belong to this block!");
 
-        if (curr->prev())
-            curr->prev()->set_next(inst->next());
-
-        if (curr->next())
-            curr->next()->set_prev(inst->prev());
-
-        inst->set_prev(nullptr);
-        inst->set_next(nullptr);
-        inst->clear_parent();
-    }
-}
-
-void BasicBlock::detach_from_parent() {
-    if (m_parent != nullptr)
-        m_parent->remove(this);
-    
-    m_prev = m_next = nullptr;
-    m_parent = nullptr;
-}
-
-void BasicBlock::push_front(Instruction* inst) {
-    assert(inst && "inst cannot be null!");
-
-    if (m_front != nullptr) {
-        inst->set_next(m_front);
-        m_front->set_prev(inst);
-        m_front = inst;
+    // Update the next pointer for the instruction before the one to remove.
+    if (inst->get_prev()) {
+        inst->get_prev()->set_next(inst->get_next());
     } else {
-        m_front = m_back = inst;
+        if (inst->get_next()) {
+            // Instruction is at the front of the block, so update the head.
+            m_head = inst->get_next();
+        } else {
+            // Instruction was the last in the block.
+            m_head = m_tail = nullptr;
+        }
+    }
+
+    // Update the previous pointer for the instruction after the one to remove.
+    if (inst->get_next()) {
+        inst->get_next()->set_prev(inst->get_prev());
+    } else {
+        if (inst->get_prev()) {
+            // Instruction is at the back of the block, so update the tail.
+            m_tail = inst->get_prev();
+        } else {
+            // Instruction was the last in the block.
+            m_head = m_tail = nullptr;
+        }
+    }
+
+    inst->set_prev(nullptr);
+    inst->set_next(nullptr);
+    inst->clear_parent();
+}
+
+void BasicBlock::prepend(Instruction* inst) {
+    assert(inst && "instruction cannot be null!");
+
+    if (m_head) {
+        inst->set_next(m_head);
+        m_head->set_prev(inst);
+        m_head = inst;
+    } else {
+        m_head = m_tail = inst;
     }
 
     inst->set_parent(this);
 }
 
-void BasicBlock::push_back(Instruction* inst) {
-    assert(inst && "inst cannot be null!");
+void BasicBlock::append(Instruction* inst) {
+    assert(inst && "instruction cannot be null!");
 
-    if (m_back != nullptr) {
-        inst->set_prev(m_back);
-        m_back->set_next(inst);
-        m_back = inst;
+    if (m_tail) {
+        inst->set_prev(m_tail);
+        m_tail->set_next(inst);
+        m_tail = inst;
     } else {
-        m_front = m_back = inst;
+        m_head = m_tail = inst;
     }
 
     inst->set_parent(this);
 }
 
 void BasicBlock::insert(Instruction* inst, uint32_t i) {
-    assert(inst && "inst cannot be null!");
+    assert(inst && "instruction cannot be null!");
     
     uint32_t position = 0;
-    for (auto& curr = m_front; curr != nullptr; curr = curr->next())
-        if (position++ == i) return inst->insert_before(curr);
+    for (Instruction* curr = m_head; curr; curr = curr->get_next())
+        if (position++ == i) 
+            return inst->insert_before(curr);
 
-    push_back(inst);
+    append(inst);
 }
 
 void BasicBlock::insert(Instruction* inst, Instruction* insert_after) {
     inst->insert_after(insert_after);
 }
 
+uint32_t BasicBlock::size() const {
+    uint32_t size = 0;
+    for (const Instruction* curr = m_head; curr; curr = curr->get_next())
+        ++size;
+
+    return size;
+}
+
 uint32_t BasicBlock::get_number() const {
     uint32_t num = 0;
-    const BasicBlock* curr = m_prev;
-    while (curr != nullptr) {
-        curr = curr->prev();
-        num++;
-    }
+
+    // Count backwards from where the block is relative to the first block in 
+    // the parent function, i.e. the one with no previous block.
+    for (const BasicBlock* curr = m_prev; curr; curr = curr->get_prev())
+        ++num;
 
     return num;
 }
 
 bool BasicBlock::terminates() const {
-    for (auto curr = m_back; curr != nullptr; curr = curr->prev())
-        if (curr->is_terminator()) return true;
+    // Start at the back of the block and move to the front, since terminators
+    // are most likely to be towards the end.
+    for (const Instruction* curr = m_tail; curr; curr = curr->get_prev())
+        if (curr->is_terminator()) 
+            return true;
 
     return false;
 }
 
 uint32_t BasicBlock::terminators() const {
     uint32_t num = 0;
-    for (auto curr = m_front; curr != nullptr; curr = curr->next())
-        if (curr->is_terminator()) ++num;
+    for (const Instruction* curr = m_head; curr; curr = curr->get_next())
+        if (curr->is_terminator()) 
+            ++num;
 
     return num;
 }
 
 const Instruction* BasicBlock::terminator() const {
-    for (auto curr = m_front; curr != nullptr; curr = curr->next())
-        if (curr->is_terminator()) return curr;
+    for (const Instruction* curr = m_head; curr; curr = curr->get_next())
+        if (curr->is_terminator()) 
+            return curr;
 
     return nullptr;
 }

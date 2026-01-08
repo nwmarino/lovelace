@@ -35,7 +35,7 @@ struct Options final {
     bool version;       //< (-v) If the version should be printed.
 
     bool print_tree;    //< (-ast) If the AST should be printed.
-    bool print_spbe;    //< (-spbe) If the SPBE-IR should be printed.
+    bool print_lir;     //< (-spbe) If the LIR should be printed.
 };
 
 } // namespace lace

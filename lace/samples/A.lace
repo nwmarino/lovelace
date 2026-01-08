@@ -3,3 +3,11 @@ load "B.lace";
 foo :: () -> Box {
     
 }
+
+gt5 :: (x: s64) -> bool {
+    if x > 5 {
+        ret true;
+    } else {
+        ret false;
+    }
+}

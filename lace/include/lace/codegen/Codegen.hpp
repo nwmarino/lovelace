@@ -8,7 +8,7 @@
 
 //
 //  This header file declares the Codegen class, whom instances thereof 
-//  generate SPBE-IR code from a valid abstract syntax tree.
+//  generate LIR code from a valid abstract syntax tree.
 //
 
 #include "lace/core/Options.hpp"
@@ -17,10 +17,11 @@
 #include "lace/tree/Type.hpp"
 #include "lace/tree/Visitor.hpp"
 
-#include "spbe/graph/CFG.hpp"
-#include "spbe/graph/BasicBlock.hpp"
-#include "spbe/graph/Function.hpp"
-#include "spbe/graph/InstrBuilder.hpp"
+#include "lir/graph/BasicBlock.hpp"
+#include "lir/graph/Builder.hpp"
+#include "lir/graph/CFG.hpp"
+#include "lir/graph/Function.hpp"
+#include "lir/machine/Machine.hpp"
 
 #include <cstdint>
 
@@ -63,25 +64,28 @@ class Codegen final : public Visitor {
     };
 
     const Options& m_options;
+    const lir::Machine& m_mach;
 
     Phase m_phase = Declare;
     ValueContext m_vctx = RValue;
 
-    spbe::CFG& m_graph;
-    spbe::InstrBuilder m_builder;
-    spbe::Function* m_function = nullptr;
-    spbe::Value* m_temp = nullptr;
-    spbe::Value* m_place = nullptr;
-    spbe::BasicBlock* m_cond = nullptr;
-    spbe::BasicBlock* m_merge = nullptr;
+    lir::CFG& m_cfg;
+    lir::Builder m_builder;
+    lir::Function* m_function = nullptr;
+    lir::Value* m_temp = nullptr;
+    lir::Value* m_place = nullptr;
+    lir::BasicBlock* m_cnd = nullptr;
+    lir::BasicBlock* m_mrg = nullptr;
 
-    spbe::Function* get_intrinsic(const std::string& name, 
-                                  const spbe::Type* ret,
-                                  const std::vector<const spbe::Type*>& params = {});
+    lir::Function* get_intrinsic(const std::string& name, lir::Type* ret, 
+                                 const std::vector<lir::Type*>& params = {});
 
-    const spbe::Type* lower_type(const Type* type);
+    /// Lower the given |type| to an LIR equivelant, where applicable.
+    lir::Type* lower_type(const QualType& type);
 
-    spbe::Value* inject_bool_comparison(spbe::Value* value);
+    /// Attempt to inject a boolean comparison unto the given |value|, such
+    /// that the result is some form of comparison of a boolean type.
+    lir::Value* inject_bool_comparison(lir::Value* value);
 
     void declare_ir_global(VariableDefn& node);
     void define_ir_global(VariableDefn& node);
@@ -101,22 +105,19 @@ class Codegen final : public Visitor {
     void codegen_logical_and(BinaryOp& node);
     void codegen_logical_or(BinaryOp& node);
 
-    void codegen_cast_integer(spbe::Value* value, const spbe::Type* dst, 
-                              bool is_signed);
-    void codegen_cast_float(spbe::Value* value, const spbe::Type* dst);
-    void codegen_cast_array(spbe::Value* value, const spbe::Type* dst);
-    void codegen_cast_pointer(spbe::Value* value, const spbe::Type* dst);
+    void codegen_negate(UnaryOp& node);
+    void codegen_bitwise_not(UnaryOp& node);
+    void codegen_logical_not(UnaryOp& node);
+    void codegen_address_of(UnaryOp& node);
+    void codegen_dereference(UnaryOp& node);
+
+    void codegen_cast_integer(lir::Value* value, lir::Type* dest, bool is_signed);
+    void codegen_cast_float(lir::Value* value, lir::Type* dest);
+    void codegen_cast_array(lir::Value* value, lir::Type* dest);
+    void codegen_cast_pointer(lir::Value* value, lir::Type* dest);
 
 public:
-    Codegen(const Options& options, spbe::CFG& graph);
-
-    ~Codegen() = default;
-
-    Codegen(const Codegen&) = delete;
-    void operator=(const Codegen&) = delete;
-
-    Codegen(Codegen&&) noexcept = delete;
-    void operator=(Codegen&&) noexcept = delete;
+    Codegen(const Options& options, lir::CFG& cfg);
 
     void visit(AST& ast) override;
 

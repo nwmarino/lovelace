@@ -3,6 +3,7 @@
 //  All rights reserved.
 //
 
+#include "lace/codegen/Codegen.hpp"
 #include "lace/core/Diagnostics.hpp"
 #include "lace/core/Options.hpp"
 #include "lace/parser/Parser.hpp"
@@ -12,9 +13,14 @@
 #include "lace/tree/Printer.hpp"
 #include "lace/tree/SemanticAnalysis.hpp"
 #include "lace/tree/SymbolAnalysis.hpp"
+#include "lir/analysis/LoweringPass.hpp"
+#include "lir/machine/AsmWriter.hpp"
+#include "lir/machine/Machine.hpp"
+#include "lir/machine/RegisterAnalysis.hpp"
 
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -146,7 +152,7 @@ int32_t main(int32_t argc, char** argv) {
     options.verbose = true;
     options.version = true;
     options.print_tree = true;
-    options.print_spbe = false;
+    options.print_lir = true;
 
     log::init();
 
@@ -223,6 +229,39 @@ int32_t main(int32_t argc, char** argv) {
     }
 
     log::flush();
+
+    lir::Machine mach(lir::Machine::Linux);
+
+    for (AST* ast : asts) {
+        lir::CFG cfg(mach, ast->get_file());
+        Codegen cgn(options, cfg);
+        cgn.visit(*ast);
+
+        if (options.print_lir) {
+            std::ofstream file(ast->get_file() + ".lir");
+            if (!file || !file.is_open())
+                log::fatal("failed to open: " + ast->get_file() + ".s");
+            
+            cfg.print(file);
+            file.close();
+        }
+
+        lir::Segment seg(cfg);
+
+        lir::LoweringPass lowering(cfg, seg);
+        lowering.run();
+
+        lir::RegisterAnalysis rega(seg);
+        rega.run();
+
+        std::ofstream out(ast->get_file() + ".s");
+        if (!out || !out.is_open())
+            log::fatal("failed to open: " + ast->get_file() + ".s");
+
+        lir::AsmWriter writer(seg);
+        writer.run(out);
+        out.close();
+    }
 
     for (AST* ast : asts)
         delete ast;

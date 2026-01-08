@@ -1,17 +1,17 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/graph/CFG.hpp"
-#include "spbe/graph/Global.hpp"
-#include "spbe/graph/Type.hpp"
+#include "lir/graph/CFG.hpp"
+#include "lir/graph/Global.hpp"
+#include "lir/graph/Type.hpp"
 
-using namespace spbe;
+using namespace lir;
 
-Global::Global(CFG& cfg, const Type* type, LinkageType linkage, bool read_only, 
-               const std::string& name, Constant* init)
-    : Constant({ init }, PointerType::get(cfg, type)), 
-      m_linkage(linkage), m_read_only(read_only), m_name(name), m_init(init) {
-    cfg.add_global(this);
+Global* Global::create(CFG& cfg, Type* type, LinkageType linkage, 
+                       bool read_only, const std::string& name, Constant* init) {
+	Global* global = new Global(type, &cfg, linkage, read_only, name, init);
+	cfg.add_global(global);
+	return global;
 }

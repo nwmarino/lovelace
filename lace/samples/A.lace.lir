@@ -1,0 +1,22 @@
+LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
+
+Box :: struct { i32, i32 }
+
+bar :: ext () -> void;
+
+foo :: ext () -> Box {
+bb0:
+}
+
+gt5 :: ext (x: i64) -> i8 {
+	#x := i64 |8|
+bb0:
+	OpStore x: i64 -> #x: *i64 |8|
+	$1 := OpLoad #x: *i64 |8|
+	$2 := OpCmp SGT $1: i64, 5: i64
+	OpJif $2: i1, bb1, bb2
+bb1:
+	OpRet 1: i8
+bb2:
+	OpRet 0: i8
+}

@@ -1,0 +1,8 @@
+LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/B.lace"
+
+Box :: struct { i32, i32 }
+
+bar :: ext () -> void {
+bb0:
+	OpRet 
+}
