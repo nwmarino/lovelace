@@ -195,7 +195,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "eax";
                 case 2: return "ax";
                 case 1: return "al";
-                default: return "ah";
+                default: return "rax";
             }
         case RBX:
             switch (subreg) {
@@ -203,7 +203,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "ebx";
                 case 2: return "bx";
                 case 1: return "bl";
-                default: return "bh";
+                default: return "rbx";
             }
         case RCX:
             switch (subreg) {
@@ -211,7 +211,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "ecx";
                 case 2: return "cx";
                 case 1: return "cl";
-                default: return "ch";
+                default: return "rcx";
             }
         case RDX:
             switch (subreg) {
@@ -219,7 +219,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "edx";
                 case 2: return "dx";
                 case 1: return "dl";
-                default: return "dh";
+                default: return "rdx";
             }
         case RDI:
             switch (subreg) {
@@ -227,7 +227,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "edi";
                 case 2: return "di";
                 case 1: return "dil";
-                default: return "";
+                default: return "rdi";
             }
         case RSI:
             switch (subreg) {
@@ -235,7 +235,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "esi";
                 case 2: return "si";
                 case 1: return "sil";
-                default: return "";
+                default: return "rsi";
             }
         case RBP:
             switch (subreg) {
@@ -243,7 +243,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "ebp";
                 case 2: return "bp";
                 case 1: return "bpl";
-                default: return "";
+                default: return "rbp";
             }
         case RSP:
             switch (subreg) {
@@ -251,7 +251,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "esp";
                 case 2: return "sp";
                 case 1: return "spl";
-                default: return "";
+                default: return "rsp";
             }
         case R8:
             switch (subreg) {
@@ -259,7 +259,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r8d";
                 case 2: return "r8w";
                 case 1: return "r8b";
-                default: return "";
+                default: return "r8";
             }
         case R9:
             switch (subreg) {
@@ -267,7 +267,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r9d";
                 case 2: return "r9w";
                 case 1: return "r9b";
-                default: return "";
+                default: return "r9";
             }
         case R10:
             switch (subreg) {
@@ -275,7 +275,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r10d";
                 case 2: return "r10w";
                 case 1: return "r10b";
-                default: return "";
+                default: return "r10";
             }
         case R11:
             switch (subreg) {
@@ -283,7 +283,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r11d";
                 case 2: return "r11w";
                 case 1: return "r11b";
-                default: return "";
+                default: return "r11";
             }
         case R12:
             switch (subreg) {
@@ -299,7 +299,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r13d";
                 case 2: return "r13w";
                 case 1: return "r13b";
-                default: return "";
+                default: return "r13";
             }
         case R14:
             switch (subreg) {
@@ -307,7 +307,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r14d";
                 case 2: return "r14w";
                 case 1: return "r14b";
-                default: return "";
+                default: return "r14";
             }
         case R15:
             switch (subreg) {
@@ -315,7 +315,7 @@ static const char* to_string(X64_Register reg, uint16_t subreg = 0) {
                 case 4: return "r15d";
                 case 2: return "r15w";
                 case 1: return "r15b";
-                default: return "";
+                default: return "r15";
             }
         case RIP:
             return "rip";

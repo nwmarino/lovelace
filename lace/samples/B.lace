@@ -6,3 +6,11 @@ Box :: struct {
 bar :: () -> void {
     ret;
 }
+
+and :: (x: bool, y: bool) -> bool {
+    ret x && y;
+}
+
+main :: () -> s64 {
+    ret and(true, true);
+}

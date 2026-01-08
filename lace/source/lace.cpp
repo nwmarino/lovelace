@@ -161,9 +161,9 @@ int32_t main(int32_t argc, char** argv) {
             std::to_string(LACE_VERSION_MINOR));
 
     std::vector<std::string> files = { 
-        "/home/statim/lace/samples/A.lace", 
-        "/home/statim/lace/samples/B.lace", 
-        "/home/statim/lace/samples/C.lace",
+        "/home/nwm/statim/lace/samples/A.lace", 
+        "/home/nwm/statim/lace/samples/B.lace", 
+        "/home/nwm/statim/lace/samples/C.lace",
     };
 
     for (int32_t i = 1; i < argc; ++i) {

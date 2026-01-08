@@ -1,6 +1,8 @@
-LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/A.lace"
 
 Box :: struct { i32, i32 }
+
+and :: ext (x: i8, y: i8) -> i8;
 
 bar :: ext () -> void;
 
@@ -20,3 +22,5 @@ bb1:
 bb2:
 	OpRet 0: i8
 }
+
+main :: ext () -> i64;

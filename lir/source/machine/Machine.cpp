@@ -4,6 +4,8 @@
 //
 
 #include "lir/machine/Machine.hpp"
+
+#include <algorithm>
 #include <unordered_set>
 
 using namespace lir;
@@ -32,7 +34,8 @@ uint32_t Machine::get_size(const Type* type) const {
             return static_cast<const lir::FloatType*>(type)->get_width() / 8;
 
         case lir::Type::Integer:
-            return static_cast<const lir::IntegerType*>(type)->get_width() / 8;
+            return std::max(static_cast<uint32_t>(1), 
+                static_cast<const lir::IntegerType*>(type)->get_width() / 8);
 
         case lir::Type::Function:
         case lir::Type::Pointer:

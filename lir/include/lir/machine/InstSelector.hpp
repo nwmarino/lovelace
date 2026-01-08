@@ -6,6 +6,7 @@
 #ifndef LOVELACE_IR_INST_SELECTOR_H_
 #define LOVELACE_IR_INST_SELECTOR_H_
 
+#include "lir/graph/BasicBlock.hpp"
 #include "lir/graph/Instruction.hpp"
 #include "lir/machine/MachFunction.hpp"
 #include "lir/machine/MachInst.hpp"
@@ -13,6 +14,7 @@
 namespace lir {
 
 class InstSelector final {
+    using ArgTable = std::unordered_map<const BasicBlock::Arg*, Register>;
     using LocalTable = std::unordered_map<const Local*, uint32_t>;
     using RegisterTable = std::unordered_map<uint32_t, Register>;
     
@@ -20,7 +22,13 @@ class InstSelector final {
     MachFunction& m_func;
 
     MachLabel* m_insert = nullptr;
+
+    ArgTable m_args = {};
+
+    /// A table for mappings between locals -> stack frame indices.
     LocalTable m_locals = {};
+
+    /// A table for mappings between instruction defs -> vreg numbers.
     RegisterTable m_regs = {};
 
     /// Returns the ncessary instruction width for the given |type|.

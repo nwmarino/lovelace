@@ -1,4 +1,4 @@
-	.file	"/home/statim/lace/samples/C.lace"
+	.file	"/home/nwm/statim/lace/samples/C.lace"
 	.text
 	.global	iadd
 	.type	iadd, @function
@@ -27,11 +27,11 @@ isub:
 	movq	%rsp, %rbp
 	subq	$32, %rsp
 .L1_0:
-	movl	%rdi, -4(%rbp)
-	movl	%rsi, -8(%rbp)
-	movl	-4(%rbp), %rax
-	movl	-8(%rbp), %rcx
-	subl	%rcx, %rax
+	movl	%edi, -4(%rbp)
+	movl	%esi, -8(%rbp)
+	movl	-4(%rbp), %eax
+	movl	-8(%rbp), %ecx
+	subl	%ecx, %eax
 	addq	$32, %rsp
 	popq	%rbp
 	ret
@@ -68,12 +68,12 @@ sdiv:
 	movq	%rsp, %rbp
 	subq	$32, %rsp
 .L3_0:
-	movb	%rdi, -1(%rbp)
-	movb	%rsi, -2(%rbp)
-	movb	-1(%rbp), %rax
-	movb	-2(%rbp), %rcx
+	movb	%dil, -1(%rbp)
+	movb	%sil, -2(%rbp)
+	movb	-1(%rbp), %al
+	movb	-2(%rbp), %cl
 	cqo	
-	idivb	%rcx
+	idivb	%cl
 	addq	$32, %rsp
 	popq	%rbp
 	ret
@@ -88,11 +88,11 @@ smul:
 	movq	%rsp, %rbp
 	subq	$32, %rsp
 .L4_0:
-	movw	%rdi, -2(%rbp)
-	movw	%rsi, -4(%rbp)
-	movw	-2(%rbp), %rax
-	movw	-4(%rbp), %rcx
-	imulw	%rcx, %rax
+	movw	%di, -2(%rbp)
+	movw	%si, -4(%rbp)
+	movw	-2(%rbp), %ax
+	movw	-4(%rbp), %cx
+	imulw	%cx, %ax
 	addq	$32, %rsp
 	popq	%rbp
 	ret
@@ -129,12 +129,12 @@ udiv:
 	movq	%rsp, %rbp
 	subq	$32, %rsp
 .L6_0:
-	movb	%rdi, -1(%rbp)
-	movb	%rsi, -2(%rbp)
-	movb	-1(%rbp), %rax
-	movb	-2(%rbp), %rcx
+	movb	%dil, -1(%rbp)
+	movb	%sil, -2(%rbp)
+	movb	-1(%rbp), %al
+	movb	-2(%rbp), %cl
 	movl	$0, %edx
-	divb	%rcx
+	divb	%cl
 	addq	$32, %rsp
 	popq	%rbp
 	ret
@@ -149,11 +149,11 @@ umul:
 	movq	%rsp, %rbp
 	subq	$32, %rsp
 .L7_0:
-	movw	%rdi, -2(%rbp)
-	movw	%rsi, -4(%rbp)
-	movw	-2(%rbp), %rax
-	movw	-4(%rbp), %rcx
-	imulw	%rcx, %rax
+	movw	%di, -2(%rbp)
+	movw	%si, -4(%rbp)
+	movw	-2(%rbp), %ax
+	movw	-4(%rbp), %cx
+	imulw	%cx, %ax
 	addq	$32, %rsp
 	popq	%rbp
 	ret

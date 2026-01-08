@@ -1,4 +1,4 @@
-	.file	"/home/statim/lace/samples/A.lace"
+	.file	"/home/nwm/statim/lace/samples/A.lace"
 	.text
 	.global	foo
 	.type	foo, @function
@@ -22,16 +22,16 @@ gt5:
 	movq	-8(%rbp), %rax
 	cmpq	$5, %rax
 	setgb	%al
-	cmpb	$0, %ah
+	cmpb	$0, %al
 	jne	.L1_1
 	jmp	.L1_2
 .L1_1:
-	movb	$1, %rax
+	movb	$1, %al
 	addq	$16, %rsp
 	popq	%rbp
 	ret
 .L1_2:
-	movb	$0, %rax
+	movb	$0, %al
 	addq	$16, %rsp
 	popq	%rbp
 	ret

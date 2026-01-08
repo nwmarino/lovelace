@@ -12,6 +12,7 @@
 #include "lir/graph/Type.hpp"
 #include "lir/machine/MachFunction.hpp"
 #include "lir/machine/MachInst.hpp"
+#include "lir/machine/MachLabel.hpp"
 #include "lir/machine/MachOperand.hpp"
 #include "lir/machine/Register.hpp"
 #include "lir/machine/InstSelector.hpp"
@@ -243,8 +244,11 @@ uint16_t InstSelector::get_subregister(Type* type) const {
     
     switch (m_mach.get_size(type)) {
         case 1:
+            return 1;
         case 2:
+            return 2;
         case 4:
+            return 4;
         case 8:
             return 8;
         default:
@@ -280,18 +284,6 @@ MachOperand InstSelector::as_operand(const Value* value) {
     if (const Integer* integer = dynamic_cast<const Integer*>(value)) 
     {
         return MachOperand::create_imm(integer->get_value());
-
-        MachOperand reg = MachOperand::create_reg(
-            get_temporary(GeneralPurpose), 
-            get_subregister(value->get_type()), 
-            true);
-
-        emit(X64_Mnemonic::MOV, as_size(value->get_type()))
-            .add_imm(integer->get_value())
-            .add_operand(reg);
-
-        reg.set_is_use();
-        return reg;
     } 
     else if (const Float* fp = dynamic_cast<const Float*>(value)) 
     {
@@ -338,7 +330,16 @@ MachOperand InstSelector::as_operand(const Value* value) {
     } 
     else if (const BasicBlock::Arg* arg = dynamic_cast<const BasicBlock::Arg*>(value)) 
     {
-        assert(false && "not implemented!");
+        auto it = m_args.find(arg);
+        if (it != m_args.end())
+            return MachOperand::create_reg(it->second, get_subregister(arg->get_type()), true);
+
+        Register vreg = get_temporary(arg->get_type()->is_float_type()
+            ? FloatingPoint
+            : GeneralPurpose);
+
+        m_args.emplace(arg, vreg);
+        return MachOperand::create_reg(vreg, get_subregister(arg->get_type()), false);
     } 
     else if (const Function* func = dynamic_cast<const Function*>(value)) 
     {
@@ -692,16 +693,84 @@ void InstSelector::select_conditional_jump(const Instruction* inst) {
     assert(inst->get_operand(0)->get_type()->is_integer_type(1) &&
         "invalid OpJif condition type!");
 
-    assert(inst->num_operands() == 3 && "no block args (yet)!");
+    const uint32_t num_operands = inst->num_operands();
+    uint32_t true_dest = 0;
+    uint32_t false_dest = 0;
+
+    for (uint32_t i = 1; i < num_operands; ++i) {
+        const Value* op = inst->get_operand(i);
+        const BlockAddress* addr = dynamic_cast<const BlockAddress*>(op);
+        if (!addr)
+            continue;
+
+        if (true_dest == 0) {
+            true_dest = i;
+        } else {
+            false_dest = i;
+            break;
+        }
+    }
+
+    assert(true_dest && false_dest);
 
     MachOperand cond = as_operand(inst->get_operand(0));
-    MachOperand tdst = as_operand(inst->get_operand(1));
-    MachOperand fdst = as_operand(inst->get_operand(2));
-    MachOperand zero = MachOperand::create_imm(0);
+    assert(cond.is_reg());
+    cond.set_subreg(1);
 
-    emit(X64_Mnemonic::CMP, X64_Size::Byte, { zero, cond });
-    emit(X64_Mnemonic::JNE, X64_Size::None, { tdst });
-    emit(X64_Mnemonic::JMP, X64_Size::None, { fdst });
+    emit(X64_Mnemonic::CMP, X64_Size::Byte, { MachOperand::create_imm(0), cond });
+
+    if (true_dest + 1 != false_dest) {
+        // There are operands i.e. block arguments between the true and false
+        // destinations.
+
+        const BlockAddress* true_addr = dynamic_cast<const BlockAddress*>(
+            inst->get_operand(true_dest));
+        assert(true_addr);
+
+        for (uint32_t i = true_dest + 1; i < false_dest; ++i) {
+            const Value* arg = inst->get_operand(i);
+            X64_Mnemonic move;
+            if (arg->get_type()->is_float_type()) {
+                move = X64_Mnemonic::MOVS;
+            } else {
+                move = X64_Mnemonic::MOV;
+            }
+
+            emit(move, as_size(arg->get_type()), { 
+                as_operand(arg), 
+                as_operand(true_addr->get_block()->get_arg(i - true_dest - 1)) 
+            });
+        }
+    }
+    
+    emit(X64_Mnemonic::JNE, X64_Size::None, { 
+        as_operand(inst->get_operand(true_dest)) 
+    });
+
+    if (false_dest + 1 != num_operands) {
+        const BlockAddress* false_addr = dynamic_cast<const BlockAddress*>(
+            inst->get_operand(false_dest));
+        assert(false_addr);
+
+        for (uint32_t i = false_dest + 1; i < num_operands; ++i) {
+            const Value* arg = inst->get_operand(i);
+            X64_Mnemonic move;
+            if (arg->get_type()->is_float_type()) {
+                move = X64_Mnemonic::MOVS;
+            } else {
+                move = X64_Mnemonic::MOV;
+            }
+
+            emit(move, as_size(arg->get_type()), { 
+                as_operand(arg), 
+                as_operand(false_addr->get_block()->get_arg(i - false_dest - 1)) 
+            });
+        }
+    }
+
+    emit(X64_Mnemonic::JMP, X64_Size::None, { 
+        as_operand(inst->get_operand(false_dest)) 
+    });
 
     /*
     const auto* instr = dynamic_cast<const Instruction*>(condition);
@@ -776,7 +845,32 @@ void InstSelector::select_phi(const Instruction* inst) {
 */
 
 void InstSelector::select_jump(const Instruction* inst) {
-    assert(inst->num_operands() == 1 && "no block args (yet)!");
+    const BlockAddress* label = dynamic_cast<const BlockAddress*>(
+        inst->get_operand(0));
+    assert(label);
+
+    const BasicBlock* dest = label->get_block();
+    assert(dest);
+
+    if (inst->num_operands() > 1) {
+        assert(dest->num_args() == inst->num_operands() - 1);
+
+        for (uint32_t i = 1, e = inst->num_operands(); i < e; ++i) {
+            const Value* arg = inst->get_operand(i);
+            X64_Mnemonic move;
+            if (arg->get_type()->is_float_type()) {
+                move = X64_Mnemonic::MOVS;
+            } else {
+                move = X64_Mnemonic::MOV;
+            }
+
+            emit(move, as_size(arg->get_type()), { 
+                as_operand(arg), 
+                as_operand(dest->get_arg(i - 1)) 
+            });
+        }
+    }
+
     emit(X64_Mnemonic::JMP, X64_Size::None, { as_operand(inst->get_operand(0) )});
 }
 

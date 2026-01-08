@@ -37,10 +37,6 @@ urem :: (x: u64, y: u64) -> u64 {
     ret x % y;
 }
 
-//and :: (x: bool, y: bool) -> bool {
-//    ret x && y;
-//}
-
 //or :: (x: bool, y: bool) -> bool {
 //   ret x || y;
 //}

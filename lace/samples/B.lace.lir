@@ -1,8 +1,32 @@
-LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/B.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/B.lace"
 
 Box :: struct { i32, i32 }
+
+and :: ext (x: i8, y: i8) -> i8 {
+	#x := i8 |1|
+	#y := i8 |1|
+bb0:
+	OpStore x: i8 -> #x: *i8 |1|
+	OpStore y: i8 -> #y: *i8 |1|
+	$1 := OpLoad #x: *i8 |1|
+	$2 := OpCmp INE $1: i8, 0: i8
+	OpJif $2: i1, bb1, bb2(0: i1)
+bb1:
+	$3 := OpLoad #y: *i8 |1|
+	$4 := OpCmp INE $3: i8, 0: i8
+	OpJmp bb2($4: i1)
+bb2 (p0: i1):
+	OpRet p0: i1
+}
 
 bar :: ext () -> void {
 bb0:
 	OpRet 
+}
+
+main :: ext () -> i64 {
+bb0:
+	$5 := OpCall and: i8 (1: i8, 1: i8)
+	$6 := OpSExt $5: i8
+	OpRet $6: i64
 }
