@@ -12,7 +12,10 @@
 using namespace lace;
 
 void Codegen::declare_ir_global(VariableDefn& node) {
-    lir::Global::LinkageType linkage = lir::Global::External;
+    lir::Global::LinkageType linkage = lir::Global::Internal;
+    if (node.has_rune(Rune::Public))
+        linkage = lir::Global::External;
+
     lir::Global::create(
         m_cfg, 
         lower_type(node.get_type()), 
@@ -38,7 +41,9 @@ void Codegen::define_ir_global(VariableDefn& node) {
 }
 
 void Codegen::declare_ir_function(FunctionDefn& node) {
-    lir::Function::LinkageType linkage = lir::Function::External;
+    lir::Function::LinkageType linkage = lir::Function::Internal;
+    if (node.has_rune(Rune::Public))
+        linkage = lir::Function::External;
 
     std::vector<lir::Type*> types(node.num_params(), nullptr);
     std::vector<lir::Function::Arg*> args(node.num_params(), nullptr);
@@ -47,8 +52,12 @@ void Codegen::declare_ir_function(FunctionDefn& node) {
         const ParameterDefn* param = node.get_param(i);
         lir::Type* type = lower_type(param->get_type());
 
+        std::string name = param->get_name();
+        if (name == "_")
+            name = "";
+
         types[i] = type;
-        args[i] = lir::Function::Arg::create(type, param->get_name());
+        args[i] = lir::Function::Arg::create(type, name);
     }
 
     lir::FunctionType* type = lir::FunctionType::get(

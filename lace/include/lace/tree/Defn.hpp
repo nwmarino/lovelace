@@ -151,6 +151,26 @@ public:
     const Runes& get_runes() const { return m_runes; }
     Runes& get_runes() { return m_runes; }
 
+    void add_rune(Rune* rune) {
+        if (!has_rune(rune->get_kind()))
+            m_runes.push_back(rune);
+    }
+
+    /// Returns the rune with the given |kind| if this definition has one, and
+    /// null otherwise.
+    const Rune* get_rune(Rune::Kind kind) const {
+        for (Rune* rune : m_runes)
+            if (rune->get_kind() == kind)
+                return rune;
+
+        return nullptr;
+    }
+
+    Rune* get_rune(Rune::Kind kind) {
+        return const_cast<Rune*>(
+            static_cast<const NamedDefn*>(this)->get_rune(kind));
+    }
+
     const Rune* get_rune(uint32_t i) const {
         assert(i < num_runes() && "index out of bounds!");
         return m_runes[i];
@@ -159,6 +179,15 @@ public:
     Rune* get_rune(uint32_t i) {
         assert(i < num_runes() && "index out of bounds!");
         return m_runes[i];
+    }
+    
+    /// Test if this definition has a rune of the given |kind|.
+    bool has_rune(Rune::Kind kind) const {
+        for (Rune* rune : m_runes)
+            if (rune->get_kind() == kind)
+                return true;
+            
+        return false;
     }
 
     uint32_t num_runes() const { return m_runes.size(); }

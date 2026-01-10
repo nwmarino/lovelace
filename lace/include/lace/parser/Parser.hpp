@@ -120,7 +120,7 @@ class Parser final {
     QualType parse_type_specifier();
 
     Defn* parse_initial_definition();
-    Defn* parse_binding_definition(const Token name);
+    Defn* parse_binding_definition(Runes runes, const Token name);
     Defn* parse_load_definition();
     
     Stmt* parse_initial_statement();

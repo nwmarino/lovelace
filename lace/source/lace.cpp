@@ -90,7 +90,7 @@ std::vector<AST*> compute_dependency_order(const std::vector<AST*>& asts) {
     return order;
 }
 
-std::vector<NamedDefn*> get_symbols(
+std::vector<NamedDefn*> get_public_symbols(
         const std::unordered_map<std::string, AST*>& path_to_asts, AST* ast) {
     std::vector<NamedDefn*> res = {};
 
@@ -98,11 +98,12 @@ std::vector<NamedDefn*> get_symbols(
         if (LoadDefn* load = dynamic_cast<LoadDefn*>(defn)) {
             AST* dep = path_to_asts.at(load->get_path());
 
-            std::vector<NamedDefn*> dep_symbols = get_symbols(path_to_asts, dep);
+            std::vector<NamedDefn*> dep_symbols = get_public_symbols(path_to_asts, dep);
             for (NamedDefn* sym : dep_symbols)
                 res.push_back(sym);
         } else if (NamedDefn* named = dynamic_cast<NamedDefn*>(defn)) {
-            res.push_back(named);
+            if (named->has_rune(Rune::Public))
+                res.push_back(named);
         }
     }
 
@@ -119,19 +120,26 @@ void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
     for (AST* ast : asts) {
         Scope* scope = ast->get_scope();
         std::vector<NamedDefn*> deps = {};
+
+        // For each load in this ast, recursively collect all public 
+        // definitions from the target source file.
         for (Defn* defn : ast->get_defns()) {
             LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
             if (!load)
                 continue;
 
+            // Resolve the dependency based on the load path.
             AST* dep = path_to_asts[load->get_path()];
             assert(dep);
 
-            std::vector<NamedDefn*> dep_deps = get_symbols(path_to_asts, dep);
-            for (NamedDefn* sym : dep_deps)
+            // Fetch all public symbols and add them as dependencies.
+            std::vector<NamedDefn*> syms = get_public_symbols(path_to_asts, dep);
+            for (NamedDefn* sym : syms)
                 deps.push_back(sym);
         }
 
+        // For each named dependency, add it to the scope of this ast and to
+        // its list of loaded symbols.
         for (NamedDefn* dep : deps) {
             scope->add(dep);
             ast->get_loaded().push_back(dep);
@@ -161,9 +169,9 @@ int32_t main(int32_t argc, char** argv) {
             std::to_string(LACE_VERSION_MINOR));
 
     std::vector<std::string> files = { 
-        "/home/nwm/statim/lace/samples/A.lace", 
-        "/home/nwm/statim/lace/samples/B.lace", 
-        "/home/nwm/statim/lace/samples/C.lace",
+        "/home/statim/lace/samples/A.lace", 
+        //"/home/statim/lace/samples/B.lace", 
+        //"/home/statim/lace/samples/C.lace",
     };
 
     for (int32_t i = 1; i < argc; ++i) {

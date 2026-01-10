@@ -1,26 +1,9 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/A.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
-Box :: struct { i32, i32 }
+exit :: ext (i64) -> void;
 
-and :: ext (x: i8, y: i8) -> i8;
-
-bar :: ext () -> void;
-
-foo :: ext () -> Box {
+main :: ext () -> i64 {
 bb0:
+	OpCall exit: void (42: i64)
+	OpRet 5: i64
 }
-
-gt5 :: ext (x: i64) -> i8 {
-	#x := i64 |8|
-bb0:
-	OpStore x: i64 -> #x: *i64 |8|
-	$1 := OpLoad #x: *i64 |8|
-	$2 := OpCmp SGT $1: i64, 5: i64
-	OpJif $2: i1, bb1, bb2
-bb1:
-	OpRet 1: i8
-bb2:
-	OpRet 0: i8
-}
-
-main :: ext () -> i64;

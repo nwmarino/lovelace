@@ -89,10 +89,14 @@ void SemanticAnalysis::visit(FunctionDefn& node) {
     m_function = &node;
 
     if (node.is_main()) {
+        if (!node.has_rune(Rune::Public))
+            log::error("'main' must be marked with $public", 
+                log::Span(m_ast->get_file(), node.get_span().start));
+
         const QualType& ret_type = node.get_return_type();
         if (!ret_type.compare(BuiltinType::get(*m_context, BuiltinType::Int64)))
-            log::fatal("'main' must return 's64'", 
-                log::Span(m_ast->get_file(), node.get_span()));
+            log::error("'main' must return 's64'", 
+                log::Span(m_ast->get_file(), node.get_span().start));
     }
     
     if (node.has_body())

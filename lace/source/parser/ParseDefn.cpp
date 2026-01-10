@@ -13,6 +13,9 @@
 using namespace lace;
 
 Defn* Parser::parse_initial_definition() {
+    Runes runes = {};
+    parse_rune_decorators(runes);
+
     if (!match(Token::Identifier))
         log::fatal("expected identifier", log::Location(m_file, loc()));
 
@@ -23,12 +26,12 @@ Defn* Parser::parse_initial_definition() {
     next();
 
     if (expect(Token::Path))
-        return parse_binding_definition(name);
+        return parse_binding_definition(runes, name);
 
     return nullptr;
 }
 
-Defn* Parser::parse_binding_definition(const Token name) {
+Defn* Parser::parse_binding_definition(Runes runes, const Token name) {
     if (expect(Token::OpenParen)) {
         Scope* scope = enter_scope();
 
@@ -38,10 +41,9 @@ Defn* Parser::parse_binding_definition(const Token name) {
         while (!expect(Token::CloseParen)) {
             const SourceLocation dbg_start = loc();
 
-            if (!match(Token::Identifier)) {
+            if (!match(Token::Identifier))
                 log::fatal("expected parameter name", 
                     log::Span(m_file, since(dbg_start)));
-            }
 
             const SourceLocation param_start = loc();
             std::string param_name = curr().value;
@@ -57,7 +59,9 @@ Defn* Parser::parse_binding_definition(const Token name) {
             ParameterDefn* param = ParameterDefn::create(
                 *m_context, since(param_start), param_name, {}, param_type);
 
-            m_scope->add(param);
+            if (param_name != "_")
+                m_scope->add(param);
+            
             params.push_back(param);
 
             if (expect(Token::CloseParen))
@@ -97,7 +101,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
             *m_context, 
             SourceSpan(name.loc, end), 
             name.value,
-            {}, // runes
+            runes,
             FunctionType::get(*m_context, ret_type, param_types), 
             scope, 
             params, 
@@ -131,7 +135,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
                 *m_context, 
                 since(field_name.loc), 
                 field_name.value, 
-                {}, // runes 
+                {},
                 field_type,
                 fields.size());
 
@@ -153,7 +157,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
             *m_context, 
             SourceSpan(name.loc, end), 
             name.value, 
-            {}, // runes
+            runes,
             nullptr);
 
         const StructType* type = StructType::create(*m_context, defn);
@@ -174,7 +178,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
             *m_context, 
             name.loc, 
             name.value, 
-            {}, // runes 
+            runes,
             underlying.get_type());
 
         const EnumType* type = EnumType::create(*m_context, underlying, defn);
@@ -218,7 +222,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
                 *m_context, 
                 since(variant_name.loc), 
                 variant_name.value, 
-                {}, // runes
+                runes,
                 type, 
                 value++);
 
@@ -259,7 +263,7 @@ Defn* Parser::parse_binding_definition(const Token name) {
             *m_context, 
             SourceSpan(name.loc, end), 
             name.value, 
-            {}, // runes
+            runes,
             type, 
             init, 
             true);

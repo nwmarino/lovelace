@@ -286,7 +286,7 @@ class DeferredType final : public Type {
 public:
     static DeferredType* get(AST::Context& ctx, const std::string& name);
 
-    std::string to_string() const override { return "d." + m_name; }
+    std::string to_string() const override { return "'" + m_name + "'"; }
 
     const std::string& get_name() const { return m_name; }
 };

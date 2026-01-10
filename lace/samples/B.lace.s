@@ -1,3 +1,4 @@
+	.file	"/home/statim/lace/samples/B.lace"
 	.text
 	.global	and
 	.type	and, @function
@@ -28,7 +29,21 @@ and:
 .LFE0:
 	.size	and, .-and
 
+	.text
+	.global	bar
+	.type	bar, @function
+bar:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$16, %rsp
+.L1_0:
+	addq	$16, %rsp
+	popq	%rbp
+	ret
+.LFE1:
+	.size	bar, .-bar
 
+	.text
 	.global	main
 	.type	main, @function
 main:

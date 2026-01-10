@@ -76,7 +76,8 @@ void NameAnalysis::visit(VariableDefn& node) {
 
 void NameAnalysis::visit(FunctionDefn& node) {
     if (!resolve_type(node.get_type()))
-        log::fatal("unresolved type: " + node.get_type().to_string());
+        log::fatal("unresolved type: " + node.get_type().to_string(), 
+            log::Span(m_ast->get_file(), node.get_span().start));
 
     const FunctionType* type = static_cast<const FunctionType*>(
         node.get_type().get_type());

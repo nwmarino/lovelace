@@ -1,4 +1,4 @@
-	.file	"/home/nwm/statim/lace/samples/C.lace"
+	.file	"/home/statim/lace/samples/C.lace"
 	.text
 	.global	iadd
 	.type	iadd, @function

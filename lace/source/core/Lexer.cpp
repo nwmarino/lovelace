@@ -239,6 +239,11 @@ void Lexer::lex(Token& token) {
             token.kind = Token::Semi;
             move();
             break;
+        
+        case '$':
+            token.kind = Token::Sign;
+            move();
+            break;
 
         case '.':
             if (std::isdigit(peek())) {
