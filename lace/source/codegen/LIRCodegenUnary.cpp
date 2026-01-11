@@ -3,7 +3,7 @@
 //  All rights reserved.
 //
 
-#include "lace/codegen/Codegen.hpp"
+#include "lace/codegen/LIRCodegen.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lir/graph/Constant.hpp"
 #include "lir/graph/Type.hpp"

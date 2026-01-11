@@ -14,37 +14,37 @@ _start:
     ud2
 
 __rt_init:
-    call    __fmt_arena_init@PLT
+    #call    __fmt_arena_init@PLT
     ret
 
 __rt_shutdown:
-    call    __fmt_arena_destroy@PLT
+    #call    __fmt_arena_destroy@PLT
     ret
 
 # __mem_copy :: (*void, *void, s64) -> void
 __mem_copy:
-.cond:
+.L0_cond:
     cmpq    $0, %rcx
-    jne     .body
+    jne     .L0_body
     ret
-.body:
+.L0_body:
     movb    (%rsi), %al
     movb    %al, (%rdi)
     incq    %rdi
     incq    %rsi
     decq    %rcx
-    jmp     .cond
+    jmp     .L0_cond
 
 # __mem_set :: (*void, s8, s64) -> void
 __mem_set:
-.cond:
+.L1_cond:
     cmpq    $0, %rcx
-    jne     .body
+    jne     .L1_body
     ret
-.body:
+.L1_body:
     movb    %sil, (%rdi)
     decq    %rcx
-    jmp     .cond
+    jmp     .L1_cond
 
 # exit :: (s64) -> void
     .text

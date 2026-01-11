@@ -21,3 +21,8 @@ Runes
 - Type polymorphism
 - Slices
 - Defer statement
+
+-- notes
+
+even though refs can be used as lvalues, make sure a reference to constants 
+like enum variants isnt an lvalue.

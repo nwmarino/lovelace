@@ -3,11 +3,10 @@
 //  All rights reserved.
 //
 
-#include "lace/codegen/Codegen.hpp"
+#include "lace/codegen/LIRCodegen.hpp"
 #include "lace/core/Diagnostics.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Type.hpp"
-#include "lir/graph/Type.hpp"
 
 using namespace lace;
 

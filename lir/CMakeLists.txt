@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.0)
 
-project(lir LANGUAGES CXX)
+project(LIR LANGUAGES CXX)
 
 set(LIR_HEADERS
     include/lir/analysis/LoweringPass.hpp
@@ -56,18 +56,18 @@ set(LIR_SOURCES
     source/machine/Segment.cpp
 )
 
-add_library(lir ${LIR_SOURCES} ${LIR_HEADERS})
+add_library(LIR ${LIR_SOURCES} ${LIR_HEADERS})
 
-target_include_directories(lir
+target_include_directories(LIR
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(lir PUBLIC cxx_std_20)
+target_compile_features(LIR PUBLIC cxx_std_20)
 
-install(TARGETS lir
-    EXPORT lirTargets
+install(TARGETS LIR
+    EXPORT LIRTargets
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin

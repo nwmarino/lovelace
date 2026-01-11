@@ -4,7 +4,7 @@
 //
 
 #include "lace/core/Diagnostics.hpp"
-#include "lace/codegen/Codegen.hpp"
+#include "lace/codegen/LIRCodegen.hpp"
 #include "lace/tree/AST.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lir/graph/Type.hpp"

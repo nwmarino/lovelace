@@ -3,7 +3,8 @@
 //  All rights reserved.
 //
 
-#include "lace/codegen/Codegen.hpp"
+#include "lace/codegen/LIRCodegen.hpp"
+#include "lace/codegen/LLVMCodegen.hpp"
 #include "lace/core/Diagnostics.hpp"
 #include "lace/core/Options.hpp"
 #include "lace/parser/Parser.hpp"
@@ -18,11 +19,32 @@
 #include "lir/machine/Machine.hpp"
 #include "lir/machine/RegisterAnalysis.hpp"
 
+#include "llvm/ADT/Twine.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
+#include "llvm/Analysis/TargetLibraryInfo.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Support/CodeGen.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/ToolOutputFile.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/TargetParser/Triple.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Scalar/SROA.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <string>
+#include <system_error>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -155,6 +177,176 @@ void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
     }
 }
 
+void drive_lir_backend(const Options& options, const std::vector<AST*>& asts) {
+    assert(options.lir);
+
+    lir::Machine mach(lir::Machine::Linux);
+
+    for (AST* ast : asts) {
+        lir::CFG cfg(mach, ast->get_file());
+        Codegen cgn(options, cfg);
+        cgn.visit(*ast);
+
+        if (options.print_ir) {
+            std::ofstream file(ast->get_file() + ".lir");
+            if (!file || !file.is_open())
+                log::fatal("failed to open: " + ast->get_file() + ".s");
+            
+            cfg.print(file);
+            file.close();
+        }
+
+        lir::Segment seg(cfg);
+
+        lir::LoweringPass lowering(cfg, seg);
+        lowering.run();
+
+        lir::RegisterAnalysis rega(seg);
+        rega.run();
+
+        std::ofstream out(ast->get_file() + ".s");
+        if (!out || !out.is_open())
+            log::fatal("failed to open: " + ast->get_file() + ".s");
+
+        lir::AsmWriter writer(seg);
+        writer.run(out);
+        out.close();
+    }
+}
+
+void drive_llvm_backend(const Options& options, const std::vector<AST*>& asts) {
+    assert(options.llvm);
+
+    llvm::InitializeAllTargetInfos();
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmParsers();
+    llvm::InitializeAllAsmPrinters();
+
+    llvm::Triple triple = llvm::Triple("amd64", "AMD", "Linux");
+    llvm::TargetOptions topts;
+    std::string err;
+
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(
+        triple.getTriple(), err);
+
+    if (!target)
+        log::fatal("failed to find target machine: " + err);
+
+    llvm::CodeGenOptLevel opt;
+    switch (options.opt) {
+        case Options::OptLevel::None:
+            opt = llvm::CodeGenOptLevel::None;
+            break;
+        case Options::OptLevel::Default:
+        case Options::OptLevel::Space:
+            opt = llvm::CodeGenOptLevel::Default;
+            break;
+        case Options::OptLevel::Few:
+            opt = llvm::CodeGenOptLevel::Less;
+            break;
+        case Options::OptLevel::Many:
+            opt = llvm::CodeGenOptLevel::Aggressive;
+            break;
+    }
+
+    llvm::TargetMachine* mach = target->createTargetMachine(
+        triple, 
+        "generic", // cpu
+        "", // features
+        topts, // target options
+        llvm::Reloc::PIC_, // relocation model
+        std::nullopt, // code model
+        opt,  // optimization level
+        false // jit
+    );
+
+    std::vector<llvm::LLVMContext*> contexts = {};
+    std::vector<llvm::Module*> modules = {};
+    contexts.reserve(asts.size());
+    modules.reserve(asts.size());
+
+    for (AST* ast : asts) {
+        llvm::LLVMContext* ctx = new llvm::LLVMContext();
+        llvm::Module* mod = new llvm::Module(ast->get_file(), *ctx);
+        
+        LLVMCodegen CGN(options, ast, mod);
+        CGN.finalize();
+
+        mod->setDataLayout(mach->createDataLayout());
+        mod->setTargetTriple(triple);
+
+        if (options.print_ir) {
+            std::error_code err;
+            llvm::raw_fd_ostream ir(ast->get_file() + ".ll", err);
+            if (err)
+                log::fatal("failed to open file: " + ast->get_file() + ".ll");
+            
+            mod->print(ir, nullptr);
+            ir.close();
+        }
+
+        contexts.push_back(ctx);
+        modules.push_back(mod);
+    }
+
+    for (llvm::Module* mod : modules) {
+        llvm::PassBuilder builder(mach);
+
+        llvm::LoopAnalysisManager LAM;
+        llvm::FunctionAnalysisManager FAM;
+        llvm::CGSCCAnalysisManager CGAM;
+        llvm::ModuleAnalysisManager MAM;
+
+        llvm::TargetLibraryInfoImpl TLII(triple);
+        TLII.disableAllFunctions();
+
+        FAM.registerPass([&] {
+            return llvm::TargetLibraryAnalysis(TLII);
+        });
+
+        FAM.registerPass([&] {
+            return builder.buildDefaultAAPipeline();
+        });
+
+        builder.registerModuleAnalyses(MAM);
+        builder.registerCGSCCAnalyses(CGAM);
+        builder.registerFunctionAnalyses(FAM);
+        builder.registerLoopAnalyses(LAM);
+        builder.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+        llvm::ModulePassManager MPM;
+        MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
+            llvm::SROAPass(llvm::SROAOptions::ModifyCFG)));
+        MPM.addPass(llvm::createModuleToFunctionPassAdaptor(
+            llvm::SimplifyCFGPass()));
+
+        std::string out = mod->getSourceFileName() + ".s";
+        llvm::sys::fs::OpenFlags flags = llvm::sys::fs::OF_Text;
+
+        std::error_code err;
+        llvm::ToolOutputFile* output = new llvm::ToolOutputFile(mod->getSourceFileName() + ".s", err, flags);
+        assert(!err);
+
+        llvm::legacy::PassManager LPM;
+        if (mach->addPassesToEmitFile(LPM, output->os(), nullptr, llvm::CodeGenFileType::AssemblyFile))
+            log::fatal("failed to compile: " + mod->getSourceFileName());
+
+        MPM.run(*mod, MAM);
+        LPM.run(*mod);
+        output->keep();
+
+        if (options.verbose)
+            log::note("finished compilation for: " + mod->getSourceFileName());
+    }
+
+    for (llvm::Module* mod : modules)
+        delete mod;
+
+    for (llvm::LLVMContext* ctx : contexts)
+        delete ctx;
+}
+
 int32_t main(int32_t argc, char** argv) {
     Options options;
     options.output = "main";
@@ -163,8 +355,10 @@ int32_t main(int32_t argc, char** argv) {
     options.time = true;
     options.verbose = true;
     options.version = true;
-    options.print_tree = true;
-    options.print_lir = true;
+    options.lir = false;
+    options.llvm = true;
+    options.print_tree = false;
+    options.print_ir = true;
 
     log::init();
 
@@ -176,8 +370,6 @@ int32_t main(int32_t argc, char** argv) {
         "/home/statim/lace/samples/A.lace", 
         "/home/statim/lace/samples/linux.lace",
         "/home/statim/lace/samples/mem.lace",
-        //"/home/statim/lace/samples/B.lace", 
-        //"/home/statim/lace/samples/C.lace",
     };
 
     for (int32_t i = 1; i < argc; ++i) {
@@ -244,37 +436,11 @@ int32_t main(int32_t argc, char** argv) {
 
     log::flush();
 
-    lir::Machine mach(lir::Machine::Linux);
-
-    for (AST* ast : asts) {
-        lir::CFG cfg(mach, ast->get_file());
-        Codegen cgn(options, cfg);
-        cgn.visit(*ast);
-
-        if (options.print_lir) {
-            std::ofstream file(ast->get_file() + ".lir");
-            if (!file || !file.is_open())
-                log::fatal("failed to open: " + ast->get_file() + ".s");
-            
-            cfg.print(file);
-            file.close();
-        }
-
-        lir::Segment seg(cfg);
-
-        lir::LoweringPass lowering(cfg, seg);
-        lowering.run();
-
-        lir::RegisterAnalysis rega(seg);
-        rega.run();
-
-        std::ofstream out(ast->get_file() + ".s");
-        if (!out || !out.is_open())
-            log::fatal("failed to open: " + ast->get_file() + ".s");
-
-        lir::AsmWriter writer(seg);
-        writer.run(out);
-        out.close();
+    if (options.llvm) {
+        drive_llvm_backend(options, asts);
+    } else {
+        // Default to LIR.
+        drive_lir_backend(options, asts);
     }
 
     for (AST* ast : asts)
