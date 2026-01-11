@@ -1,12 +1,25 @@
+#   Copyright (c) 2026 Nick Marino
+#  
+#   All runtime functions defined here assume the Linux x86 SystemV ABI.
+
     .text
     .global _start
     .type   _start, @function
 _start:
+    call    __rt_init
     call    main@PLT
     movq    %rax, %rdi
     movq    $60, %rax
     syscall
     ud2
+
+__rt_init:
+    call    __fmt_arena_init@PLT
+    ret
+
+__rt_shutdown:
+    call    __fmt_arena_destroy@PLT
+    ret
 
 # __mem_copy :: (*void, *void, s64) -> void
 __mem_copy:

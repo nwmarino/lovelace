@@ -126,6 +126,8 @@ void Function::prepend(BasicBlock* block) {
     } else {
         m_head = m_tail = block;
     }
+
+    block->set_parent(this);
 }
 
 void Function::append(BasicBlock* block) {
@@ -139,6 +141,8 @@ void Function::append(BasicBlock* block) {
     } else {
         m_head = m_tail = block;
     }
+
+    block->set_parent(this);
 }
 
 void Function::insert(BasicBlock* block, uint32_t i) {

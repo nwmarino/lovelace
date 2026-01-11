@@ -1,9 +1,85 @@
 LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
+brk :: ext (i64) -> *void;
+
+close :: ext (i64) -> i64;
+
 exit :: ext (i64) -> void;
 
 main :: ext () -> i64 {
+	#fd := i64 |8|
+	#p := *i64 |8|
+	#x := i64 |8|
 bb0:
-	OpCall exit: void (42: i64)
-	OpRet 5: i64
+	$13 := OpString "test.txt"
+	$14 := OpCall open: i64 ($13: *i8, 66: i64, 0: i64)
+	OpStore $14: i64 -> #fd: *i64 |8|
+	$15 := OpLoad #fd: *i64 |8|
+	$16 := OpString "hey!"
+	$17 := OpCall write: i64 ($15: i64, $16: *i8, 4: i64)
+	$18 := OpLoad #fd: *i64 |8|
+	$19 := OpCall close: i64 ($18: i64)
+	$20 := OpCall mem_alloc: *void (8: i64)
+	$21 := OpReint $20: *void
+	OpStore $21: *i64 -> #p: **i64 |8|
+	$22 := OpLoad #p: **i64 |8|
+	OpStore 5: i64 -> $22: *i64 |8|
+	$23 := OpLoad #p: **i64 |8|
+	$24 := OpLoad $23: *i64 |8|
+	OpStore $24: i64 -> #x: *i64 |8|
+	$25 := OpLoad #p: **i64 |8|
+	$26 := OpReint $25: *i64
+	OpCall mem_free: void ($26: *void)
+	$27 := OpString "hey!
+"
+	OpCall print: void ($27: *i8)
+	$28 := OpLoad #x: *i64 |8|
+	OpRet $28: i64
 }
+
+mem_alloc :: ext (size: i64) -> *void;
+
+mem_copy :: ext (dst: *void, src: *void, n: i64) -> void;
+
+mem_free :: ext (p: *void) -> void;
+
+mem_realloc :: ext (p: *void, size: i64) -> *void;
+
+open :: ext (*i8, i64, i64) -> i64;
+
+print :: int (str: *i8) -> void {
+	#str := *i8 |8|
+bb0:
+	OpStore str: *i8 -> #str: **i8 |8|
+	$9 := OpLoad #str: **i8 |8|
+	$10 := OpLoad #str: **i8 |8|
+	$11 := OpCall strlen: i64 ($10: *i8)
+	$12 := OpCall write: i64 (1: i64, $9: *i8, $11: i64)
+	OpRet 
+}
+
+strlen :: int (str: *i8) -> i64 {
+	#len := i64 |8|
+	#str := *i8 |8|
+bb0:
+	OpStore str: *i8 -> #str: **i8 |8|
+	OpStore 0: i64 -> #len: *i64 |8|
+	OpJmp bb1
+bb1:
+	$1 := OpLoad #str: **i8 |8|
+	$2 := OpLoad #len: *i64 |8|
+	$3 := OpAp $1: *i8, $2: i64
+	$4 := OpLoad $3: *i8 |1|
+	$5 := OpCmp IEQ $4: i8, 0: i8
+	OpJif $5: i1, bb3, bb2
+bb2:
+	$6 := OpLoad #len: *i64 |8|
+	OpStore $6: i64 -> #len: *i64 |8|
+	$7 := OpIAdd $6: i64, 1: i64
+	OpJmp bb1
+bb3:
+	$8 := OpLoad #len: *i64 |8|
+	OpRet $8: i64
+}
+
+write :: ext (i64, *i8, i64) -> i64;

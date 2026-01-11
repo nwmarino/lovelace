@@ -67,7 +67,8 @@ class InstSelector final {
     void select_nop(const Instruction* inst);
     void select_syscall(const Instruction* inst);
     void select_load_store(const Instruction* inst);
-    void select_pointer_access(const Instruction* inst);
+    void select_access(const Instruction* inst);
+    void select_ap(const Instruction* inst);
     void select_string(const Instruction* inst);
     void select_comparison(const Instruction* inst);
     void select_conditional_jump(const Instruction* inst);

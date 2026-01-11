@@ -68,6 +68,20 @@ Instruction* Builder::build_store(Value* value, Value* dest, uint16_t alignment)
         { .alignment = alignment });
 }
 
+Instruction* Builder::build_access(Type* type, Value* source, Integer* index) {
+    assert(type && "type cannot be null!");
+    assert(source && "source cannot be null!");
+    assert(index && "index cannot be null!");
+    assert(source->get_type()->is_pointer_type() && "source must be a pointer!");
+    assert(index->get_value() >= 0 && "index cannot be negative!");
+
+    return insert(
+        OP_ACCESS,
+        m_cfg.get_def_id(),
+        type,
+        { source, index });
+}
+
 Instruction* Builder::build_ap(Type* type, Value* source, Value* index) {
     assert(type && "type cannot be null!");
     assert(source && "source cannot be null!");

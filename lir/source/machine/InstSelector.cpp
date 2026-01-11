@@ -18,6 +18,7 @@
 #include "lir/machine/InstSelector.hpp"
 
 #include <string>
+#include <iostream>
 
 using namespace lir;
 
@@ -413,8 +414,10 @@ void InstSelector::select(const Instruction* inst) {
         case OP_LOAD:
         case OP_STORE:
             return select_load_store(inst);
+        case OP_ACCESS:
+            return select_access(inst);
         case OP_AP:
-            return select_pointer_access(inst);
+            return select_ap(inst);
         case OP_STRING:
             return select_string(inst);
         case OP_CALL:
@@ -566,7 +569,42 @@ void InstSelector::select_load_store(const Instruction* inst) {
     }
 }
 
-void InstSelector::select_pointer_access(const Instruction* inst) {
+void InstSelector::select_access(const Instruction* inst) {
+    const Value* base = inst->get_operand(0);
+    assert(base->get_type()->is_pointer_type() && 
+        "OpAccess source must be a pointer!");
+
+    const MachOperand source = as_operand(inst->get_operand(0));
+    const MachOperand dest = MachOperand::create_reg(as_register(inst), 8, true);
+    const X64_Mnemonic op = dynamic_cast<const Local*>(inst->get_operand(0))
+        ? X64_Mnemonic::LEA
+        : X64_Mnemonic::MOV;
+    const Type* pointee = 
+        static_cast<const PointerType*>(base->get_type())->get_pointee();
+
+    emit(op, X64_Size::Quad, { source, dest });
+
+    int64_t offset = 0;
+    const Integer* index = dynamic_cast<const Integer*>(inst->get_operand(1));
+    assert(index && "index is not a constant integer!");
+
+    // The index to access the base pointer at is a constant integer, so we
+    // determine the pointer by adding the necessary byte offset.
+    std::cout << base->get_type()->to_string() << "\n\n\n";
+    assert(pointee->is_struct_type() && "pointee is not a struct type!");
+    offset = m_mach.get_field_offset(
+        static_cast<const StructType*>(pointee), index->get_value());
+
+    // Offset is zero, so no point adding it.
+    if (offset == 0)
+        return;
+
+    emit(X64_Mnemonic::ADD)
+        .add_imm(offset)
+        .add_operand(dest);
+}
+
+void InstSelector::select_ap(const Instruction* inst) {
     const Value* base = inst->get_operand(0);
     assert(base->get_type()->is_pointer_type() && 
         "OpAP source must be a pointer!");

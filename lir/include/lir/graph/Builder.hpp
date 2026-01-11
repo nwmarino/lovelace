@@ -66,6 +66,11 @@ public:
     /// |alignment|.
     Instruction* build_store(Value* value, Value* dest, uint16_t alignment);
 
+    /// Create a new struct access that deferences the struct pointer |source| 
+    /// to access the field at the given |index|. The |type| argument indicates 
+    /// the resulting value.
+    Instruction* build_access(Type* type, Value* source, Integer* index);
+
     /// Create a new pointer access that accesses |source| at the given |index|. 
     /// The |type| argument indicates the resulting pointer.
     Instruction* build_ap(Type* type, Value* source, Value* index);

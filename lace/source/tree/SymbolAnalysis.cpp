@@ -188,6 +188,10 @@ void SymbolAnalysis::visit(CallExpr& node) {
 
 void SymbolAnalysis::visit(CastExpr& node) {
     node.get_expr()->accept(*this);
+
+    if (!resolve_type(node.get_type()))
+        log::fatal("unresolved type: " + node.get_type().to_string(), 
+            log::Span(m_ast->get_file(), node.get_span()));
 }
 
 void SymbolAnalysis::visit(ParenExpr& node) {

@@ -1,59 +1,23 @@
-AST
-
-Definitions
-- VariableDefn (Local, Global)
-- FunctionDefn
-  - Parameter Defn
-- EnumDefn
-- StructDefn
-- LoadDefn
-
-Statements
-- BlockStmt
-- DeclStmt
-- RetStmt
-- WhileStmt
-- IfStmt
-- BreakStmt
-- ContinueStmt
-
-Expressions
-- IntegerLiteral
-- FloatLiteral
-- CharLiteral
-- StringLiteral
-- BinaryOp
-  - +, -, *, /, %, =, ==, !=, <, <=, >, >=, &, &&, |, ||, ^, <<, >>
-- UnaryOp
-  - ~, !, -, *, &
-- ParenExpr
-- CastExpr
-- SizeofExpr
-- AccessExpr '.'
-- SubscriptExpr '[]'
-
 Runes
 - Assert
 - Abort
 - Syscall
 - Unreachable
 
-
-
+- Per-field destruction
+- Allocator
+- Format strings
 
 - Inline assembly
-- Structs (StructDecl, StructType, AccessExpr)
-- Enums
+- Unnamed Enums
 - Unions
-
-- For, Until Loops
+- For Loops
 - Ternary '?' operator
 - CTFE
 - Build system
 - Enum flags
-- (Namespaces, operator overloading, function overloading)
+- Namespacing
 - DWARF symbols
-- Templates
+- Type polymorphism
 - Slices
 - Defer statement
-- Type polymorphism

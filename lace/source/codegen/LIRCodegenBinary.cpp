@@ -42,8 +42,13 @@ void Codegen::codegen_addition(BinaryOp& node, AddOp op) {
     lir::Type* rhs_type = rhs->get_type();
 
     if (lhs_type->is_pointer_type() && rhs_type->is_integer_type()) {
-        if (op == AddOp::Sub)
-            rhs = m_builder.build_ineg(rhs);
+        if (op == AddOp::Sub) {
+            if (lir::Integer* integer = dynamic_cast<lir::Integer*>(rhs)) {
+                rhs = lir::Integer::get(m_cfg, rhs->get_type(), -integer->get_value());
+            } else {
+                rhs = m_builder.build_ineg(rhs);
+            }
+        }
 
         m_temp = m_builder.build_ap(lhs_type, lhs, rhs);
     } else if (lhs_type->is_integer_type()) {
@@ -122,11 +127,35 @@ void Codegen::codegen_bitwise_arithmetic(BinaryOp& node, BitwiseOp op) {
         "type incompatible with bitwise operator!");
 
     if (op == BitwiseOp::And) {
-        m_temp = m_builder.build_and(lhs, rhs);
+        lir::Integer* int1 = dynamic_cast<lir::Integer*>(lhs);
+        lir::Integer* int2 = dynamic_cast<lir::Integer*>(rhs);
+
+        if (int1 && int2) {
+            m_temp = lir::Integer::get(
+                m_cfg, lhs->get_type(), int1->get_value() & int2->get_value());
+        } else {
+            m_temp = m_builder.build_and(lhs, rhs);
+        }
     } else if (op == BitwiseOp::Or) {
-        m_temp = m_builder.build_or(lhs, rhs);
+        lir::Integer* int1 = dynamic_cast<lir::Integer*>(lhs);
+        lir::Integer* int2 = dynamic_cast<lir::Integer*>(rhs);
+
+        if (int1 && int2) {
+            m_temp = lir::Integer::get(
+                m_cfg, lhs->get_type(), int1->get_value() | int2->get_value());
+        } else {
+            m_temp = m_builder.build_or(lhs, rhs);
+        }
     } else if (op == BitwiseOp::Xor) {
-        m_temp = m_builder.build_xor(lhs, rhs);
+        lir::Integer* int1 = dynamic_cast<lir::Integer*>(lhs);
+        lir::Integer* int2 = dynamic_cast<lir::Integer*>(rhs);
+
+        if (int1 && int2) {
+            m_temp = lir::Integer::get(
+                m_cfg, lhs->get_type(), int1->get_value() ^ int2->get_value());
+        } else {
+            m_temp = m_builder.build_xor(lhs, rhs);
+        }
     }
 }
 

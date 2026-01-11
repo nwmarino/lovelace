@@ -69,7 +69,6 @@ void BasicBlock::append_to(Function* parent) {
     assert(!m_parent && "block already belongs to a function!");
 
     parent->append(this);
-    m_parent = parent;
 }
 
 void BasicBlock::insert_before(BasicBlock* block) {
@@ -83,7 +82,7 @@ void BasicBlock::insert_before(BasicBlock* block) {
         block->m_prev->m_next = this;
 
     block->m_prev = this;
-    m_parent = block->m_parent;
+    m_parent = block->get_parent();
 }
 
 void BasicBlock::insert_after(BasicBlock* block) {
@@ -97,7 +96,7 @@ void BasicBlock::insert_after(BasicBlock* block) {
         block->m_next->m_prev = this;
 
     block->m_next = this;
-    m_parent = block->m_parent;
+    m_parent = block->get_parent();
 }
 
 void BasicBlock::remove(Instruction* inst) {
@@ -188,12 +187,19 @@ uint32_t BasicBlock::size() const {
 }
 
 uint32_t BasicBlock::get_number() const {
+    assert(m_parent && "block does not belong to a function!");
+
     uint32_t num = 0;
 
     // Count backwards from where the block is relative to the first block in 
     // the parent function, i.e. the one with no previous block.
-    for (const BasicBlock* curr = m_prev; curr; curr = curr->get_prev())
-        ++num;
+    for (const BasicBlock* curr = m_parent->get_head(); curr; curr = curr->get_next()) {
+        if (curr == this) {
+            return num;
+        } else {
+            ++num;
+        }
+    }
 
     return num;
 }

@@ -77,7 +77,8 @@ void SemanticAnalysis::visit(VariableDefn& node) {
 
         TypeCheckResult TC = type_check(actual, expected);
         if (TC == TypeCheckResult::Mismatch) {
-            log::fatal("initializer type mismatch; got " + actual.to_string(), span);
+            log::fatal("initializer type mismatch; got " + actual.to_string() 
+                + ", but expected " + expected.to_string(), span);
         } else if (TC == TypeCheckResult::Cast) {
             node.m_init = CastExpr::create(
                 *m_context, init->get_span(), expected, init);

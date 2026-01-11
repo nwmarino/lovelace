@@ -101,7 +101,6 @@ void Codegen::visit(UntilStmt& node)  {
         bdy = lir::BasicBlock::create({}, m_function);
         m_builder.build_jif(inject_bool_comparison(m_temp), mrg, {}, bdy, {});
 
-        m_function->append(bdy);
         m_builder.set_insert(bdy);
 
         lir::BasicBlock* prev_cnd = m_cnd;

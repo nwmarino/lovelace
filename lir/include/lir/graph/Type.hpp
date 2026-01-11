@@ -241,7 +241,7 @@ public:
 
     Type* get_field(uint32_t i) const {
         assert(i <= num_fields() && "index out of bounds!");
-        return m_fields[i]; 
+        return m_fields.at(i); 
     }
 
     void append_field(Type* type) { m_fields.push_back(type); }

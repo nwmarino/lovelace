@@ -141,9 +141,13 @@ void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
         // For each named dependency, add it to the scope of this ast and to
         // its list of loaded symbols.
         for (NamedDefn* dep : deps) {
-            scope->add(dep);
-            ast->get_loaded().push_back(dep);
-            log::note("added '" + dep->get_name() + "' to file " + ast->get_file());
+            if (!scope->add(dep)) {
+                log::warn("'" + dep->get_name() + 
+                    "' conflicts name-wise with another symbol, skipping load");
+            } else {
+                ast->get_loaded().push_back(dep);
+                log::note("added '" + dep->get_name() + "' to file " + ast->get_file());
+            }
         }
 
         NameAnalysis nama(options);
@@ -170,6 +174,8 @@ int32_t main(int32_t argc, char** argv) {
 
     std::vector<std::string> files = { 
         "/home/statim/lace/samples/A.lace", 
+        "/home/statim/lace/samples/linux.lace",
+        "/home/statim/lace/samples/mem.lace",
         //"/home/statim/lace/samples/B.lace", 
         //"/home/statim/lace/samples/C.lace",
     };

@@ -16,7 +16,7 @@ void Codegen::codegen_negate(UnaryOp& node) {
 
     lir::Type* type = m_temp->get_type();
     if (type->is_integer_type()) {
-        if (const lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
+        if (lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
             m_temp = lir::Integer::get(m_cfg, type, -integer->get_value());
         } else {
             m_temp = m_builder.build_ineg(m_temp);
@@ -38,7 +38,7 @@ void Codegen::codegen_bitwise_not(UnaryOp& node) {
 
     lir::Type* type = m_temp->get_type();
     if (type->is_integer_type()) { 
-        if (const lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
+        if (lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
             m_temp = lir::Integer::get(m_cfg, type, ~integer->get_value());
         } else {
             m_temp = m_builder.build_not(m_temp);
@@ -54,7 +54,7 @@ void Codegen::codegen_logical_not(UnaryOp& node) {
 
     lir::Type* type = m_temp->get_type();
     if (type->is_integer_type()) {
-        if (const lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
+        if (lir::Integer* integer = dynamic_cast<lir::Integer*>(m_temp)) {
             m_temp = lir::Integer::get(
                 m_cfg, 
                 lir::Type::get_i1_type(m_cfg), 
@@ -65,7 +65,7 @@ void Codegen::codegen_logical_not(UnaryOp& node) {
                 lir::Integer::get_zero(m_cfg, type));
         }
     } else if (type->is_float_type()) {
-        if (const lir::Float* fp = dynamic_cast<lir::Float*>(m_temp)) {
+        if ( lir::Float* fp = dynamic_cast<lir::Float*>(m_temp)) {
             m_temp = lir::Integer::get(
                 m_cfg, 
                 lir::Type::get_i1_type(m_cfg), 

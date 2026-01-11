@@ -222,7 +222,7 @@ Defn* Parser::parse_binding_definition(Runes runes, const Token name) {
                 *m_context, 
                 since(variant_name.loc), 
                 variant_name.value, 
-                runes,
+                {},
                 type, 
                 value++);
 

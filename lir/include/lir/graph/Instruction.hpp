@@ -19,6 +19,7 @@ class BasicBlock;
 /// The different mnemonics for instructions in the IR.
 enum Mnemonic : uint16_t {
     OP_ABORT,
+    OP_ACCESS,
     OP_AND,
     OP_AP,
     OP_CALL,
@@ -141,7 +142,7 @@ public:
 
     Value* get_operand(uint32_t i) {
         assert(i < num_operands() && "index out of bounds!");
-        return m_operands[i]->get_value();
+        return m_operands.at(i)->get_value();
     }
 
     void set_parent(BasicBlock* block) { m_parent = block; }

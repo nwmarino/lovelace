@@ -269,7 +269,7 @@ Expr* Parser::parse_binary_operator(Expr* base, int8_t precedence) {
         assert(right && "unable to parse rhs expression!");
 
         int32_t next_precedence = get_op_precedence(get_binary_op(curr().kind));
-        if (curr_precedence < next_precedence) {
+        if (curr_precedence >= next_precedence) {
             right = parse_binary_operator(right, precedence + 1);
             if (!right)
                 log::fatal("expected expression", log::Span(m_file, since(start)));
@@ -384,11 +384,11 @@ Expr* Parser::parse_type_cast() {
     if (!expr)
         log::fatal("expected expression", log::Span(m_file, since(start)));
 
-    const SourceLocation end = loc();
     if (!expect(Token::CloseParen))
         log::fatal("expected ')'", log::Span(m_file, since(start)));
 
-    return CastExpr::create(*m_context, SourceSpan(start, end), type, expr);
+    return CastExpr::create(
+        *m_context, SourceSpan(start, expr->get_span().end), type, expr);
 }
 
 Expr* Parser::parse_parentheses() {

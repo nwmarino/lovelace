@@ -3,6 +3,7 @@
 //  All rights reserved.
 //
 
+#include "lace/core/Diagnostics.hpp"
 #include "lace/codegen/Codegen.hpp"
 #include "lace/tree/AST.hpp"
 #include "lace/tree/Defn.hpp"
@@ -49,25 +50,19 @@ void Codegen::visit(StringLiteral& node) {
 void Codegen::visit(AccessExpr& node) {
     ValueContext ctx = m_vctx;
 
-    lir::Type* base_type = lower_type(node.get_base()->get_type());
-    lir::StructType* struct_Type = nullptr;
-
-    if (base_type->is_pointer_type())
-        base_type = static_cast<lir::PointerType*>(base_type)->get_pointee();
-
-    struct_Type = static_cast<lir::StructType*>(base_type);
-    m_vctx = base_type->is_pointer_type() ? RValue : LValue;
-
+    m_vctx = LValue;
     node.get_base()->accept(*this);
     assert(m_temp && "base does not produce a value!");
+    log::note("temp type: " + m_temp->get_type()->to_string(), 
+        log::Span(m_cfg.get_filename(), node.get_span()));
 
     const FieldDefn* field = node.get_field();
     lir::Type* field_type = lower_type(field->get_type());
 
-    lir::Constant* index = lir::Integer::get(
+    lir::Integer* index = lir::Integer::get(
         m_cfg, lir::Type::get_i64_type(m_cfg), field->get_index());
 
-    m_temp = m_builder.build_ap(lir::PointerType::get(m_cfg, field_type), m_temp, index);
+    m_temp = m_builder.build_access(lir::PointerType::get(m_cfg, field_type), m_temp, index);
     if (ctx == RValue)
         m_temp = m_builder.build_load(field_type, m_temp, m_mach.get_align(field_type));
 }
@@ -107,7 +102,9 @@ void Codegen::visit(RefExpr& node) {
                 assert(m_temp && "global does not exist for variable!");
             } else {
                 m_temp = m_function->get_local(node.get_name());
-                assert(m_temp && "local does not exist for variable!");
+                if (!m_temp)
+                    log::fatal("unresolved variable: " + node.get_name(), 
+                        log::Span(m_cfg.get_filename(), node.get_span()));
             }
 
             if (m_vctx == RValue)
