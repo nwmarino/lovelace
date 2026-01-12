@@ -1,0 +1,25 @@
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/functions.lace"
+
+main :: external () -> i64 {
+bb0:
+	$6 = call min: i64 (42: i64, 5: i64)
+	ret $6: i64
+}
+
+min :: internal (x: i64, y: i64) -> i64 {
+	x := i64 |8
+	y := i64 |8
+bb0:
+	store x: i64, x: *i64
+	store y: i64, y: *i64
+	$1 = load x: *i64 |8
+	$2 = load y: *i64 |8
+	$3 = cmp sle $1: i64, $2: i64
+	jif $3: i1, bb1, bb2
+bb1:
+	$4 = load x: *i64 |8
+	ret $4: i64
+bb2:
+	$5 = load y: *i64 |8
+	ret $5: i64
+}

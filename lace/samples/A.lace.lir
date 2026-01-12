@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/A.lace"
 
 Box :: { i64, i64, i64 }
 
@@ -58,8 +58,8 @@ bb1:
 	jif $5: i1, bb3, bb2
 bb2:
 	$6 = load len: *i64 |8
-	store $6: i64, len: *i64
 	$7 = iadd $6: i64, 1: i64
+	store $7: i64, len: *i64
 	jmp bb1
 bb3:
 	$8 = load len: *i64 |8

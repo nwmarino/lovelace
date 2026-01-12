@@ -12,18 +12,15 @@
 using namespace lace;
 
 void Codegen::codegen_assignment(BinaryOp& node) {
-    lir::Value* loc = nullptr;
-    lir::Value* rhs = nullptr;
-
+    lir::Value* lhs = nullptr;
     m_vctx = LValue;
     node.get_lhs()->accept(*this);
-    loc = m_temp;
+    lhs = m_temp;
 
     m_vctx = RValue;
     node.get_rhs()->accept(*this);
-    rhs = m_temp;
 
-    m_builder.build_store(rhs, loc, m_mach.get_align(rhs->get_type()));
+    m_builder.build_store(m_temp, lhs, m_mach.get_align(m_temp->get_type()));
 }
 
 void Codegen::codegen_addition(BinaryOp& node, AddOp op) {

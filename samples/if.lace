@@ -1,0 +1,10 @@
+$[public]
+main :: () -> s64 {
+    let x: *s64 = null;
+
+    if x {
+        ret 0;
+    } else {
+        ret 42;
+    }
+}

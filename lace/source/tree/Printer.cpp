@@ -424,12 +424,76 @@ void Printer::visit(BinaryOp& node) {
     const SourceSpan span = node.get_span();
     const SourceLocation start = span.start, end = span.start;
 
-    m_out << std::format("Binary <{}:{}, {}:{}> '{}'\n",
+    m_out << std::format("Binary <{}:{}, {}:{}> '{}' ",
         start.line,
         start.col,
         end.line,
         end.col,
         node.get_type().to_string());
+
+    switch (node.get_operator()) {
+        case BinaryOp::Assign:
+            m_out << "=";
+            break;
+        case BinaryOp::Add:
+            m_out << "+";
+            break;
+        case BinaryOp::Sub:
+            m_out << "-";
+            break;
+        case BinaryOp::Mul:
+            m_out << "*";
+            break;
+        case BinaryOp::Div:
+            m_out << "/";
+            break;
+        case BinaryOp::Mod:
+            m_out << "%";
+            break;
+        case BinaryOp::And:
+            m_out << "&";
+            break;
+        case BinaryOp::Or:
+            m_out << "|";
+            break;
+        case BinaryOp::Xor:
+            m_out << "^";
+            break;
+        case BinaryOp::LShift:
+            m_out << "<<";
+            break;
+        case BinaryOp::RShift:
+            m_out << ">>";
+            break;
+        case BinaryOp::LogicAnd:
+            m_out << "&&";
+            break;
+        case BinaryOp::LogicOr:
+            m_out << "||";
+            break;
+        case BinaryOp::Eq:
+            m_out << "=";
+            break;
+        case BinaryOp::NEq:
+            m_out << "!=";
+            break;
+        case BinaryOp::Lt:
+            m_out << "<";
+            break;
+        case BinaryOp::LtEq:
+            m_out << "<=";
+            break;
+        case BinaryOp::Gt:
+            m_out << ">";
+            break;
+        case BinaryOp::GtEq:
+            m_out << ">=";
+            break;
+        default:
+            assert(false && "unknown binary operator!");
+    }
+
+    m_out << '\n';
 
     ++m_indent;
     node.get_lhs()->accept(*this);
@@ -443,12 +507,34 @@ void Printer::visit(UnaryOp& node) {
     const SourceSpan span = node.get_span();
     const SourceLocation start = span.start, end = span.start;
 
-    m_out << std::format("Unary <{}:{}, {}:{}> '{}'\n",
+    m_out << std::format("Unary <{}:{}, {}:{}> '{}' ",
         start.line,
         start.col,
         end.line,
         end.col,
         node.get_type().to_string());
+
+    switch (node.get_operator()) {
+        case UnaryOp::Negate:
+            m_out << "-";
+            break;
+        case UnaryOp::Not:
+            m_out << "~";
+            break;
+        case UnaryOp::LogicNot:
+            m_out << "!";
+            break;
+        case UnaryOp::AddressOf:
+            m_out << "&";
+            break;
+        case UnaryOp::Dereference:
+            m_out << "*";
+            break;
+        default:
+            assert(false && "unknown unary operator!");
+    }
+
+    m_out << '\n';
 
     ++m_indent;
     node.get_expr()->accept(*this);

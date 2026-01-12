@@ -1,0 +1,22 @@
+AST "/home/nwm/statim/samples/integer_arithmetic.lace"
+  Function <2:1, 2:1> main '() -> s64'
+    Block <2:19, 2:19>
+      Adapter <3:5, 3:5>
+        Variable <3:5, 3:5> x 's64'
+          Integer <3:18, 3:18> 42 'mut s64'
+      Adapter <4:5, 4:5>
+        Variable <4:5, 4:5> y 's64'
+          Binary <4:18, 4:18> 'mut s64' +
+            Ref <4:18, 4:18> x 's64'
+            Integer <4:22, 4:22> 21 's64'
+      Adapter <5:5, 5:5>
+        Variable <5:5, 5:5> z 's64'
+          Binary <5:18, 5:18> 'mut s64' -
+            Ref <5:18, 5:18> x 's64'
+            Integer <5:22, 5:22> 21 's64'
+      Ret <7:5, 7:5>
+        Binary <7:9, 7:9> 's64' *
+          Ref <7:9, 7:9> x 's64'
+          Binary <7:13, 7:13> 's64' /
+            Ref <7:13, 7:13> y 's64'
+            Ref <7:17, 7:17> z 's64'

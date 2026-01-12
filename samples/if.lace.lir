@@ -1,0 +1,14 @@
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/if.lace"
+
+main :: external () -> i64 {
+	x := *i64 |8
+bb0:
+	store null, x: **i64
+	$1 = load x: **i64 |8
+	$2 = cmp ine $1: *i64, null
+	jif $2: i1, bb1, bb2
+bb1:
+	ret 0: i64
+bb2:
+	ret 42: i64
+}

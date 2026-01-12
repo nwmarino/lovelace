@@ -1,0 +1,10 @@
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/casting.lace"
+
+main :: external () -> i64 {
+	x := f64 |8
+bb0:
+	store 42.5: f64, x: *f64
+	$1 = load x: *f64 |8
+	$2 = f2s (i64) $1: f64
+	ret $2: i64
+}

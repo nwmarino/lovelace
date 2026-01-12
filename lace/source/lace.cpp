@@ -361,7 +361,7 @@ int32_t main(int32_t argc, char** argv) {
     options.verbose = true;
     options.version = true;
     options.llvm = false;
-    options.print_tree = false;
+    options.print_tree = true;
     options.print_ir = true;
 
     log::init();
@@ -371,9 +371,16 @@ int32_t main(int32_t argc, char** argv) {
             std::to_string(LACE_VERSION_MINOR));
 
     std::vector<std::string> files = {
-        "/home/statim/lace/samples/A.lace", 
-        "/home/statim/lace/samples/linux.lace",
-        "/home/statim/lace/samples/mem.lace",
+        "/home/nwm/statim/samples/return_zero.lace",
+        "/home/nwm/statim/samples/integer_arithmetic.lace",
+        "/home/nwm/statim/samples/casting.lace",
+        "/home/nwm/statim/samples/if.lace",
+        "/home/nwm/statim/samples/until_loop.lace",
+        "/home/nwm/statim/samples/functions.lace",
+
+        "/home/nwm/statim/lace/samples/A.lace", 
+        "/home/nwm/statim/lace/samples/linux.lace",
+        "/home/nwm/statim/lace/samples/mem.lace",
     };
 
     for (int32_t i = 1; i < argc; ++i) {
@@ -452,8 +459,13 @@ int32_t main(int32_t argc, char** argv) {
 
         // AST is now considered valid, so print it if needbe.
         if (options.print_tree) {
-            Printer printer(options, std::cout);
+            std::ofstream out(ast->get_file() + ".ast");
+            if (!out || !out.is_open())
+                log::fatal("failed to open file: " + ast->get_file() + ".ast");
+
+            Printer printer(options, out);
             ast->accept(printer);
+            out.close();
         }
     }
 

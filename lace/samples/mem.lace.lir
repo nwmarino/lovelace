@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/mem.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/mem.lace"
 
 Metadata :: { i64, *Metadata, i8 }
 

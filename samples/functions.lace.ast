@@ -1,0 +1,22 @@
+AST "/home/nwm/statim/samples/functions.lace"
+  Function <1:1, 1:1> min '(s64, s64) -> s64'
+    Parameter <1:9, 1:9> x 's64'
+    Parameter <1:17, 1:17> y 's64'
+    Block <1:32, 1:32>
+      If <2:5, 2:5>
+        Binary <2:8, 2:8> 'bool' <=
+          Ref <2:8, 2:8> x 's64'
+          Ref <2:13, 2:13> y 's64'
+        Block <2:15, 2:15>
+          Ret <3:9, 3:9>
+            Ref <3:13, 3:13> x 's64'
+        Block <4:12, 4:12>
+          Ret <5:9, 5:9>
+            Ref <5:13, 5:13> y 's64'
+  Function <10:1, 10:1> main '() -> s64'
+    Block <10:19, 10:19>
+      Ret <11:5, 11:5>
+        Call <11:9, 11:9> 's64'
+          Ref <11:9, 11:9> min '(s64, s64) -> s64'
+          Integer <11:13, 11:13> 42 's64'
+          Integer <11:17, 11:17> 5 's64'
