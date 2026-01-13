@@ -22,7 +22,15 @@ Runes
 - Slices
 - Defer statement
 
--- notes
+-- todo
+
+setup cmake for lir
+
+make pointer walk
+
+reiterate graph builder
+
+move Block::Arg out into a BlockArg, same with function args
 
 even though refs can be used as lvalues, make sure a reference to constants 
 like enum variants isnt an lvalue.
