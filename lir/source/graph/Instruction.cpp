@@ -4,6 +4,7 @@
 //
 
 #include "lir/graph/BasicBlock.hpp"
+#include "lir/graph/Constant.hpp"
 #include "lir/graph/Instruction.hpp"
 
 using namespace lir;
@@ -60,6 +61,52 @@ bool Instruction::is_terminator() const {
         default:
             return false;
     }
+}
+
+std::vector<const Value*> Instruction::get_jump_args() const {
+    assert(op() == OP_JMP);
+
+    std::vector<const Value*> args = {};
+    args.reserve(num_operands() - 1);
+
+    for (uint32_t i = 1, e = num_operands(); i < e; ++i) // Skip label.
+        args.push_back(get_operand(i));
+
+    return args;
+}
+
+std::vector<const Value*> Instruction::get_jif_true_args() const {
+    assert(op() == OP_JIF);
+
+    std::vector<const Value*> args = {};
+
+    for (uint32_t i = 2, e = num_operands(); i < e; ++i) { // Skip condition and "true" label.
+        const Value* oper = get_operand(i);
+        if (dynamic_cast<const BlockAddress*>(oper))
+            break; // Stop at first label.
+        
+        args.push_back(oper);
+    }
+
+    return args;
+}
+
+std::vector<const Value*> Instruction::get_jif_false_args() const {
+    assert(op() == OP_JIF);
+
+    uint32_t i = 2, e = num_operands(); // i: skip condition and first label.
+    for (; i < e; ++i) {
+        if (dynamic_cast<const BlockAddress*>(get_operand(i)))
+            break; // Stop at second label.
+    }
+
+    i += 1; // move past the second label.
+
+    std::vector<const Value*> args = {};
+    for (; i < e; ++i)
+        args.push_back(get_operand(i));
+    
+    return args;
 }
 
 bool Instruction::is_trivially_dead() const {

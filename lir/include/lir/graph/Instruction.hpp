@@ -184,6 +184,20 @@ public:
     /// Test if this instruction terminates control flow from a block.
     bool is_terminator() const;
 
+    /// For JMP instructions, returns the arguments used when branching to the
+    /// destination block.
+    std::vector<const Value*> get_jump_args() const;
+
+    /// For JIF instructions, returns the arguments used when branching to
+    /// the "true" destination. Fails by assertion if this is not a JIF 
+    /// instruction.
+    std::vector<const Value*> get_jif_true_args() const;
+
+    /// For JIF instructions, returns the arguments used when branching to
+    /// the "false" destination. Fails by assertion if this is not a JIF 
+    /// instruction. 
+    std::vector<const Value*> get_jif_false_args() const;
+
     bool is_trivially_dead() const;
 };
 
