@@ -63,9 +63,11 @@ bool Instruction::is_terminator() const {
 }
 
 bool Instruction::is_trivially_dead() const {
+    return false; // @Todo: no DCE for now.
+
     if (get_def() == 0 || Value::used())
         return false;
 
     //@ Todo: not quite right.
-    return m_op != OP_CALL && m_op != OP_SYSCALL;
+    return m_op != OP_CALL;
 }

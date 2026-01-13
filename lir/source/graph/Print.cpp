@@ -18,140 +18,136 @@ using namespace lir;
 static const char* to_string(Mnemonic op) {
     switch (op) {
         case OP_ABORT:
-            return "OpAbort";
+            return "abort";
         case OP_ACCESS:
-            return "OpAccess";
+            return "access";
         case OP_AND:
-            return "OpAnd";
+            return "and";
         case OP_AP:
-            return "OpAp";
+            return "ap";
         case OP_CALL:
-            return "OpCall";
+            return "call";
         case OP_CMP:
-            return "OpCmp";
-        case OP_F2I:
-            return "OpF2I";
+            return "cmp";
+        case OP_F2S:
+            return "f2s";
+        case OP_F2U:
+            return "f2u";
         case OP_FADD:
-            return "OpFAdd";
+            return "fadd";
         case OP_FDIV:
-            return "OpFDiv";
+            return "fdiv";
         case OP_FEXT:
-            return "OpFExt";
+            return "fext";
         case OP_FMUL:
-            return "OpFMul";
+            return "fmul";
         case OP_FNEG:
-            return "OpFNeg";
+            return "fneg";
         case OP_FSUB:
-            return "OpFSub";
+            return "fsub";
         case OP_FTRUNC:
-            return "OpFTrunc";
+            return "ftrunc";
         case OP_I2P:
-            return "OpI2P";
+            return "i2p";
         case OP_IADD:
-            return "OpIAdd";
+            return "iadd";
+        case OP_IMUL:
+            return "imul";
         case OP_INEG:
-            return "OpINeg";
+            return "ineg";
         case OP_ISUB:
-            return "OpISub";
+            return "isub";
         case OP_ITRUNC:
-            return "OpITrunc";
+            return "itrunc";
         case OP_JIF:
-            return "OpJif";
+            return "jif";
         case OP_JMP:
-            return "OpJmp";
+            return "jmp";
         case OP_LOAD:
-            return "OpLoad";
-        case OP_NOP:
-            return "OpNop";
+            return "load";
         case OP_NOT:
-            return "OpNot";
+            return "not";
         case OP_OR:
-            return "OpOr";
+            return "or";
         case OP_P2I:
-            return "OpP2I";
+            return "p2i";
         case OP_REINT:
-            return "OpReint";
+            return "reint";
         case OP_RET:
-            return "OpRet";
+            return "ret";
         case OP_S2F:
-            return "OpS2F";
+            return "s2f";
         case OP_SAR:
-            return "OpSar";
+            return "sar";
         case OP_SDIV:
-            return "OpSDiv";
+            return "sdiv";
         case OP_SEXT:
-            return "OpSExt";
+            return "sext";
         case OP_SHL:
-            return "OpShl";
+            return "shl";
         case OP_SHR:
-            return "OpShr";
-        case OP_SMUL:
-            return "OpSMul";
-        case OP_SREM:
-            return "OpSRem";
+            return "shr";
+        case OP_SMOD:
+            return "smod";
         case OP_STORE:
-            return "OpStore";
+            return "store";
         case OP_STRING:
-            return "OpString";
-        case OP_SYSCALL:
-            return "OpSyscall";
+            return "string";
         case OP_U2F:
-            return "OpU2F";
+            return "u2f";
         case OP_UDIV:
-            return "OpUDiv";
-        case OP_UMUL:
-            return "OpUMul";
+            return "udiv";
+        case OP_UMOD:
+            return "umod";
         case OP_UNREACHABLE:
-            return "OpUnreachable";
-        case OP_UREM:
-            return "OpURem";
+            return "unreachable";
         case OP_XOR:
-            return "OpXor";
+            return "xor";
         case OP_ZEXT:
-            return "OpZExt";
+            return "zext";
     }
 }
 
 static const char* to_string(CMPPredicate pred) {
     switch (pred) {
         case CMP_IEQ:
-            return "IEQ";
+            return "ieq";
         case CMP_INE:
-            return "INE";
+            return "ine";
         case CMP_OEQ:
-            return "OEQ";
+            return "oeq";
         case CMP_ONE:
-            return "ONE";
+            return "one";
         case CMP_SLT:
-            return "SLT";
+            return "slt";
         case CMP_SLE:
-            return "SLE";
+            return "sle";
         case CMP_SGT:
-            return "SGT";
+            return "sgt";
         case CMP_SGE:
-            return "SGE";
+            return "sge";
         case CMP_ULT:
-            return "ULT";
+            return "ult";
         case CMP_ULE:
-            return "ULE";
+            return "ule";
         case CMP_UGT:
-            return "UGT";
+            return "ugt";
         case CMP_UGE:
-            return "UGE";
+            return "uge";
         case CMP_OLT:
-            return "OLT";
+            return "olt";
         case CMP_OLE:
-            return "OLE";
+            return "ole";
         case CMP_OGT:
-            return "OGT";
+            return "ogt";
         case CMP_OGE:
-            return "OGE";
+            return "oge";
     }
 }
 
 static void print_instruction(std::ostream& os, Instruction& inst) {
     if (inst.is_def())
-        os << std::format("${} := ", inst.get_def());
+        os << std::format("${} = ", inst.get_def());
     
     const Mnemonic op = inst.op();
     os << to_string(op) << ' ';
@@ -233,14 +229,7 @@ static void print_instruction(std::ostream& os, Instruction& inst) {
 
             os << ")";
         }
-    } 
-    else if (op == OP_STORE) 
-    {
-        inst.get_operand(0)->print(os);
-        os << " -> ";
-        inst.get_operand(1)->print(os);
-        os << std::format(" |{}|", inst.desc().alignment);
-    } 
+    }
     else 
     {
         if (op == OP_CMP)
@@ -254,7 +243,7 @@ static void print_instruction(std::ostream& os, Instruction& inst) {
         }
 
         if (op == OP_LOAD)
-            os << std::format(" |{}|", inst.desc().alignment);
+            os << std::format(" |{}", inst.desc().alignment);
     }
 
     os << '\n';
@@ -264,7 +253,7 @@ static void print_basicblock(std::ostream& os, BasicBlock& block) {
     os << std::format("bb{}", block.get_number());
 
     if (block.has_args()) {
-        os << " (";
+        os << "(";
     } else {
         os << ":\n";
     }
@@ -291,7 +280,7 @@ static void print_basicblock(std::ostream& os, BasicBlock& block) {
 }
 
 static void print_local(std::ostream& os, Local& local) {
-    os << std::format("#{} := {} |{}|\n", 
+    os << std::format("{} := {} |{}\n", 
         local.get_name(), 
         local.get_allocated_type()->to_string(), 
         local.get_alignment());
@@ -302,10 +291,10 @@ static void print_function(std::ostream& os, Function& function) {
 
     switch (function.get_linkage()) {
         case Function::Internal:
-            os << "int ";
+            os << "internal ";
             break;
         case Function::External:
-            os << "ext ";
+            os << "external ";
             break;
     }
 
@@ -351,10 +340,10 @@ static void print_global(std::ostream& os, Global& global) {
 
     switch (global.get_linkage()) {
         case Global::Internal:
-            os << "int ";
+            os << "internal ";
             break;
         case Global::External:
-            os << "ext ";
+            os << "external ";
             break;
     }
 
@@ -432,7 +421,7 @@ void Function::Arg::print(std::ostream& os) const {
 }
 
 void Global::print(std::ostream& os) const {
-    os << std::format("@{}: {}", m_name, m_type->to_string());
+    os << std::format("{}: {}", m_name, m_type->to_string());
 }
 
 void Instruction::print(std::ostream& os) const {
@@ -446,7 +435,7 @@ void Integer::print(std::ostream& os) const {
 }
 
 void Local::print(std::ostream& os) const {
-    os << std::format("#{}: {}", m_name, m_type->to_string());
+    os << std::format("{}: {}", m_name, m_type->to_string());
 }
 
 void Null::print(std::ostream& os) const {

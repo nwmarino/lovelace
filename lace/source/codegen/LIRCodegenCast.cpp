@@ -43,7 +43,7 @@ void Codegen::codegen_cast_integer(lir::Value* value, lir::Type* dest, bool is_s
 
 void Codegen::codegen_cast_float(lir::Value* value, lir::Type* dest) {
 	if (dest->is_integer_type()) {
-        m_temp = m_builder.build_f2i(dest, value);
+        m_temp = m_builder.build_f2s(dest, value);
     } else if (dest->is_float_type()) {
         const uint32_t source_size = m_mach.get_size(value->get_type());
         const uint32_t dest_size = m_mach.get_size(dest);

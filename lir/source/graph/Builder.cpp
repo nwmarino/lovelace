@@ -33,10 +33,6 @@ Instruction* Builder::insert(Mnemonic op, uint32_t def, Type* type,
     return inst;
 }
 
-Instruction* Builder::build_nop() {
-    return insert(OP_NOP);
-}
-
 Instruction* Builder::build_string(String* string) {
     assert(string && "string cannot be null!");
     return insert(OP_STRING, m_cfg.get_def_id(), string->get_type(), { string });
@@ -175,17 +171,6 @@ Instruction* Builder::build_call(FunctionType* type, Value* callee,
         type->is_void_return() ? 0 : m_cfg.get_def_id(),
         type->get_return_type(),
         operands);
-}
-
-Instruction* Builder::build_syscall(const std::vector<Value*>& args) {
-    assert(1 <= args.size() && args.size() <= 7 && 
-        "args must have between 1 and 7 elements!");
-    
-    return insert(
-        OP_SYSCALL,
-        m_cfg.get_def_id(),
-        Type::get_i64_type(m_cfg),
-        args);
 }
 
 Instruction* Builder::build_cmp_ieq(Value* lhs, Value* rhs) {
@@ -415,257 +400,215 @@ Instruction* Builder::build_cmp_oge(Value* lhs, Value* rhs) {
 Instruction* Builder::build_iadd(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_IADD, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_fadd(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_FADD, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_IADD, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_isub(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_ISUB, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_ISUB, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
-Instruction* Builder::build_fsub(Value* lhs, Value* rhs) {
+Instruction* Builder::build_imul(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_FSUB, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_smul(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_SMUL, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_umul(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_UMUL, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_fmul(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_FMUL, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_IMUL, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_sdiv(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_SDIV, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_SDIV, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_udiv(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_UDIV, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_UDIV, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
+}
+
+Instruction* Builder::build_smod(Value* lhs, Value* rhs) {
+    assert(lhs && "lhs cannot be null!");
+    assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
+    assert(*lhs->get_type() == *rhs->get_type() && 
+        "both operands must have the same type!");
+
+    return insert(OP_SMOD, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
+}
+
+Instruction* Builder::build_umod(Value* lhs, Value* rhs) {
+    assert(lhs && "lhs cannot be null!");
+    assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
+    assert(*lhs->get_type() == *rhs->get_type() && 
+        "both operands must have the same type!");
+
+    return insert(OP_UMOD, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
+}
+
+Instruction* Builder::build_fadd(Value* lhs, Value* rhs) {
+    assert(lhs && "lhs cannot be null!");
+    assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_float_type() && "lhs must be a float!");
+    assert(rhs->get_type()->is_float_type() && "rhs must be a float!");
+    assert(*lhs->get_type() == *rhs->get_type() && 
+        "both operands must have the same type!");
+
+    return insert(OP_FADD, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
+}
+
+Instruction* Builder::build_fsub(Value* lhs, Value* rhs) {
+    assert(lhs && "lhs cannot be null!");
+    assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_float_type() && "lhs must be a float!");
+    assert(rhs->get_type()->is_float_type() && "rhs must be a float!");
+    assert(*lhs->get_type() == *rhs->get_type() && 
+        "both operands must have the same type!");
+
+    return insert(OP_FSUB, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
+}
+
+Instruction* Builder::build_fmul(Value* lhs, Value* rhs) {
+    assert(lhs && "lhs cannot be null!");
+    assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_float_type() && "lhs must be a float!");
+    assert(rhs->get_type()->is_float_type() && "rhs must be a float!");
+    assert(*lhs->get_type() == *rhs->get_type() && 
+        "both operands must have the same type!");
+
+    return insert(OP_FMUL, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_fdiv(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_float_type() && "lhs must be a float!");
+    assert(rhs->get_type()->is_float_type() && "rhs must be a float!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_FDIV, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_srem(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_SREM, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
-}
-
-Instruction* Builder::build_urem(Value* lhs, Value* rhs) {
-    assert(lhs && "lhs cannot be null!");
-    assert(rhs && "rhs cannot be null!");
-    assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
-
-    return insert(
-        OP_UREM, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_FDIV, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_and(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_AND, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_AND, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_or(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_OR, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_OR, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_xor(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_XOR, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_XOR, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_shl(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_SHL, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_SHL, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_shr(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_SHR, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_SHR, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_sar(Value* lhs, Value* rhs) {
     assert(lhs && "lhs cannot be null!");
     assert(rhs && "rhs cannot be null!");
+    assert(lhs->get_type()->is_integer_type() && "lhs must be an integer!");
+    assert(rhs->get_type()->is_integer_type() && "rhs must be an integer!");
     assert(*lhs->get_type() == *rhs->get_type() && 
-        "lhs and rhs must have the same type!");
+        "both operands must have the same type!");
 
-    return insert(
-        OP_SAR, 
-        m_cfg.get_def_id(), 
-        lhs->get_type(),
-        { lhs, rhs });
+    return insert(OP_SAR, m_cfg.get_def_id(), lhs->get_type(), { lhs, rhs });
 }
 
 Instruction* Builder::build_not(Value* value) {
     assert(value && "value cannot be null!");
+    assert(value->get_type()->is_integer_type() && "value must be an integer!");
 
     return insert(OP_NOT, m_cfg.get_def_id(), value->get_type(), { value });
 }
 
 Instruction* Builder::build_ineg(Value* value) {
     assert(value && "value cannot be null!");
+    assert(value->get_type()->is_integer_type() && "value must be an integer!");
     
     return insert(OP_INEG, m_cfg.get_def_id(), value->get_type(), { value });
 }
 
 Instruction* Builder::build_fneg(Value* value) {
     assert(value && "value cannot be null!");
+    assert(value->get_type()->is_float_type() && "value must be a float!");
     
     return insert(OP_FNEG, m_cfg.get_def_id(), value->get_type(), { value });
 }
 
 Instruction* Builder::build_sext(Type* type, Value* value) {
     assert(value && "value cannot be null!");
+    assert(value->get_type()->is_integer_type() && "value must be an integer!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
 
     return insert(OP_SEXT, m_cfg.get_def_id(), type, { value });
 }
@@ -673,7 +616,7 @@ Instruction* Builder::build_sext(Type* type, Value* value) {
 Instruction* Builder::build_zext(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_integer_type() && "value must be an integer!");
-    assert(type->is_integer_type() && "destination must be an integer!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
 
     return insert(OP_ZEXT, m_cfg.get_def_id(), type, { value });
 }
@@ -681,7 +624,7 @@ Instruction* Builder::build_zext(Type* type, Value* value) {
 Instruction* Builder::build_fext(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_float_type() && "value must be a float!");
-    assert(type->is_float_type() && "destination must be a float!");
+    assert(type->is_float_type() && "destination type must be a float!");
 
     return insert(OP_FEXT, m_cfg.get_def_id(), type, { value });
 }
@@ -689,7 +632,7 @@ Instruction* Builder::build_fext(Type* type, Value* value) {
 Instruction* Builder::build_itrunc(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_integer_type() && "value must be an integer!");
-    assert(type->is_integer_type() && "destination must be an integer!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
 
     return insert(OP_ITRUNC, m_cfg.get_def_id(), type, { value });
 }
@@ -697,7 +640,7 @@ Instruction* Builder::build_itrunc(Type* type, Value* value) {
 Instruction* Builder::build_ftrunc(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_float_type() && "value must be a float!");
-    assert(type->is_float_type() && "destination must be a float!");
+    assert(type->is_float_type() && "destination type must be a float!");
 
     return insert(OP_FTRUNC, m_cfg.get_def_id(), type, { value });
 }
@@ -705,7 +648,7 @@ Instruction* Builder::build_ftrunc(Type* type, Value* value) {
 Instruction* Builder::build_s2f(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_integer_type() && "value must be an integer!");
-    assert(type->is_float_type() && "type must be a float!");
+    assert(type->is_float_type() && "destination type must be a float!");
 
     return insert(OP_S2F, m_cfg.get_def_id(), type, { value });
 }
@@ -713,23 +656,31 @@ Instruction* Builder::build_s2f(Type* type, Value* value) {
 Instruction* Builder::build_u2f(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_integer_type() && "value must be an integer!");
-    assert(type->is_float_type() && "destination must be a float!");
+    assert(type->is_float_type() && "destination type must be a float!");
 
     return insert(OP_U2F, m_cfg.get_def_id(), type, { value });
 }
 
-Instruction* Builder::build_f2i(Type* type, Value* value) {
+Instruction* Builder::build_f2s(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_float_type() && "value must be a float!");
-    assert(type->is_integer_type() && "destination must be an integer!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
 
-    return insert(OP_F2I, m_cfg.get_def_id(), type, { value });
+    return insert(OP_F2S, m_cfg.get_def_id(), type, { value });
+}
+
+Instruction* Builder::build_f2u(Type* type, Value* value) {
+    assert(value && "value cannot be null!");
+    assert(value->get_type()->is_float_type() && "value must be a float!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
+
+    return insert(OP_F2U, m_cfg.get_def_id(), type, { value });
 }
 
 Instruction* Builder::build_p2i(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_pointer_type() && "value must a pointer!");
-    assert(type->is_integer_type() && "destination must be an integer!");
+    assert(type->is_integer_type() && "destination type must be an integer!");
 
     return insert(OP_P2I, m_cfg.get_def_id(), type, { value });
 }
@@ -737,14 +688,14 @@ Instruction* Builder::build_p2i(Type* type, Value* value) {
 Instruction* Builder::build_i2p(Type* type, Value* value) {
     assert(value && "value cannot be null!");
     assert(value->get_type()->is_integer_type() && "value must be an integer!");
-    assert(type->is_pointer_type() && "destination must be a pointer!");
+    assert(type->is_pointer_type() && "destination type must be a pointer!");
 
     return insert(OP_I2P, m_cfg.get_def_id(), type, { value });
 }
 
 Instruction* Builder::build_reint(Type* type, Value* value) {
     assert(value && "value cannot be null!");
-    assert(type->is_pointer_type() && "destination must be a pointer!");
+    assert(type->is_pointer_type() && "destination type must be a pointer!");
 
     return insert(OP_REINT, m_cfg.get_def_id(), type, { value });
 }

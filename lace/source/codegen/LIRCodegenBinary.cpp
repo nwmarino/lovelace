@@ -85,19 +85,19 @@ void Codegen::codegen_multiplication(BinaryOp& node, MulOp op) {
     if (lhs_type->is_integer_type()) {
         if (node.get_type()->is_signed_integer()) {
             if (op == MulOp::Mul) {
-                m_temp = m_builder.build_smul(lhs, rhs);
+                m_temp = m_builder.build_imul(lhs, rhs);
             } else if (op == MulOp::Div) {
                 m_temp = m_builder.build_sdiv(lhs, rhs);
             } else if (op == MulOp::Mod) {
-                m_temp = m_builder.build_srem(lhs, rhs);
+                m_temp = m_builder.build_smod(lhs, rhs);
             }
         } else {
             if (op == MulOp::Mul) {
-                m_temp = m_builder.build_umul(lhs, rhs);
+                m_temp = m_builder.build_imul(lhs, rhs);
             } else if (op == MulOp::Div) {
                 m_temp = m_builder.build_udiv(lhs, rhs);
             } else if (op == MulOp::Mod) {
-                m_temp = m_builder.build_urem(lhs, rhs);
+                m_temp = m_builder.build_umod(lhs, rhs);
             }
         }
     } else if (lhs_type->is_float_type()) {

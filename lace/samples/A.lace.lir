@@ -2,69 +2,69 @@ LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
 Box :: struct { i64, i64, i64 }
 
-@glob := int *i64 5: i64
+@glob := internal *i64 5: i64
 
 
-brk :: ext (i64) -> *void;
+brk :: external (i64) -> *void;
 
-close :: ext (i64) -> i64;
+close :: external (i64) -> i64;
 
-exit :: ext (i64) -> void;
+exit :: external (i64) -> void;
 
-main :: ext () -> i64 {
-	#p := *i64 |8|
+main :: external () -> i64 {
+	p := *i64 |8
 bb0:
-	OpStore 5: i64 -> @glob: *i64 |8|
-	OpStore @glob: *i64 -> #p: **i64 |8|
-	$13 := OpLoad #p: **i64 |8|
-	OpStore 42: i64 -> $13: *i64 |8|
-	$14 := OpLoad @glob: *i64 |8|
-	OpRet $14: i64
+	store 5: i64, glob: *i64
+	store glob: *i64, p: **i64
+	$13 = load p: **i64 |8
+	store 42: i64, $13: *i64
+	$14 = load glob: *i64 |8
+	ret $14: i64
 }
 
-mem_alloc :: ext (size: i64) -> *void;
+mem_alloc :: external (size: i64) -> *void;
 
-mem_copy :: ext (dst: *void, src: *void, n: i64) -> void;
+mem_copy :: external (dst: *void, src: *void, n: i64) -> void;
 
-mem_free :: ext (p: *void) -> void;
+mem_free :: external (p: *void) -> void;
 
-mem_realloc :: ext (p: *void, size: i64) -> *void;
+mem_realloc :: external (p: *void, size: i64) -> *void;
 
-open :: ext (*i8, i64, i64) -> i64;
+open :: external (*i8, i64, i64) -> i64;
 
-print :: int (str: *i8) -> void {
-	#str := *i8 |8|
+print :: internal (str: *i8) -> void {
+	str := *i8 |8
 bb0:
-	OpStore str: *i8 -> #str: **i8 |8|
-	$9 := OpLoad #str: **i8 |8|
-	$10 := OpLoad #str: **i8 |8|
-	$11 := OpCall strlen: i64 ($10: *i8)
-	$12 := OpCall write: i64 (1: i64, $9: *i8, $11: i64)
-	OpRet 
+	store str: *i8, str: **i8
+	$9 = load str: **i8 |8
+	$10 = load str: **i8 |8
+	$11 = call strlen: i64 ($10: *i8)
+	$12 = call write: i64 (1: i64, $9: *i8, $11: i64)
+	ret 
 }
 
-strlen :: int (str: *i8) -> i64 {
-	#len := i64 |8|
-	#str := *i8 |8|
+strlen :: internal (str: *i8) -> i64 {
+	len := i64 |8
+	str := *i8 |8
 bb0:
-	OpStore str: *i8 -> #str: **i8 |8|
-	OpStore 0: i64 -> #len: *i64 |8|
-	OpJmp bb1
+	store str: *i8, str: **i8
+	store 0: i64, len: *i64
+	jmp bb1
 bb1:
-	$1 := OpLoad #str: **i8 |8|
-	$2 := OpLoad #len: *i64 |8|
-	$3 := OpAp $1: *i8, $2: i64
-	$4 := OpLoad $3: *i8 |1|
-	$5 := OpCmp IEQ $4: i8, 0: i8
-	OpJif $5: i1, bb3, bb2
+	$1 = load str: **i8 |8
+	$2 = load len: *i64 |8
+	$3 = ap $1: *i8, $2: i64
+	$4 = load $3: *i8 |1
+	$5 = cmp ieq $4: i8, 0: i8
+	jif $5: i1, bb3, bb2
 bb2:
-	$6 := OpLoad #len: *i64 |8|
-	OpStore $6: i64 -> #len: *i64 |8|
-	$7 := OpIAdd $6: i64, 1: i64
-	OpJmp bb1
+	$6 = load len: *i64 |8
+	store $6: i64, len: *i64
+	$7 = iadd $6: i64, 1: i64
+	jmp bb1
 bb3:
-	$8 := OpLoad #len: *i64 |8|
-	OpRet $8: i64
+	$8 = load len: *i64 |8
+	ret $8: i64
 }
 
-write :: ext (i64, *i8, i64) -> i64;
+write :: external (i64, *i8, i64) -> i64;

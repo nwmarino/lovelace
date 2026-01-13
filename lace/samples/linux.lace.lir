@@ -1,11 +1,11 @@
 LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/linux.lace"
 
-brk :: ext (i64) -> *void;
+brk :: external (i64) -> *void;
 
-close :: ext (i64) -> i64;
+close :: external (i64) -> i64;
 
-exit :: ext (i64) -> void;
+exit :: external (i64) -> void;
 
-open :: ext (*i8, i64, i64) -> i64;
+open :: external (*i8, i64, i64) -> i64;
 
-write :: ext (i64, *i8, i64) -> i64;
+write :: external (i64, *i8, i64) -> i64;

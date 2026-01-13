@@ -52,9 +52,6 @@ public:
                         const std::vector<Value*>& ops = {}, 
                         Descriptor desc = {});
 
-    /// Build a new no operation instruction.
-    Instruction* build_nop();
-
     /// Create a new constant string instruction defining |string| as a value.
     Instruction* build_string(String* string);
 
@@ -103,11 +100,6 @@ public:
     /// and anticipated return type.
     Instruction* build_call(FunctionType* type, Value* callee, 
                             const std::vector<Value*>& args = {});
-
-    /// Create a new linux syscall with the given |args|. The argument list
-    /// must be between 1 and 7 elements, with the assumption that the first
-    /// is an integer-typed value that designates the syscall number.
-    Instruction* build_syscall(const std::vector<Value*>& args);
 
     /// Create a new integer equality comparison.
     Instruction* build_cmp_ieq(Value* lhs, Value* rhs);
@@ -160,23 +152,11 @@ public:
     /// Create a new integer addition instruction.
     Instruction* build_iadd(Value* lhs, Value* rhs);
 
-    /// Create a new floating point addition instruction.
-    Instruction* build_fadd(Value* lhs, Value* rhs);
-
     /// Create a new integer subtraction instruction.
     Instruction* build_isub(Value* lhs, Value* rhs);
 
-    /// Create a new floating point subtraction instruction.
-    Instruction* build_fsub(Value* lhs, Value* rhs);
-
-    /// Create a new signed integer multiplication instruction.
-    Instruction* build_smul(Value* lhs, Value* rhs);
-
-    /// Create a new unsigned integer multiplication instruction.
-    Instruction* build_umul(Value* lhs, Value* rhs);
-
-    /// Create a new floating point multiplication instruction.
-    Instruction* build_fmul(Value* lhs, Value* rhs);
+    /// Create a new integer multiplication instruction.
+    Instruction* build_imul(Value* lhs, Value* rhs);
 
     /// Create a new signed integer division instruction.
     Instruction* build_sdiv(Value* lhs, Value* rhs);
@@ -184,14 +164,23 @@ public:
     /// Create a new unsigned integer division instruction.
     Instruction* build_udiv(Value* lhs, Value* rhs);
 
+    /// Create a new signed integer modulo instruction.
+    Instruction* build_smod(Value* lhs, Value* rhs);
+
+    /// Create a new unsigned integer modulo instruction.
+    Instruction* build_umod(Value* lhs, Value* rhs);
+
+    /// Create a new floating point addition instruction.
+    Instruction* build_fadd(Value* lhs, Value* rhs);
+
+    /// Create a new floating point subtraction instruction.
+    Instruction* build_fsub(Value* lhs, Value* rhs);
+
+    /// Create a new floating point multiplication instruction.
+    Instruction* build_fmul(Value* lhs, Value* rhs);
+
     /// Create a new floating point division instruction.
     Instruction* build_fdiv(Value* lhs, Value* rhs);
-
-    /// Create a new signed integer remainder instruction.
-    Instruction* build_srem(Value* lhs, Value* rhs);
-
-    /// Create a new unsigned integer remainder instruction.
-    Instruction* build_urem(Value* lhs, Value* rhs);
 
     /// Create a new bitwise and instruction.
     Instruction* build_and(Value* lhs, Value* rhs);
@@ -214,10 +203,10 @@ public:
     /// Create a new bitwise not instruction.
     Instruction* build_not(Value* value);
 
-    /// Create a new integer negate instruction.
+    /// Create a new integer negation instruction.
     Instruction* build_ineg(Value* value);
 
-    /// Create a new floating point negate instruction.
+    /// Create a new floating point negation instruction.
     Instruction* build_fneg(Value* value);
 
     /// Create a new integer sign extension instruction. The instruction will
@@ -246,8 +235,11 @@ public:
     /// Create a new unsigned integer to floating point conversion instruction.
     Instruction* build_u2f(Type* type, Value* value);
 
-    /// Create a new floating point to integer conversion.
-    Instruction* build_f2i(Type* type, Value* value);
+    /// Create a new floating point to signed integer cast instruction.
+    Instruction* build_f2s(Type* type, Value* value);
+
+    /// Build a new floating point to unsigned integer cast instruction.
+    Instruction* build_f2u(Type* type, Value* value);
     
     /// Create a new pointer to integer conversion instruction. The instruction
     /// will convert |value| to the given |type|.

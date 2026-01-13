@@ -24,7 +24,8 @@ enum Mnemonic : uint16_t {
     OP_AP,
     OP_CALL,
     OP_CMP,
-    OP_F2I,
+    OP_F2S,
+    OP_F2U,
     OP_FADD,
     OP_FDIV,
     OP_FEXT,
@@ -34,13 +35,13 @@ enum Mnemonic : uint16_t {
     OP_FTRUNC,
     OP_I2P,
     OP_IADD,
+    OP_IMUL,
     OP_INEG,
     OP_ISUB,
     OP_ITRUNC,
     OP_JIF,
     OP_JMP,
     OP_LOAD,
-    OP_NOP,
     OP_NOT,
     OP_OR,
     OP_P2I,
@@ -52,16 +53,13 @@ enum Mnemonic : uint16_t {
     OP_SEXT,
     OP_SHL,
     OP_SHR,
-    OP_SMUL,
-    OP_SREM,
+    OP_SMOD,
     OP_STORE,
     OP_STRING,
-    OP_SYSCALL,
     OP_U2F,
     OP_UDIV,
-    OP_UMUL,
+    OP_UMOD,
     OP_UNREACHABLE,
-    OP_UREM,
     OP_XOR,
     OP_ZEXT,
 };
@@ -86,7 +84,7 @@ enum CMPPredicate : uint16_t {
     CMP_OGE,
 };
 
-/// Descriptive information for certain instruction operations.
+/// Descriptive information for certain operations.
 union Descriptor final {
 public:
     /// Alignment for memory accesses (OP_LOAD, OP_STORE).

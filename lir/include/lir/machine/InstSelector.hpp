@@ -64,8 +64,6 @@ class InstSelector final {
     void select(const Instruction* inst);
     void select_abort(const Instruction* inst);
     void select_unreachable(const Instruction* inst);
-    void select_nop(const Instruction* inst);
-    void select_syscall(const Instruction* inst);
     void select_load_store(const Instruction* inst);
     void select_access(const Instruction* inst);
     void select_ap(const Instruction* inst);

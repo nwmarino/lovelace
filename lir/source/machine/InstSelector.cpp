@@ -399,10 +399,6 @@ void InstSelector::select(const Instruction* inst) {
             return select_abort(inst);
         case OP_UNREACHABLE:
             return select_unreachable(inst);
-        case OP_NOP:
-            return select_nop(inst);
-        case OP_SYSCALL:
-            return select_syscall(inst);
         case OP_LOAD:
         case OP_STORE:
             return select_load_store(inst);
@@ -430,13 +426,12 @@ void InstSelector::select(const Instruction* inst) {
             return select_isub(inst);
         case OP_FSUB:
             return select_fsub(inst);
-        case OP_SMUL:
-        case OP_UMUL:
+        case OP_IMUL:
             return select_imul(inst);
         case OP_SDIV:
         case OP_UDIV:
-        case OP_SREM:
-        case OP_UREM:
+        case OP_SMOD:
+        case OP_UMOD:
             return select_division(inst);
         case OP_FMUL:
         case OP_FDIV:
@@ -457,7 +452,8 @@ void InstSelector::select(const Instruction* inst) {
         case OP_S2F:
         case OP_U2F:
             return select_cast_i2f(inst);
-        case OP_F2I:
+        case OP_F2S:
+        case OP_F2U:
             return select_cast_f2i(inst);
         case OP_SEXT:
         case OP_ZEXT:
@@ -482,14 +478,6 @@ void InstSelector::select_abort(const Instruction* inst) {
 void InstSelector::select_unreachable(const Instruction* inst) {
     // @Revise: could do more.
     emit(X64_Mnemonic::UD2);
-}
-
-void InstSelector::select_nop(const Instruction* inst) {
-    emit(X64_Mnemonic::NOP);
-}
-
-void InstSelector::select_syscall(const Instruction* inst) {
-
 }
 
 void InstSelector::select_load_store(const Instruction* inst) {
@@ -1212,7 +1200,7 @@ void InstSelector::select_imul(const Instruction* inst) {
 
 void InstSelector::select_division(const Instruction* inst) {
     const X64_Size size = as_size(inst->get_type());
-    bool is_rem = inst->op() == OP_SREM || inst->op() == OP_UREM;
+    bool is_mod = inst->op() == OP_SMOD || inst->op() == OP_UMOD;
 
     const Value* lhs_value = inst->get_operand(0);
     const Value* rhs_value = inst->get_operand(1);
@@ -1228,15 +1216,15 @@ void InstSelector::select_division(const Instruction* inst) {
 
     emit(X64_Mnemonic::MOV, size, { rhs, dest });
 
-    if (inst->op() == OP_SDIV || inst->op() == OP_SREM) {
+    if (inst->op() == OP_SDIV || inst->op() == OP_SMOD) {
         emit(X64_Mnemonic::CQO) // cqo
             .add_reg(RAX, 8, true, true) // impl-def %rax
             .add_reg(RDX, 8, true, true) // impl-def %rdx
             .add_reg(RAX, 8, false, true); // impl %rax
 
         emit(X64_Mnemonic::IDIV, size, { dest }) // idivx ..rhs..
-            .add_reg(RAX, 8, true, true, false, is_rem) // impl (dead) %rax
-            .add_reg(RDX, 8, true, true, false, !is_rem) // impl (dead) %rdx
+            .add_reg(RAX, 8, true, true, false, is_mod) // impl (dead) %rax
+            .add_reg(RDX, 8, true, true, false, !is_mod) // impl (dead) %rdx
             .add_reg(RAX, 8, false, true) // impl %rax
             .add_reg(RDX, 8, false, true, true); // impl killed %rdx
     } else {
@@ -1246,13 +1234,13 @@ void InstSelector::select_division(const Instruction* inst) {
             .add_reg(RDX, 8, true, true); // impl-def %rdx
             
         emit(X64_Mnemonic::DIV, size, { dest }) // divx ..rhs..
-            .add_reg(RAX, 8, true, true, false, is_rem) // (dead) %rax
-            .add_reg(RDX, 8, true, true, false, !is_rem) // (dead) %rdx
+            .add_reg(RAX, 8, true, true, false, is_mod) // (dead) %rax
+            .add_reg(RDX, 8, true, true, false, !is_mod) // (dead) %rdx
             .add_reg(RAX, 8, false, true) // impl %rax
             .add_reg(RDX, 8, false, true, true); // impl killed %rdx
     }
 
-    if (is_rem) {
+    if (is_mod) {
         // Mark RDX as an implicit kill here, since the remainder is now in 
         // dest.
         emit(X64_Mnemonic::MOV)
