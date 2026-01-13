@@ -56,8 +56,9 @@
 using namespace lace;
 using namespace std::filesystem;
 
-using FileTable = std::unordered_map<std::string, AST*>;
 using Asts = std::unordered_set<AST*>;
+using DepTable = std::unordered_map<AST*, Asts>;
+using FileTable = std::unordered_map<std::string, AST*>;
 
 /// A mapping between the absolute path of an input file and its parsed AST.
 static FileTable g_files = {};
@@ -80,10 +81,8 @@ void setup_file_table(const Asts& asts) {
 /// before it in the set. This means the result is a valid ordering in which to 
 /// sequentially perform name analysis on each syntax tree.
 ///
-/// Moreover, as it computes dependencies, it saves them to the |dep_table|.
-void compute_dependencies(const Asts& asts, Asts& ordering, 
-                          std::unordered_map<AST*, Asts>& dep_table) {
-    // Map each AST to the ASTs it loads/depends on, using resolved absolute paths.
+/// Moreover, as it computes dependencies, it saves them to |deps|.
+void compute_dependencies(const Asts& asts, Asts& ordering, DepTable& deps) {
     for (AST* ast : asts) {
         path parent = absolute(ast->get_file()).parent_path();
     
@@ -98,7 +97,7 @@ void compute_dependencies(const Asts& asts, Asts& ordering,
 
             auto it = g_files.find(target.string());
             if (it != g_files.end()) {
-                dep_table[ast].insert(it->second);
+                deps[ast].insert(it->second);
                 load->set_path(target.string());
             } else {
                 log::fatal("unresolved file: " + target.string(), 
@@ -107,19 +106,20 @@ void compute_dependencies(const Asts& asts, Asts& ordering,
         }
     }
 
-    std::unordered_set<AST*> visited = {};
-    std::unordered_set<AST*> visiting = {};
+    Asts visited = {};
+    Asts visiting = {};
 
     std::function<void(AST*)> dfs = [&](AST* ast) {
         if (visited.count(ast)) 
             return;
 
         if (visiting.count(ast))
-            log::fatal("cyclic dependency found");
+            log::fatal("cyclic dependency found", 
+                log::Location(ast->get_file(), { 1, 1 }));
         
         visiting.insert(ast);
         
-        for (AST* dep : dep_table[ast])
+        for (AST* dep : deps[ast])
             dfs(dep);
 
         visiting.erase(ast);
@@ -132,16 +132,16 @@ void compute_dependencies(const Asts& asts, Asts& ordering,
 }
 
 /// Resolve the dependent symbols for each tree in |asts|, based on their
-/// dependencies defined in |dep_table|. Assumes that |asts| contains syntax 
+/// dependencies defined in |deps|. Assumes that |asts| contains syntax 
 /// trees in their dependency order.
 void resolve_dependencies(const Options& options, const Asts& asts, 
-                          const std::unordered_map<AST*, Asts>& dep_table) {
+                          const DepTable& deps) {
     for (AST* ast : asts) {
-        Asts deps = dep_table.at(ast);
+        Asts dep_list = deps.at(ast);
         std::vector<NamedDefn*> symbols = {};
 
         // For each dependency, fetch all of its public, named definitions.
-        for (AST* dep : deps) {
+        for (AST* dep : dep_list) {
             for (Defn* defn : dep->get_defns()) {
                 NamedDefn* symbol = dynamic_cast<NamedDefn*>(defn);
                 if (symbol && symbol->has_rune(Rune::Public))
@@ -416,14 +416,12 @@ int32_t main(int32_t argc, char** argv) {
     setup_file_table(asts);
 
     Asts ordering = {};
-    std::unordered_map<AST*, Asts> dep_table = {};
+    DepTable deps = {};
     ordering.reserve(asts.size());
-    dep_table.reserve(asts.size());
+    deps.reserve(asts.size());
 
-    compute_dependencies(asts, ordering, dep_table);
-    resolve_dependencies(options, ordering, dep_table);
-    
-    log::flush();
+    compute_dependencies(asts, ordering, deps);
+    resolve_dependencies(options, ordering, deps);
 
     // Perform symbol analysis on each syntax tree.
     //
