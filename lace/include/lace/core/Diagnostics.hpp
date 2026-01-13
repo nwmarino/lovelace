@@ -58,9 +58,10 @@ void set_output_stream(std::ostream& os);
 /// via set_output_stream.
 void clear_output_stream();
 
-/// Flush out the compiler state if there have been any errors declared.
+/// Flush the output stream and the compiler state if there have been any 
+/// errors declared.
 ///
-/// Effectively, if any error calls were made, then flushing will crash the
+/// Effectively, if any non-fatal error calls were made, then flushing will crash the
 /// compiler at the point of the call.
 void flush();
 

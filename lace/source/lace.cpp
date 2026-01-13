@@ -53,29 +53,47 @@
 #define LACE_VERSION_MINOR 0
 
 using namespace lace;
+using namespace std::filesystem;
 
-std::vector<AST*> compute_dependency_order(const std::vector<AST*>& asts) {
-    // Map absolute file paths to their corresponding AST.
-    std::unordered_map<std::string, AST*> path_to_ast = {};
-    path_to_ast.reserve(asts.size());
+using FileTable = std::unordered_map<std::string, AST*>;
+using Asts = std::vector<AST*>;
+
+/// A mapping between the absolute path of an input file and its parsed AST.
+static FileTable g_files = {};
+
+/// Setup |g_files| based on the set of given |asts| and their respective
+/// input files.
+void setup_file_table(const Asts& asts) {
+    g_files.reserve(asts.size());
     for (AST* ast : asts)
-        path_to_ast[std::filesystem::absolute(ast->get_file()).string()] = ast;
+        g_files.emplace(std::filesystem::absolute(ast->get_file()).string(), ast); 
+}
 
+/// Compute the dependency order for each file in the list of |asts|.
+///
+/// This function produces an ordering of the files without cycles such that
+/// any given file/ast relies on only the ones which can come before it in the
+/// list. This means the result is a valid order in which to perform name 
+/// analysis on each syntax tree.
+///
+/// This function also checks for dependency cycles and reports them as they
+/// appear.
+Asts compute_dependency_order(const Asts& asts) {
     // Map each AST to the ASTs it loads/depends on, using resolved absolute paths.
-    std::unordered_map<AST*, std::vector<AST*>> deps;
+    std::unordered_map<AST*, Asts> deps;
     for (AST* ast : asts) {
-        std::filesystem::path parent_path = 
-            std::filesystem::absolute(ast->get_file()).parent_path();
+        path parent_path = absolute(ast->get_file()).parent_path();
     
         for (Defn* defn : ast->get_defns()) {
             LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
             if (!load)
                 continue;
 
-            std::filesystem::path loaded_path = parent_path / load->get_path();
-            loaded_path = std::filesystem::weakly_canonical(loaded_path);
-            auto it = path_to_ast.find(loaded_path.string());
-            if (it != path_to_ast.end()) {
+            path loaded_path = parent_path / load->get_path();
+            loaded_path = weakly_canonical(loaded_path);
+
+            auto it = g_files.find(loaded_path.string());
+            if (it != g_files.end()) {
                 deps[ast].push_back(it->second);
                 load->set_path(loaded_path.string());
             } else {
@@ -85,9 +103,9 @@ std::vector<AST*> compute_dependency_order(const std::vector<AST*>& asts) {
         }
     }
 
-    std::vector<AST*> order;
-    std::unordered_set<AST*> visited;
-    std::unordered_set<AST*> visiting;
+    std::vector<AST*> order = {};
+    std::unordered_set<AST*> visited = {};
+    std::unordered_set<AST*> visiting = {};
 
     std::function<void(AST*)> dfs = [&](AST* ast) {
         if (visited.count(ast)) 
@@ -112,78 +130,98 @@ std::vector<AST*> compute_dependency_order(const std::vector<AST*>& asts) {
     return order;
 }
 
-std::vector<NamedDefn*> get_public_symbols(
-        const std::unordered_map<std::string, AST*>& path_to_asts, AST* ast) {
-    std::vector<NamedDefn*> res = {};
+/// Compute the list of dependencies for the given |ast|.
+///
+/// For a given file, this function recurses into each load definition and
+/// collects all the files which |ast| may rely on.
+std::vector<AST*> compute_dependencies(AST* ast) {
+    std::vector<AST*> deps = {};
 
     for (Defn* defn : ast->get_defns()) {
-        if (LoadDefn* load = dynamic_cast<LoadDefn*>(defn)) {
-            AST* dep = path_to_asts.at(load->get_path());
+        LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
+        if (!load)
+            continue; // Don't need non-loads to find out dependencies.
 
-            std::vector<NamedDefn*> dep_symbols = get_public_symbols(path_to_asts, dep);
-            for (NamedDefn* sym : dep_symbols)
-                res.push_back(sym);
-        } else if (NamedDefn* named = dynamic_cast<NamedDefn*>(defn)) {
-            if (named->has_rune(Rune::Public))
-                res.push_back(named);
+        // Find the dependent file in the table.
+        auto it = g_files.find(load->get_path());
+        if (it == g_files.end()) // File not in table => file not compiled.
+            log::fatal("unresolved file: " + load->get_path(), 
+                log::Span(ast->get_file(), load->get_span()));
+
+        // If the load target is already a dependency (i.e. was used in another
+        // dependency), then skip it.
+        if (std::find(deps.begin(), deps.end(), it->second) != deps.end())
+            continue;
+
+        deps.push_back(it->second);
+
+        // Recursively get all dependencies for the dependency.
+        for (AST* dep : compute_dependencies(it->second)) {
+            // Only keep the nested dependency if it has yet to be seen.
+            if (std::find(deps.begin(), deps.end(), dep) == deps.end())
+                deps.push_back(dep);
         }
     }
 
-    return res;
+    return deps;
 }
 
 /// Resolve the definition dependencies for each tree in |asts|. Assumes that
-/// |asts| contains syntax trees per their dependency order.
+/// |asts| contains syntax trees in their dependency order.
 void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
-    std::unordered_map<std::string, AST*> path_to_asts;
-    for (AST* ast : asts)
-        path_to_asts[ast->get_file()] = ast;
-
     for (AST* ast : asts) {
-        Scope* scope = ast->get_scope();
-        std::vector<NamedDefn*> deps = {};
+        std::vector<AST*> deps = compute_dependencies(ast);
+        std::vector<NamedDefn*> symbols = {};
 
-        // For each load in this ast, recursively collect all public 
-        // definitions from the target source file.
-        for (Defn* defn : ast->get_defns()) {
-            LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
-            if (!load)
-                continue;
-
-            // Resolve the dependency based on the load path.
-            AST* dep = path_to_asts[load->get_path()];
-            assert(dep);
-
-            // Fetch all public symbols and add them as dependencies.
-            std::vector<NamedDefn*> syms = get_public_symbols(path_to_asts, dep);
-            for (NamedDefn* sym : syms)
-                deps.push_back(sym);
-        }
-
-        // For each named dependency, add it to the scope of this ast and to
-        // its list of loaded symbols.
-        for (NamedDefn* dep : deps) {
-            if (!scope->add(dep)) {
-                log::warn("'" + dep->get_name() + 
-                    "' conflicts name-wise with another symbol, skipping load");
-            } else {
-                ast->get_loaded().push_back(dep);
-                log::note("added '" + dep->get_name() + "' to file " + ast->get_file());
+        // For each dependency, fetch all of its public, named definitions.
+        for (AST* dep : deps) {
+            for (Defn* defn : dep->get_defns()) {
+                NamedDefn* symbol = dynamic_cast<NamedDefn*>(defn);
+                if (symbol && symbol->has_rune(Rune::Public))
+                    symbols.push_back(symbol);
             }
         }
 
-        NameAnalysis nama(options);
-        nama.visit(*ast);
+        Scope* scope = ast->get_scope();
+        for (NamedDefn* symbol : symbols) {
+            bool res = scope->add(symbol);
+            if (!res) {
+                log::fatal("name-wise conflict with an existing definition: " 
+                    + symbol->get_name(), log::Location(ast->get_file(), { 1, 1 }));
+            }
+
+            ast->get_loaded().push_back(symbol);
+            
+            if (options.verbose) {
+                log::note("added '" + symbol->get_name() + "' to " + ast->get_file());
+            }
+        }
+
+        if (options.verbose)
+            log::note("running name analysis on: " + ast->get_file());
+
+        NameAnalysis name_analysis(options);
+        ast->accept(name_analysis);
+
+        if (options.verbose)
+            log::note("finished name analysis for: " + ast->get_file());
     }
 }
 
-void drive_lir_backend(const Options& options, const std::vector<AST*>& asts) {
+void drive_lir_backend(const Options& options, const Asts& asts) {
     lir::Machine mach(lir::Machine::Linux);
 
     for (AST* ast : asts) {
         lir::CFG cfg(mach, ast->get_file());
+
+        if (options.verbose)
+            log::note("running code generation for: " + ast->get_file());
+
         Codegen cgn(options, cfg);
         cgn.visit(*ast);
+
+        if (options.verbose)
+            log::note("finished code generation for: " + ast->get_file());
 
         if (options.print_ir) {
             std::ofstream file(ast->get_file() + ".lir");
@@ -365,7 +403,7 @@ int32_t main(int32_t argc, char** argv) {
         log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + '.' + 
             std::to_string(LACE_VERSION_MINOR));
 
-    std::vector<std::string> files = { 
+    std::vector<std::string> files = {
         "/home/statim/lace/samples/A.lace", 
         "/home/statim/lace/samples/linux.lace",
         "/home/statim/lace/samples/mem.lace",
@@ -383,7 +421,7 @@ int32_t main(int32_t argc, char** argv) {
             if (arg.size() < 4 || arg.substr(arg.size() - 5) != ".lace")
                 log::error("expected source file ending with \".lace\", got " + arg);
 
-            files.push_back(std::filesystem::absolute(arg).string());
+            files.push_back(absolute(arg).string());
         }
     }
 
@@ -392,44 +430,60 @@ int32_t main(int32_t argc, char** argv) {
 
     log::flush();
 
-    std::vector<AST*> asts = {};
+    Asts asts = {};
     asts.reserve(files.size());
 
     for (const std::string& file : files) {
+        if (options.verbose)
+            log::note("parsing file: " + file);
+
         Parser parser(read_file(file), file);
         asts.push_back(parser.parse());
         
         if (options.verbose)
-            log::note("parsed file: " + file);
+            log::note("finishing parsing for: " + file);
     }
 
     log::flush();
 
-    std::vector<AST*> ordered = compute_dependency_order(asts);
+    setup_file_table(asts);
+
+    Asts ordered = compute_dependency_order(asts);
     resolve_dependencies(options, ordered);
     
     log::flush();
 
-    for (AST* ast : ordered) {
-        SymbolAnalysis syma(options);
-        ast->accept(syma);
+    // Perform symbol analysis on each syntax tree.
+    //
+    // @Todo: expirement if this needs the dependency ordering or not.
+    for (AST* ast : asts) {
+        if (options.verbose)
+            log::note("running symbol analysis on: " + ast->get_file());
+
+        SymbolAnalysis symbol_analysis(options);
+        ast->accept(symbol_analysis);
 
         if (options.verbose)
-            log::note("ran symbol analysis on file: " + ast->get_file());
+            log::note("finished symbol analysis for: " + ast->get_file());
     }
 
     log::flush();
 
-    for (AST* ast : ordered) {
-        SemanticAnalysis sema(options);
-        ast->accept(sema);
+    // Perform semantic analysis on each syntax tree.
+    for (AST* ast : asts) {
+        if (options.verbose)
+            log::note("running semantic analysis on: " + ast->get_file());
+
+        SemanticAnalysis semantic_analysis(options);
+        ast->accept(semantic_analysis);
 
         if (options.verbose)
-            log::note("ran semantic analysis on file: " + ast->get_file());
+            log::note("finished semantic analysis for: " + ast->get_file());
 
+        // AST is now considered valid, so print it if needbe.
         if (options.print_tree) {
             Printer printer(options, std::cout);
-            printer.visit(*ast);
+            ast->accept(printer);
         }
     }
 

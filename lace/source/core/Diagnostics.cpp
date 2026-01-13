@@ -90,6 +90,9 @@ void log::flush() {
         log::fatal("unrecoverable errors found, stopping");
         std::exit(1);
     }
+
+    if (g_out)
+        g_out->flush();
 }
 
 void log::note(const std::string& msg) {
