@@ -150,6 +150,9 @@ static void print_instruction(std::ostream& os, Instruction& inst) {
     const Mnemonic op = inst.op();
     os << to_string(op) << ' ';
 
+    if (inst.is_cast())
+        os << std::format("({}) ", inst.get_type()->to_string());
+
     if (op == OP_CALL) 
     {
         inst.get_operand(0)->print(os);
@@ -376,7 +379,7 @@ void CFG::print(std::ostream& os) const {
     for (const auto& pair : m_types.structs) {
         StructType* type = pair.second;
 
-        os << std::format("{} :: struct {{ ", type->get_name());
+        os << std::format("{} :: {{ ", type->get_name());
 
         for (uint32_t i = 0, e = type->num_fields(); i < e; ++i) {
             os << type->get_field(i)->to_string();
@@ -390,10 +393,8 @@ void CFG::print(std::ostream& os) const {
     if (!m_types.structs.empty())
         os << '\n';
 
-    for (const auto& pair : m_globals) {
+    for (const auto& pair : m_globals)
         print_global(os, *pair.second);
-        os << '\n';
-    }
 
     if (!m_globals.empty())
         os << '\n';
@@ -419,7 +420,7 @@ void Function::Arg::print(std::ostream& os) const {
 }
 
 void Global::print(std::ostream& os) const {
-    os << std::format("{}: {}", m_name, m_type->to_string());
+    os << std::format("@{}: {}", m_name, m_type->to_string());
 }
 
 void Instruction::print(std::ostream& os) const {

@@ -1,9 +1,8 @@
 LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
-Box :: struct { i64, i64, i64 }
+Box :: { i64, i64, i64 }
 
 @glob := internal *i64 5: i64
-
 
 brk :: external (i64) -> *void;
 
@@ -14,11 +13,11 @@ exit :: external (i64) -> void;
 main :: external () -> i64 {
 	p := *i64 |8
 bb0:
-	store 5: i64, glob: *i64
-	store glob: *i64, p: **i64
+	store 5: i64, @glob: *i64
+	store @glob: *i64, p: **i64
 	$13 = load p: **i64 |8
 	store 42: i64, $13: *i64
-	$14 = load glob: *i64 |8
+	$14 = load @glob: *i64 |8
 	ret $14: i64
 }
 

@@ -1,11 +1,9 @@
 LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/mem.lace"
 
-Metadata :: struct { i64, *Metadata, i8 }
+Metadata :: { i64, *Metadata, i8 }
 
 @border := internal **void null
-
 @head := internal **Metadata null
-
 
 brk :: external (i64) -> *void;
 
@@ -19,16 +17,16 @@ extend_heap :: internal (inc: i64) -> *void {
 	old_border := *void |8
 bb0:
 	store inc: i64, inc: *i64
-	$110 = load border: **void |8
+	$110 = load @border: **void |8
 	$111 = cmp ine $110: *void, null
 	jif $111: i1, bb1, bb4
 bb1:
 	$112 = call fetch_border: *void ()
-	$113 = load border: **void |8
+	$113 = load @border: **void |8
 	$114 = cmp ine $113: *void, null
 	jif $114: i1, bb2, bb3
 bb2:
-	$115 = i2p -1: i64
+	$115 = i2p (*void) -1: i64
 	ret $115: *void
 bb3:
 	jmp bb4
@@ -37,38 +35,38 @@ bb4:
 	$117 = cmp ieq $116: i64, 0: i64
 	jif $117: i1, bb5, bb6
 bb5:
-	$118 = load border: **void |8
+	$118 = load @border: **void |8
 	ret $118: *void
 bb6:
-	$119 = load border: **void |8
+	$119 = load @border: **void |8
 	store $119: *void, old_border: **void
-	$120 = load border: **void |8
-	$121 = reint $120: *void
+	$120 = load @border: **void |8
+	$121 = reint (*i8) $120: *void
 	$122 = load inc: *i64 |8
 	$123 = pwalk $121: *i8, $122: i64
-	$124 = reint $123: *i8
+	$124 = reint (*void) $123: *i8
 	store $124: *void, new_border: **void
 	$125 = load new_border: **void |8
-	$126 = p2i $125: *void
+	$126 = p2i (i64) $125: *void
 	$127 = call brk: *void ($126: i64)
 	$128 = load old_border: **void |8
 	$129 = cmp ieq $127: *void, $128: *void
 	jif $129: i1, bb7, bb8
 bb7:
-	$130 = i2p -1: i64
+	$130 = i2p (*void) -1: i64
 	ret $130: *void
 bb8:
 	$131 = load new_border: **void |8
-	store $131: *void, border: **void
-	$132 = load border: **void |8
+	store $131: *void, @border: **void
+	$132 = load @border: **void |8
 	ret $132: *void
 }
 
 fetch_border :: internal () -> *void {
 bb0:
 	$105 = call brk: *void (0: i64)
-	store $105: *void, border: **void
-	$106 = load border: **void |8
+	store $105: *void, @border: **void
+	$106 = load @border: **void |8
 	ret $106: *void
 }
 
@@ -79,8 +77,8 @@ find_free_space :: internal (last: **Metadata, size: i64) -> *Metadata {
 bb0:
 	store last: **Metadata, last: ***Metadata
 	store size: i64, size: *i64
-	$133 = load border: **void |8
-	$134 = reint $133: *void
+	$133 = load @border: **void |8
+	$134 = reint (*Metadata) $133: *void
 	store $134: *Metadata, curr: **Metadata
 	jmp bb1
 bb1:
@@ -123,7 +121,7 @@ get_block_pointer :: internal (p: *void) -> *Metadata {
 bb0:
 	store p: *void, p: **void
 	$107 = load p: **void |8
-	$108 = reint $107: *void
+	$108 = reint (*Metadata) $107: *void
 	$109 = pwalk $108: *Metadata, -1: i64
 	ret $109: *Metadata
 }
@@ -151,7 +149,7 @@ bb1:
 	$24 = isub $21: i64, $23: i64
 	jmp bb2
 bb2:
-	$25 = load head: **Metadata |8
+	$25 = load @head: **Metadata |8
 	$26 = cmp ine $25: *Metadata, null
 	jif $26: i1, bb3, bb6
 bb3:
@@ -165,10 +163,10 @@ bb4:
 	ret null
 bb5:
 	$31 = load block: **Metadata |8
-	store $31: *Metadata, head: **Metadata
+	store $31: *Metadata, @head: **Metadata
 	jmp bb12
 bb6:
-	$32 = load head: **Metadata |8
+	$32 = load @head: **Metadata |8
 	store $32: *Metadata, last: **Metadata
 	$33 = load align: *i64 |8
 	$34 = call find_free_space: *Metadata (last: **Metadata, $33: i64)
@@ -198,7 +196,7 @@ bb11:
 bb12:
 	$44 = load block: **Metadata |8
 	$45 = pwalk $44: *Metadata, 1: i64
-	$46 = reint $45: *Metadata
+	$46 = reint (*void) $45: *Metadata
 	ret $46: *void
 }
 
@@ -213,10 +211,10 @@ bb0:
 	store src: *void, src: **void
 	store n: i64, n: *i64
 	$1 = load dst: **void |8
-	$2 = reint $1: *void
+	$2 = reint (*i8) $1: *void
 	store $2: *i8, d: **i8
 	$3 = load src: **void |8
-	$4 = reint $3: *void
+	$4 = reint (*i8) $3: *void
 	store $4: *i8, s: **i8
 	jmp bb1
 bb1:
@@ -370,7 +368,7 @@ bb0:
 "
 	$155 = call write: i64 (1: i64, $154: *i8, 2: i64)
 	$156 = call extend_heap: *void (0: i64)
-	$157 = reint $156: *void
+	$157 = reint (*Metadata) $156: *void
 	store $157: *Metadata, border_meta: **Metadata
 	$158 = string "1
 "

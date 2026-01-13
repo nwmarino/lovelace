@@ -51,12 +51,32 @@ void Instruction::insert_after(Instruction* inst) {
 }
 
 bool Instruction::is_terminator() const {
-    switch (m_op) {
+    switch (op()) {
         case OP_ABORT:
         case OP_JIF:
         case OP_JMP:
         case OP_RET:
         case OP_UNREACHABLE:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool Instruction::is_cast() const {
+    switch (op()) {
+        case OP_F2S:
+        case OP_F2U:
+        case OP_FEXT:
+        case OP_FTRUNC:
+        case OP_I2P:
+        case OP_ITRUNC:
+        case OP_P2I:
+        case OP_REINT:
+        case OP_S2F:
+        case OP_SEXT:
+        case OP_U2F:
+        case OP_ZEXT:
             return true;
         default:
             return false;

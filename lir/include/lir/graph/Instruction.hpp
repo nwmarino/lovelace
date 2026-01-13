@@ -122,7 +122,7 @@ public:
     void print(std::ostream& os) const override;
 
     /// Returns the mnemonic for the operation this instruction performs.
-    Mnemonic op() const { return m_op; }
+    inline Mnemonic op() const { return m_op; }
 
     /// Returns the descriptor information for this instruction.
     const Descriptor& desc() const { return m_desc; }
@@ -182,6 +182,9 @@ public:
 
     /// Test if this instruction terminates control flow from a block.
     bool is_terminator() const;
+
+    /// Test if this instruction performs some kind of type cast.
+    bool is_cast() const;
 
     /// For JMP instructions, returns the arguments used when branching to the
     /// destination block.
