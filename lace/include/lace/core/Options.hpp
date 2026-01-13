@@ -34,7 +34,6 @@ struct Options final {
     bool verbose;       //< (-b) If extra notes should be logged.
     bool version;       //< (-v) If the version should be printed.
 
-    bool lir;           //< (-LIR) If the LIR backend should be used.
     bool llvm;          //< (-LLVM) If the LLVM backend should be used.
 
     bool print_tree;    //< (-ast) If the AST should be printed.

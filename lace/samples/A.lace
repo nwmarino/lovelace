@@ -31,19 +31,23 @@ print :: (str: *char) -> void {
     write(1, str, strlen(str));
 }
 
+Box :: struct {
+    a: mut s64,
+    b: mut s64,
+    c: mut s64,
+}
+
+glob :: mut s64 = 5;
+
 $[public]
 main :: () -> s64 {
-    let fd: s64 = open("test.txt", FILE_FLAGS_CREATE | FILE_FLAGS_READ_WRITE, FILE_SEEK_SET);
-    write(fd, "hey!", 4);
-    close(fd);
+    //let p: *s64 = mem_alloc(sizeof(s64));
+    //mem_free(p);
 
+    glob = 5;
 
-    let p: *mut s64 = mem_alloc(sizeof(s64));
-    *p = 5;
+    let p: *mut s64 = &glob;
+    *p = 42;
 
-    let x: s64 = *p;
-    mem_free(p);
-
-    print("hey!\n");
-    ret x;
+    ret glob;
 }

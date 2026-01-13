@@ -141,14 +141,22 @@ request_space :: (last: mut *Metadata, size: u64) -> *Metadata {
     let block: mut *Metadata = null;
     let mem: mut *void = null;
 
+    write(1, "1\n", 2);
+
     let border_meta: *Metadata = cast<*Metadata>(extend_heap(0));
+
+    write(1, "1\n", 2);
     
     block = cast<*Metadata>(border_meta);
     mem = extend_heap(total_size);
 
+    write(1, "1\n", 2);
+
     if last != null {
         last.next = block;
     }
+
+    write(1, "1\n", 2);
 
     block.size = size;
     block.next = null;

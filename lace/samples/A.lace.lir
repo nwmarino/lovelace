@@ -1,5 +1,10 @@
 LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
+Box :: struct { i64, i64, i64 }
+
+@glob := int *i64 5: i64
+
+
 brk :: ext (i64) -> *void;
 
 close :: ext (i64) -> i64;
@@ -7,34 +12,14 @@ close :: ext (i64) -> i64;
 exit :: ext (i64) -> void;
 
 main :: ext () -> i64 {
-	#fd := i64 |8|
 	#p := *i64 |8|
-	#x := i64 |8|
 bb0:
-	$13 := OpString "test.txt"
-	$14 := OpCall open: i64 ($13: *i8, 66: i64, 0: i64)
-	OpStore $14: i64 -> #fd: *i64 |8|
-	$15 := OpLoad #fd: *i64 |8|
-	$16 := OpString "hey!"
-	$17 := OpCall write: i64 ($15: i64, $16: *i8, 4: i64)
-	$18 := OpLoad #fd: *i64 |8|
-	$19 := OpCall close: i64 ($18: i64)
-	$20 := OpCall mem_alloc: *void (8: i64)
-	$21 := OpReint $20: *void
-	OpStore $21: *i64 -> #p: **i64 |8|
-	$22 := OpLoad #p: **i64 |8|
-	OpStore 5: i64 -> $22: *i64 |8|
-	$23 := OpLoad #p: **i64 |8|
-	$24 := OpLoad $23: *i64 |8|
-	OpStore $24: i64 -> #x: *i64 |8|
-	$25 := OpLoad #p: **i64 |8|
-	$26 := OpReint $25: *i64
-	OpCall mem_free: void ($26: *void)
-	$27 := OpString "hey!
-"
-	OpCall print: void ($27: *i8)
-	$28 := OpLoad #x: *i64 |8|
-	OpRet $28: i64
+	OpStore 5: i64 -> @glob: *i64 |8|
+	OpStore @glob: *i64 -> #p: **i64 |8|
+	$13 := OpLoad #p: **i64 |8|
+	OpStore 42: i64 -> $13: *i64 |8|
+	$14 := OpLoad @glob: *i64 |8|
+	OpRet $14: i64
 }
 
 mem_alloc :: ext (size: i64) -> *void;

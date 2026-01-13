@@ -303,15 +303,7 @@ MachOperand InstSelector::as_operand(const Value* value) {
     } 
     else if (const Null* null = dynamic_cast<const Null*>(value)) 
     {
-        MachOperand reg = MachOperand::create_reg(
-            get_temporary(GeneralPurpose), 8, true);
-
-        emit(X64_Mnemonic::MOV)
-            .add_imm(0)
-            .add_operand(reg);
-
-        reg.set_is_use();
-        return reg;
+        return MachOperand::create_imm(0);
     } 
     else if (const BlockAddress* block = dynamic_cast<const BlockAddress*>(value)) 
     {
@@ -590,7 +582,6 @@ void InstSelector::select_access(const Instruction* inst) {
 
     // The index to access the base pointer at is a constant integer, so we
     // determine the pointer by adding the necessary byte offset.
-    std::cout << base->get_type()->to_string() << "\n\n\n";
     assert(pointee->is_struct_type() && "pointee is not a struct type!");
     offset = m_mach.get_field_offset(
         static_cast<const StructType*>(pointee), index->get_value());
@@ -599,7 +590,7 @@ void InstSelector::select_access(const Instruction* inst) {
     if (offset == 0)
         return;
 
-    emit(X64_Mnemonic::ADD)
+    emit(X64_Mnemonic::ADD, X64_Size::Quad)
         .add_imm(offset)
         .add_operand(dest);
 }
@@ -623,13 +614,7 @@ void InstSelector::select_ap(const Instruction* inst) {
     if (const Integer* integer = dynamic_cast<const Integer*>(inst->get_operand(1))) {
         // The index to access the base pointer at is a constant integer, so we
         // determine the pointer by adding the necessary byte offset.
-
-        if (pointee->is_struct_type()) {
-            offset = m_mach.get_field_offset(
-                static_cast<const StructType*>(pointee), integer->get_value());
-        } else {
-            offset = m_mach.get_size(pointee) * integer->get_value();
-        }
+        offset = m_mach.get_size(pointee) * integer->get_value();
 
         // Offset is zero, so no point adding it.
         if (offset == 0)
@@ -690,7 +675,7 @@ void InstSelector::select_string(const Instruction* inst) {
     uint32_t pool_index = 
         m_func.get_constant_pool().get_or_create_constant(string, 1);
 
-    emit(X64_Mnemonic::LEA)
+    emit(X64_Mnemonic::LEA, X64_Size::Quad)
         .add_constant(pool_index)
         .add_reg(as_register(inst), 8, true);
 }
@@ -1238,13 +1223,18 @@ void InstSelector::select_division(const Instruction* inst) {
     emit(X64_Mnemonic::MOV, size, { lhs })
         .add_reg(RAX, get_subregister(lhs_value->get_type()), true);
 
+    const MachOperand dest = MachOperand::create_reg(
+        as_register(inst), get_subregister(inst->get_type()), true);
+
+    emit(X64_Mnemonic::MOV, size, { rhs, dest });
+
     if (inst->op() == OP_SDIV || inst->op() == OP_SREM) {
         emit(X64_Mnemonic::CQO) // cqo
             .add_reg(RAX, 8, true, true) // impl-def %rax
             .add_reg(RDX, 8, true, true) // impl-def %rdx
             .add_reg(RAX, 8, false, true); // impl %rax
 
-        emit(X64_Mnemonic::IDIV, size, { rhs }) // idivx ..rhs..
+        emit(X64_Mnemonic::IDIV, size, { dest }) // idivx ..rhs..
             .add_reg(RAX, 8, true, true, false, is_rem) // impl (dead) %rax
             .add_reg(RDX, 8, true, true, false, !is_rem) // impl (dead) %rdx
             .add_reg(RAX, 8, false, true) // impl %rax
@@ -1255,15 +1245,12 @@ void InstSelector::select_division(const Instruction* inst) {
             .add_reg(RDX, 4, true, false, false, true) // dead %edx
             .add_reg(RDX, 8, true, true); // impl-def %rdx
             
-        emit(X64_Mnemonic::DIV, size, { rhs }) // divx ..rhs..
+        emit(X64_Mnemonic::DIV, size, { dest }) // divx ..rhs..
             .add_reg(RAX, 8, true, true, false, is_rem) // (dead) %rax
             .add_reg(RDX, 8, true, true, false, !is_rem) // (dead) %rdx
             .add_reg(RAX, 8, false, true) // impl %rax
             .add_reg(RDX, 8, false, true, true); // impl killed %rdx
     }
-
-    const MachOperand dest = MachOperand::create_reg(
-        as_register(inst), get_subregister(inst->get_type()), true);
 
     if (is_rem) {
         // Mark RDX as an implicit kill here, since the remainder is now in 

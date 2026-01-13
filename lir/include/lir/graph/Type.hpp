@@ -240,7 +240,7 @@ public:
     Fields& get_fields() { return m_fields; }
 
     Type* get_field(uint32_t i) const {
-        assert(i <= num_fields() && "index out of bounds!");
+        assert(i < num_fields() && "index out of bounds!");
         return m_fields.at(i); 
     }
 

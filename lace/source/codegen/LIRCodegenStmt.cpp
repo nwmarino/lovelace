@@ -61,7 +61,7 @@ void Codegen::visit(IfStmt& node)  {
 }
 
 void Codegen::visit(RestartStmt& node)  {
-    if (m_builder.get_insert()->terminates()) {
+    if (!m_builder.get_insert()->terminates()) {
         assert(m_cnd && "no condition block to restart to!");
         m_builder.build_jmp(m_cnd);
     }
@@ -79,7 +79,7 @@ void Codegen::visit(RetStmt& node)  {
 }
 
 void Codegen::visit(StopStmt& node)  {
-    if (m_builder.get_insert()->terminates()) {
+    if (!m_builder.get_insert()->terminates()) {
         assert(m_mrg && "no merge block to stop to!");
         m_builder.build_jmp(m_mrg);
     }

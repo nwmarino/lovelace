@@ -11,7 +11,14 @@ using namespace lir;
 
 Global* Global::create(CFG& cfg, Type* type, LinkageType linkage, 
                        bool read_only, const std::string& name, Constant* init) {
-	Global* global = new Global(type, &cfg, linkage, read_only, name, init);
+	Global* global = new Global(
+		lir::PointerType::get(cfg, type), 
+		&cfg, 
+		linkage, 
+		read_only, 
+		name, 
+		init);
+	
 	cfg.add_global(global);
 	return global;
 }

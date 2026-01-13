@@ -2,9 +2,9 @@ LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/mem.lace"
 
 Metadata :: struct { i64, *Metadata, i8 }
 
-@border := int *void null
+@border := int **void null
 
-@head := int *Metadata null
+@head := int **Metadata null
 
 
 brk :: ext (i64) -> *void;
@@ -19,57 +19,57 @@ extend_heap :: int (inc: i64) -> *void {
 	#old_border := *void |8|
 bb0:
 	OpStore inc: i64 -> #inc: *i64 |8|
-	$96 := OpLoad @border: *void |8|
-	$97 := OpCmp INE $96: *void, null
-	OpJif $97: i1, bb1, bb4
+	$110 := OpLoad @border: **void |8|
+	$111 := OpCmp INE $110: *void, null
+	OpJif $111: i1, bb1, bb4
 bb1:
-	$98 := OpCall fetch_border: *void ()
-	$99 := OpLoad @border: *void |8|
-	$100 := OpCmp INE $99: *void, null
-	OpJif $100: i1, bb2, bb3
+	$112 := OpCall fetch_border: *void ()
+	$113 := OpLoad @border: **void |8|
+	$114 := OpCmp INE $113: *void, null
+	OpJif $114: i1, bb2, bb3
 bb2:
-	$101 := OpI2P -1: i64
-	OpRet $101: *void
+	$115 := OpI2P -1: i64
+	OpRet $115: *void
 bb3:
 	OpJmp bb4
 bb4:
-	$102 := OpLoad #inc: *i64 |8|
-	$103 := OpCmp IEQ $102: i64, 0: i64
-	OpJif $103: i1, bb5, bb6
+	$116 := OpLoad #inc: *i64 |8|
+	$117 := OpCmp IEQ $116: i64, 0: i64
+	OpJif $117: i1, bb5, bb6
 bb5:
-	$104 := OpLoad @border: *void |8|
-	OpRet $104: *void
-bb6:
-	$105 := OpLoad @border: *void |8|
-	OpStore $105: *void -> #old_border: **void |8|
-	$106 := OpLoad @border: *void |8|
-	$107 := OpReint $106: *void
-	$108 := OpLoad #inc: *i64 |8|
-	$109 := OpAp $107: *i8, $108: i64
-	$110 := OpReint $109: *i8
-	OpStore $110: *void -> #new_border: **void |8|
-	$111 := OpLoad #new_border: **void |8|
-	$112 := OpP2I $111: *void
-	$113 := OpCall brk: *void ($112: i64)
-	$114 := OpLoad #old_border: **void |8|
-	$115 := OpCmp IEQ $113: *void, $114: *void
-	OpJif $115: i1, bb7, bb8
-bb7:
-	$116 := OpI2P -1: i64
-	OpRet $116: *void
-bb8:
-	$117 := OpLoad #new_border: **void |8|
-	OpStore $117: *void -> @border: *void |8|
-	$118 := OpLoad @border: *void |8|
+	$118 := OpLoad @border: **void |8|
 	OpRet $118: *void
+bb6:
+	$119 := OpLoad @border: **void |8|
+	OpStore $119: *void -> #old_border: **void |8|
+	$120 := OpLoad @border: **void |8|
+	$121 := OpReint $120: *void
+	$122 := OpLoad #inc: *i64 |8|
+	$123 := OpAp $121: *i8, $122: i64
+	$124 := OpReint $123: *i8
+	OpStore $124: *void -> #new_border: **void |8|
+	$125 := OpLoad #new_border: **void |8|
+	$126 := OpP2I $125: *void
+	$127 := OpCall brk: *void ($126: i64)
+	$128 := OpLoad #old_border: **void |8|
+	$129 := OpCmp IEQ $127: *void, $128: *void
+	OpJif $129: i1, bb7, bb8
+bb7:
+	$130 := OpI2P -1: i64
+	OpRet $130: *void
+bb8:
+	$131 := OpLoad #new_border: **void |8|
+	OpStore $131: *void -> @border: **void |8|
+	$132 := OpLoad @border: **void |8|
+	OpRet $132: *void
 }
 
 fetch_border :: int () -> *void {
 bb0:
-	$91 := OpCall brk: *void (0: i64)
-	OpStore $91: *void -> @border: *void |8|
-	$92 := OpLoad @border: *void |8|
-	OpRet $92: *void
+	$105 := OpCall brk: *void (0: i64)
+	OpStore $105: *void -> @border: **void |8|
+	$106 := OpLoad @border: **void |8|
+	OpRet $106: *void
 }
 
 find_free_space :: int (last: **Metadata, size: i64) -> *Metadata {
@@ -79,50 +79,53 @@ find_free_space :: int (last: **Metadata, size: i64) -> *Metadata {
 bb0:
 	OpStore last: **Metadata -> #last: ***Metadata |8|
 	OpStore size: i64 -> #size: *i64 |8|
-	$119 := OpLoad @border: *void |8|
-	$120 := OpReint $119: *void
-	OpStore $120: *Metadata -> #curr: **Metadata |8|
+	$133 := OpLoad @border: **void |8|
+	$134 := OpReint $133: *void
+	OpStore $134: *Metadata -> #curr: **Metadata |8|
 	OpJmp bb1
 bb1:
-	$121 := OpLoad #curr: **Metadata |8|
-	$122 := OpCmp INE $121: *Metadata, null
-	OpJif $122: i1, bb7, bb2
+	$135 := OpLoad #curr: **Metadata |8|
+	$136 := OpCmp INE $135: *Metadata, null
+	OpJif $136: i1, bb7, bb2
 bb2:
-	$123 := OpAccess #curr: **Metadata, 2: i64
-	$124 := OpLoad $123: *i8 |1|
-	$125 := OpCmp INE $124: i8, 0: i8
-	OpJif $125: i1, bb3, bb4(0: i1)
+	$137 := OpLoad #curr: **Metadata |8|
+	$138 := OpAccess $137: *Metadata, 2: i64
+	$139 := OpLoad $138: *i8 |1|
+	$140 := OpCmp INE $139: i8, 0: i8
+	OpJif $140: i1, bb3, bb4(0: i1)
 bb3:
-	$126 := OpAccess #curr: **Metadata, 0: i64
-	$127 := OpLoad $126: *i64 |8|
-	$128 := OpLoad #size: *i64 |8|
-	$129 := OpCmp UGE $127: i64, $128: i64
-	OpJmp bb4($129: i1)
+	$141 := OpLoad #curr: **Metadata |8|
+	$142 := OpAccess $141: *Metadata, 0: i64
+	$143 := OpLoad $142: *i64 |8|
+	$144 := OpLoad #size: *i64 |8|
+	$145 := OpCmp UGE $143: i64, $144: i64
+	OpJmp bb4($145: i1)
 bb4 (p0: i1):
 	OpJif p0: i1, bb5, bb6
 bb5:
-	OpJmp bb6
+	OpJmp bb7
 bb6:
-	$130 := OpLoad #last: ***Metadata |8|
-	$131 := OpLoad #curr: **Metadata |8|
-	OpStore $131: *Metadata -> $130: **Metadata |8|
-	$132 := OpAccess #curr: **Metadata, 1: i64
-	$133 := OpLoad $132: **Metadata |8|
-	OpStore $133: *Metadata -> #curr: **Metadata |8|
+	$146 := OpLoad #last: ***Metadata |8|
+	$147 := OpLoad #curr: **Metadata |8|
+	OpStore $147: *Metadata -> $146: **Metadata |8|
+	$148 := OpLoad #curr: **Metadata |8|
+	$149 := OpAccess $148: *Metadata, 1: i64
+	$150 := OpLoad $149: **Metadata |8|
+	OpStore $150: *Metadata -> #curr: **Metadata |8|
 	OpJmp bb1
 bb7:
-	$134 := OpLoad #curr: **Metadata |8|
-	OpRet $134: *Metadata
+	$151 := OpLoad #curr: **Metadata |8|
+	OpRet $151: *Metadata
 }
 
 get_block_pointer :: int (p: *void) -> *Metadata {
 	#p := *void |8|
 bb0:
 	OpStore p: *void -> #p: **void |8|
-	$93 := OpLoad #p: **void |8|
-	$94 := OpReint $93: *void
-	$95 := OpAp $94: *Metadata, -1: i64
-	OpRet $95: *Metadata
+	$107 := OpLoad #p: **void |8|
+	$108 := OpReint $107: *void
+	$109 := OpAp $108: *Metadata, -1: i64
+	OpRet $109: *Metadata
 }
 
 mem_alloc :: ext (size: i64) -> *void {
@@ -148,7 +151,7 @@ bb1:
 	$24 := OpISub $21: i64, $23: i64
 	OpJmp bb2
 bb2:
-	$25 := OpLoad @head: *Metadata |8|
+	$25 := OpLoad @head: **Metadata |8|
 	$26 := OpCmp INE $25: *Metadata, null
 	OpJif $26: i1, bb3, bb6
 bb3:
@@ -162,10 +165,10 @@ bb4:
 	OpRet null
 bb5:
 	$31 := OpLoad #block: **Metadata |8|
-	OpStore $31: *Metadata -> @head: *Metadata |8|
+	OpStore $31: *Metadata -> @head: **Metadata |8|
 	OpJmp bb12
 bb6:
-	$32 := OpLoad @head: *Metadata |8|
+	$32 := OpLoad @head: **Metadata |8|
 	OpStore $32: *Metadata -> #last: **Metadata |8|
 	$33 := OpLoad #align: *i64 |8|
 	$34 := OpCall find_free_space: *Metadata (#last: **Metadata, $33: i64)
@@ -174,17 +177,18 @@ bb6:
 	$36 := OpCmp INE $35: *Metadata, null
 	OpJif $36: i1, bb7, bb8
 bb7:
-	$37 := OpAccess #block: **Metadata, 2: i64
-	OpStore 0: i8 -> $37: *i8 |1|
+	$37 := OpLoad #block: **Metadata |8|
+	$38 := OpAccess $37: *Metadata, 2: i64
+	OpStore 0: i8 -> $38: *i8 |1|
 	OpJmp bb11
 bb8:
-	$38 := OpLoad #last: **Metadata |8|
-	$39 := OpLoad #align: *i64 |8|
-	$40 := OpCall request_space: *Metadata ($38: *Metadata, $39: i64)
-	OpStore $40: *Metadata -> #block: **Metadata |8|
-	$41 := OpLoad #block: **Metadata |8|
-	$42 := OpCmp INE $41: *Metadata, null
-	OpJif $42: i1, bb9, bb10
+	$39 := OpLoad #last: **Metadata |8|
+	$40 := OpLoad #align: *i64 |8|
+	$41 := OpCall request_space: *Metadata ($39: *Metadata, $40: i64)
+	OpStore $41: *Metadata -> #block: **Metadata |8|
+	$42 := OpLoad #block: **Metadata |8|
+	$43 := OpCmp INE $42: *Metadata, null
+	OpJif $43: i1, bb9, bb10
 bb9:
 	OpRet null
 bb10:
@@ -192,10 +196,10 @@ bb10:
 bb11:
 	OpJmp bb12
 bb12:
-	$43 := OpLoad #block: **Metadata |8|
-	$44 := OpAp $43: *Metadata, 1: i64
-	$45 := OpReint $44: *Metadata
-	OpRet $45: *void
+	$44 := OpLoad #block: **Metadata |8|
+	$45 := OpAp $44: *Metadata, 1: i64
+	$46 := OpReint $45: *Metadata
+	OpRet $46: *void
 }
 
 mem_copy :: ext (dst: *void, src: *void, n: i64) -> void {
@@ -241,42 +245,53 @@ mem_free :: ext (p: *void) -> void {
 	#p := *void |8|
 bb0:
 	OpStore p: *void -> #p: **void |8|
-	$46 := OpLoad #p: **void |8|
-	$47 := OpCmp INE $46: *void, null
-	OpJif $47: i1, bb1, bb2
+	$47 := OpLoad #p: **void |8|
+	$48 := OpCmp INE $47: *void, null
+	OpJif $48: i1, bb1, bb2
 bb1:
 	OpRet 
 bb2:
-	$48 := OpLoad #p: **void |8|
-	$49 := OpCall get_block_pointer: *Metadata ($48: *void)
-	OpStore $49: *Metadata -> #block: **Metadata |8|
-	$50 := OpAccess #block: **Metadata, 2: i64
-	OpStore 1: i8 -> $50: *i8 |1|
-	$51 := OpAccess #block: **Metadata, 1: i64
-	$52 := OpLoad $51: **Metadata |8|
-	$53 := OpCmp INE $52: *Metadata, null
-	OpJif $53: i1, bb3, bb6
+	$49 := OpLoad #p: **void |8|
+	$50 := OpCall get_block_pointer: *Metadata ($49: *void)
+	OpStore $50: *Metadata -> #block: **Metadata |8|
+	$51 := OpLoad #block: **Metadata |8|
+	$52 := OpAccess $51: *Metadata, 2: i64
+	OpStore 1: i8 -> $52: *i8 |1|
+	$53 := OpLoad #block: **Metadata |8|
+	$54 := OpAccess $53: *Metadata, 1: i64
+	$55 := OpLoad $54: **Metadata |8|
+	$56 := OpCmp INE $55: *Metadata, null
+	OpJif $56: i1, bb3, bb6
 bb3:
-	$54 := OpAccess #block: **Metadata, 1: i64
-	$55 := OpAccess $54: **Metadata, 2: i64
-	$56 := OpLoad $55: *i8 |1|
-	$57 := OpCmp INE $56: i8, 0: i8
-	OpJif $57: i1, bb4, bb5
+	$57 := OpLoad #block: **Metadata |8|
+	$58 := OpAccess $57: *Metadata, 1: i64
+	$59 := OpLoad $58: **Metadata |8|
+	$60 := OpAccess $59: *Metadata, 2: i64
+	$61 := OpLoad $60: *i8 |1|
+	$62 := OpCmp INE $61: i8, 0: i8
+	OpJif $62: i1, bb4, bb5
 bb4:
-	$58 := OpAccess #block: **Metadata, 0: i64
-	$59 := OpAccess #block: **Metadata, 0: i64
-	$60 := OpLoad $59: *i64 |8|
-	OpStore $60: i64 -> $58: *i64 |8|
-	$61 := OpAccess #block: **Metadata, 1: i64
-	$62 := OpAccess $61: **Metadata, 0: i64
-	$63 := OpLoad $62: *i64 |8|
-	$64 := OpIAdd $60: i64, $63: i64
-	$65 := OpIAdd $64: i64, 24: i64
-	$66 := OpAccess #block: **Metadata, 1: i64
-	$67 := OpAccess #block: **Metadata, 1: i64
-	$68 := OpAccess $67: **Metadata, 1: i64
-	$69 := OpLoad $68: **Metadata |8|
-	OpStore $69: *Metadata -> $66: **Metadata |8|
+	$63 := OpLoad #block: **Metadata |8|
+	$64 := OpAccess $63: *Metadata, 0: i64
+	$65 := OpLoad #block: **Metadata |8|
+	$66 := OpAccess $65: *Metadata, 0: i64
+	$67 := OpLoad $66: *i64 |8|
+	OpStore $67: i64 -> $64: *i64 |8|
+	$68 := OpLoad #block: **Metadata |8|
+	$69 := OpAccess $68: *Metadata, 1: i64
+	$70 := OpLoad $69: **Metadata |8|
+	$71 := OpAccess $70: *Metadata, 0: i64
+	$72 := OpLoad $71: *i64 |8|
+	$73 := OpIAdd $67: i64, $72: i64
+	$74 := OpIAdd $73: i64, 24: i64
+	$75 := OpLoad #block: **Metadata |8|
+	$76 := OpAccess $75: *Metadata, 1: i64
+	$77 := OpLoad #block: **Metadata |8|
+	$78 := OpAccess $77: *Metadata, 1: i64
+	$79 := OpLoad $78: **Metadata |8|
+	$80 := OpAccess $79: *Metadata, 1: i64
+	$81 := OpLoad $80: **Metadata |8|
+	OpStore $81: *Metadata -> $76: **Metadata |8|
 	OpJmp bb5
 bb5:
 	OpJmp bb6
@@ -292,44 +307,46 @@ mem_realloc :: ext (p: *void, size: i64) -> *void {
 bb0:
 	OpStore p: *void -> #p: **void |8|
 	OpStore size: i64 -> #size: *i64 |8|
-	$70 := OpLoad #p: **void |8|
-	$71 := OpCmp INE $70: *void, null
-	OpJif $71: i1, bb1, bb2
+	$82 := OpLoad #p: **void |8|
+	$83 := OpCmp INE $82: *void, null
+	OpJif $83: i1, bb1, bb2
 bb1:
-	$72 := OpLoad #size: *i64 |8|
-	$73 := OpCall mem_alloc: *void ($72: i64)
-	OpRet $73: *void
+	$84 := OpLoad #size: *i64 |8|
+	$85 := OpCall mem_alloc: *void ($84: i64)
+	OpRet $85: *void
 bb2:
-	$74 := OpLoad #p: **void |8|
-	$75 := OpCall get_block_pointer: *Metadata ($74: *void)
-	OpStore $75: *Metadata -> #block: **Metadata |8|
-	$76 := OpAccess #block: **Metadata, 0: i64
-	$77 := OpLoad $76: *i64 |8|
-	$78 := OpLoad #size: *i64 |8|
-	$79 := OpCmp UGE $77: i64, $78: i64
-	OpJif $79: i1, bb3, bb4
+	$86 := OpLoad #p: **void |8|
+	$87 := OpCall get_block_pointer: *Metadata ($86: *void)
+	OpStore $87: *Metadata -> #block: **Metadata |8|
+	$88 := OpLoad #block: **Metadata |8|
+	$89 := OpAccess $88: *Metadata, 0: i64
+	$90 := OpLoad $89: *i64 |8|
+	$91 := OpLoad #size: *i64 |8|
+	$92 := OpCmp UGE $90: i64, $91: i64
+	OpJif $92: i1, bb3, bb4
 bb3:
-	$80 := OpLoad #p: **void |8|
-	OpRet $80: *void
+	$93 := OpLoad #p: **void |8|
+	OpRet $93: *void
 bb4:
-	$81 := OpLoad #size: *i64 |8|
-	$82 := OpCall mem_alloc: *void ($81: i64)
-	OpStore $82: *void -> #new_p: **void |8|
-	$83 := OpLoad #new_p: **void |8|
-	$84 := OpCmp INE $83: *void, null
-	OpJif $84: i1, bb5, bb6
+	$94 := OpLoad #size: *i64 |8|
+	$95 := OpCall mem_alloc: *void ($94: i64)
+	OpStore $95: *void -> #new_p: **void |8|
+	$96 := OpLoad #new_p: **void |8|
+	$97 := OpCmp INE $96: *void, null
+	OpJif $97: i1, bb5, bb6
 bb5:
 	OpRet null
 bb6:
-	$85 := OpLoad #new_p: **void |8|
-	$86 := OpLoad #p: **void |8|
-	$87 := OpAccess #block: **Metadata, 0: i64
-	$88 := OpLoad $87: *i64 |8|
-	OpCall mem_copy: void ($85: *void, $86: *void, $88: i64)
-	$89 := OpLoad #p: **void |8|
-	OpCall mem_free: void ($89: *void)
-	$90 := OpLoad #new_p: **void |8|
-	OpRet $90: *void
+	$98 := OpLoad #new_p: **void |8|
+	$99 := OpLoad #p: **void |8|
+	$100 := OpLoad #block: **Metadata |8|
+	$101 := OpAccess $100: *Metadata, 0: i64
+	$102 := OpLoad $101: *i64 |8|
+	OpCall mem_copy: void ($98: *void, $99: *void, $102: i64)
+	$103 := OpLoad #p: **void |8|
+	OpCall mem_free: void ($103: *void)
+	$104 := OpLoad #new_p: **void |8|
+	OpRet $104: *void
 }
 
 open :: ext (*i8, i64, i64) -> i64;
@@ -344,37 +361,53 @@ request_space :: int (last: *Metadata, size: i64) -> *Metadata {
 bb0:
 	OpStore last: *Metadata -> #last: **Metadata |8|
 	OpStore size: i64 -> #size: *i64 |8|
-	$135 := OpLoad #size: *i64 |8|
-	$136 := OpIAdd $135: i64, 24: i64
-	OpStore $136: i64 -> #total_size: *i64 |8|
+	$152 := OpLoad #size: *i64 |8|
+	$153 := OpIAdd $152: i64, 24: i64
+	OpStore $153: i64 -> #total_size: *i64 |8|
 	OpStore null -> #block: **Metadata |8|
 	OpStore null -> #mem: **void |8|
-	$137 := OpCall extend_heap: *void (0: i64)
-	$138 := OpReint $137: *void
-	OpStore $138: *Metadata -> #border_meta: **Metadata |8|
-	$139 := OpLoad #border_meta: **Metadata |8|
-	OpStore $139: *Metadata -> #block: **Metadata |8|
-	$140 := OpLoad #total_size: *i64 |8|
-	$141 := OpCall extend_heap: *void ($140: i64)
-	OpStore $141: *void -> #mem: **void |8|
-	$142 := OpLoad #last: **Metadata |8|
-	$143 := OpCmp INE $142: *Metadata, null
-	OpJif $143: i1, bb1, bb2
+	$154 := OpString "1
+"
+	$155 := OpCall write: i64 (1: i64, $154: *i8, 2: i64)
+	$156 := OpCall extend_heap: *void (0: i64)
+	$157 := OpReint $156: *void
+	OpStore $157: *Metadata -> #border_meta: **Metadata |8|
+	$158 := OpString "1
+"
+	$159 := OpCall write: i64 (1: i64, $158: *i8, 2: i64)
+	$160 := OpLoad #border_meta: **Metadata |8|
+	OpStore $160: *Metadata -> #block: **Metadata |8|
+	$161 := OpLoad #total_size: *i64 |8|
+	$162 := OpCall extend_heap: *void ($161: i64)
+	OpStore $162: *void -> #mem: **void |8|
+	$163 := OpString "1
+"
+	$164 := OpCall write: i64 (1: i64, $163: *i8, 2: i64)
+	$165 := OpLoad #last: **Metadata |8|
+	$166 := OpCmp INE $165: *Metadata, null
+	OpJif $166: i1, bb1, bb2
 bb1:
-	$144 := OpAccess #last: **Metadata, 1: i64
-	$145 := OpLoad #block: **Metadata |8|
-	OpStore $145: *Metadata -> $144: **Metadata |8|
+	$167 := OpLoad #last: **Metadata |8|
+	$168 := OpAccess $167: *Metadata, 1: i64
+	$169 := OpLoad #block: **Metadata |8|
+	OpStore $169: *Metadata -> $168: **Metadata |8|
 	OpJmp bb2
 bb2:
-	$146 := OpAccess #block: **Metadata, 0: i64
-	$147 := OpLoad #size: *i64 |8|
-	OpStore $147: i64 -> $146: *i64 |8|
-	$148 := OpAccess #block: **Metadata, 1: i64
-	OpStore null -> $148: **Metadata |8|
-	$149 := OpAccess #block: **Metadata, 2: i64
-	OpStore 0: i8 -> $149: *i8 |1|
-	$150 := OpLoad #block: **Metadata |8|
-	OpRet $150: *Metadata
+	$170 := OpString "1
+"
+	$171 := OpCall write: i64 (1: i64, $170: *i8, 2: i64)
+	$172 := OpLoad #block: **Metadata |8|
+	$173 := OpAccess $172: *Metadata, 0: i64
+	$174 := OpLoad #size: *i64 |8|
+	OpStore $174: i64 -> $173: *i64 |8|
+	$175 := OpLoad #block: **Metadata |8|
+	$176 := OpAccess $175: *Metadata, 1: i64
+	OpStore null -> $176: **Metadata |8|
+	$177 := OpLoad #block: **Metadata |8|
+	$178 := OpAccess $177: *Metadata, 2: i64
+	OpStore 0: i8 -> $178: *i8 |1|
+	$179 := OpLoad #block: **Metadata |8|
+	OpRet $179: *Metadata
 }
 
 write :: ext (i64, *i8, i64) -> i64;

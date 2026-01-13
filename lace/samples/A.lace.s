@@ -1,80 +1,84 @@
-	.file	"A.lace"
+	.file	"/home/statim/lace/samples/A.lace"
+	.data
+	.align	8
+	.type	glob, @object
+	.size	glob, 8
+glob:
+	.quad 5
 	.text
-	.p2align	4
-	.type	strlen,@function
-strlen:
-	.cfi_startproc
+	.global	main
+	.type	main, @function
+main:
 	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register %rbp
-	movq	%rdi, -8(%rbp)
-	jmp	.LBB0_1
-.LBB0_1:
-	movq	-8(%rbp), %rax
-	cmpb	$0, (%rax,%rcx)
-	je	.LBB0_3
-	jmp	.LBB0_1
-.LBB0_3:
-	popq	%rbp
-	.cfi_def_cfa %rsp, 8
-	retq
-.Lfunc_end0:
-	.size	strlen, .Lfunc_end0-strlen
-	.cfi_endproc
-
-	.p2align	4
-	.type	print,@function
-print:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset %rbp, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register %rbp
 	subq	$16, %rsp
-	movq	%rdi, -8(%rbp)
-	callq	strlen
-	movq	-8(%rbp), %rsi
-	movq	%rax, %rdx
-	movl	$1, %edi
-	callq	write@PLT
+.L0_0:
+	movq	$5, glob
+	leaq	glob, %rax
+	movq	%rax, -8(%rbp)
+	movq	-8(%rbp), %rax
+	movq	$42, (%rax)
+	movq	glob, %rax
 	addq	$16, %rsp
 	popq	%rbp
-	.cfi_def_cfa %rsp, 8
-	retq
-.Lfunc_end1:
-	.size	print, .Lfunc_end1-print
-	.cfi_endproc
+	ret
+.LFE0:
+	.size	main, .-main
 
-	.globl	main
-	.p2align	4
-	.type	main,@function
-main:
-	.cfi_startproc
+	.text
+	.type	print, @function
+print:
 	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register %rbp
-	leaq	.L__unnamed_1(%rip), %rsi
-	movl	$4, %edx
-	callq	write@PLT
-	callq	close@PLT
-.Lfunc_end2:
-	.size	main, .Lfunc_end2-main
-	.cfi_endproc
+	subq	$16, %rsp
+.L1_0:
+	movq	%rdi, -8(%rbp)
+	movq	-8(%rbp), %rcx
+	movq	-8(%rbp), %rax
+	movq	%rax, %rdi
+	pushq	%rcx
+	call	strlen
+	popq	%rcx
+	movq	%rax, %rdx
+	movq	%rcx, %rsi
+	movq	$1, %rdi
+	call	write
+	addq	$16, %rsp
+	popq	%rbp
+	ret
+.LFE1:
+	.size	print, .-print
 
-	.type	.L__unnamed_1,@object
-	.section	.rodata.str1.1,"aMS",@progbits,1
-.L__unnamed_1:
-	.asciz	"hey!"
-	.size	.L__unnamed_1, 5
+	.text
+	.type	strlen, @function
+strlen:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$32, %rsp
+.L2_0:
+	movq	%rdi, -16(%rbp)
+	movq	$0, -8(%rbp)
+	jmp	.L2_1
+.L2_1:
+	movq	-16(%rbp), %rax
+	movq	-8(%rbp), %rcx
+	addq	%rcx, %rax
+	movb	(%rax), %al
+	cmpb	$0, %al
+	seteb	%al
+	cmpb	$0, %al
+	jne	.L2_3
+	jmp	.L2_2
+.L2_2:
+	movq	-8(%rbp), %rax
+	movq	%rax, -8(%rbp)
+	addq	$1, %rax
+	jmp	.L2_1
+.L2_3:
+	movq	-8(%rbp), %rax
+	addq	$32, %rsp
+	popq	%rbp
+	ret
+.LFE2:
+	.size	strlen, .-strlen
 
-	.type	.L__unnamed_2,@object
-.L__unnamed_2:
-	.asciz	"hey!\n"
-	.size	.L__unnamed_2, 6
-
-	.section	".note.GNU-stack","",@progbits

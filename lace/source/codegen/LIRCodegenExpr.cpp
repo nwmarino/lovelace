@@ -50,11 +50,14 @@ void Codegen::visit(StringLiteral& node) {
 void Codegen::visit(AccessExpr& node) {
     ValueContext ctx = m_vctx;
 
-    m_vctx = LValue;
+    if (node.get_base()->get_type()->is_pointer()) {
+        m_vctx = RValue;
+    } else {
+        m_vctx = LValue;
+    }
+
     node.get_base()->accept(*this);
     assert(m_temp && "base does not produce a value!");
-    log::note("temp type: " + m_temp->get_type()->to_string(), 
-        log::Span(m_cfg.get_filename(), node.get_span()));
 
     const FieldDefn* field = node.get_field();
     lir::Type* field_type = lower_type(field->get_type());

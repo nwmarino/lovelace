@@ -157,7 +157,7 @@ void SymbolAnalysis::visit(AccessExpr& node) {
     node.get_base()->accept(*this);
 
     // Check that the base type is a struct.
-    QualType& base_type = node.get_base()->get_type();
+    QualType base_type = node.get_base()->get_type();
     if (base_type->is_pointer())
         base_type = static_cast<const PointerType*>(base_type.get_type())->get_pointee();
 

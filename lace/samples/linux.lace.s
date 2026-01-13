@@ -1,2 +1,1 @@
-	.file	"linux.lace"
-	.section	".note.GNU-stack","",@progbits
+	.file	"/home/statim/lace/samples/linux.lace"

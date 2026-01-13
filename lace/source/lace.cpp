@@ -178,8 +178,6 @@ void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
 }
 
 void drive_lir_backend(const Options& options, const std::vector<AST*>& asts) {
-    assert(options.lir);
-
     lir::Machine mach(lir::Machine::Linux);
 
     for (AST* ast : asts) {
@@ -355,8 +353,7 @@ int32_t main(int32_t argc, char** argv) {
     options.time = true;
     options.verbose = true;
     options.version = true;
-    options.lir = false;
-    options.llvm = true;
+    options.llvm = false;
     options.print_tree = false;
     options.print_ir = true;
 
