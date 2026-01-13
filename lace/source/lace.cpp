@@ -14,6 +14,7 @@
 #include "lace/tree/Printer.hpp"
 #include "lace/tree/SemanticAnalysis.hpp"
 #include "lace/tree/SymbolAnalysis.hpp"
+
 #include "lir/analysis/LoweringPass.hpp"
 #include "lir/machine/AsmWriter.hpp"
 #include "lir/machine/Machine.hpp"
@@ -56,7 +57,7 @@ using namespace lace;
 using namespace std::filesystem;
 
 using FileTable = std::unordered_map<std::string, AST*>;
-using Asts = std::vector<AST*>;
+using Asts = std::unordered_set<AST*>;
 
 /// A mapping between the absolute path of an input file and its parsed AST.
 static FileTable g_files = {};
@@ -65,45 +66,47 @@ static FileTable g_files = {};
 /// input files.
 void setup_file_table(const Asts& asts) {
     g_files.reserve(asts.size());
-    for (AST* ast : asts)
-        g_files.emplace(std::filesystem::absolute(ast->get_file()).string(), ast); 
+    for (AST* ast : asts) {
+        g_files.emplace(
+            std::filesystem::absolute(ast->get_file()).string(), ast); 
+    }
 }
 
-/// Compute the dependency order for each file in the list of |asts|.
+/// Compute the dependency order and a dependency table for each file in the 
+/// list of |asts|.
 ///
-/// This function produces an ordering of the files without cycles such that
-/// any given file/ast relies on only the ones which can come before it in the
-/// list. This means the result is a valid order in which to perform name 
-/// analysis on each syntax tree.
+/// This function produces an ordering of the files without cycles to 
+/// |ordering|, s.t. any given file relies on only the ones which come 
+/// before it in the set. This means the result is a valid ordering in which to 
+/// sequentially perform name analysis on each syntax tree.
 ///
-/// This function also checks for dependency cycles and reports them as they
-/// appear.
-Asts compute_dependency_order(const Asts& asts) {
+/// Moreover, as it computes dependencies, it saves them to the |dep_table|.
+void compute_dependencies(const Asts& asts, Asts& ordering, 
+                          std::unordered_map<AST*, Asts>& dep_table) {
     // Map each AST to the ASTs it loads/depends on, using resolved absolute paths.
-    std::unordered_map<AST*, Asts> deps;
     for (AST* ast : asts) {
-        path parent_path = absolute(ast->get_file()).parent_path();
+        path parent = absolute(ast->get_file()).parent_path();
     
         for (Defn* defn : ast->get_defns()) {
             LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
             if (!load)
                 continue;
 
-            path loaded_path = parent_path / load->get_path();
-            loaded_path = weakly_canonical(loaded_path);
+            // Find the canonical path for the target file.
+            path target = parent / load->get_path();
+            target = weakly_canonical(target);
 
-            auto it = g_files.find(loaded_path.string());
+            auto it = g_files.find(target.string());
             if (it != g_files.end()) {
-                deps[ast].push_back(it->second);
-                load->set_path(loaded_path.string());
+                dep_table[ast].insert(it->second);
+                load->set_path(target.string());
             } else {
-                log::fatal("unresolved file: " + loaded_path.string(), 
+                log::fatal("unresolved file: " + target.string(), 
                     log::Span(ast->get_file(), load->get_span()));
             }
         }
     }
 
-    std::vector<AST*> order = {};
     std::unordered_set<AST*> visited = {};
     std::unordered_set<AST*> visiting = {};
 
@@ -116,61 +119,25 @@ Asts compute_dependency_order(const Asts& asts) {
         
         visiting.insert(ast);
         
-        for (AST* dep : deps[ast])
+        for (AST* dep : dep_table[ast])
             dfs(dep);
 
         visiting.erase(ast);
         visited.insert(ast);
-        order.push_back(ast);
+        ordering.insert(ast);
     };
 
     for (AST* ast : asts)
         dfs(ast);
-
-    return order;
 }
 
-/// Compute the list of dependencies for the given |ast|.
-///
-/// For a given file, this function recurses into each load definition and
-/// collects all the files which |ast| may rely on.
-std::vector<AST*> compute_dependencies(AST* ast) {
-    std::vector<AST*> deps = {};
-
-    for (Defn* defn : ast->get_defns()) {
-        LoadDefn* load = dynamic_cast<LoadDefn*>(defn);
-        if (!load)
-            continue; // Don't need non-loads to find out dependencies.
-
-        // Find the dependent file in the table.
-        auto it = g_files.find(load->get_path());
-        if (it == g_files.end()) // File not in table => file not compiled.
-            log::fatal("unresolved file: " + load->get_path(), 
-                log::Span(ast->get_file(), load->get_span()));
-
-        // If the load target is already a dependency (i.e. was used in another
-        // dependency), then skip it.
-        if (std::find(deps.begin(), deps.end(), it->second) != deps.end())
-            continue;
-
-        deps.push_back(it->second);
-
-        // Recursively get all dependencies for the dependency.
-        for (AST* dep : compute_dependencies(it->second)) {
-            // Only keep the nested dependency if it has yet to be seen.
-            if (std::find(deps.begin(), deps.end(), dep) == deps.end())
-                deps.push_back(dep);
-        }
-    }
-
-    return deps;
-}
-
-/// Resolve the definition dependencies for each tree in |asts|. Assumes that
-/// |asts| contains syntax trees in their dependency order.
-void resolve_dependencies(const Options& options, std::vector<AST*>& asts) {
+/// Resolve the dependent symbols for each tree in |asts|, based on their
+/// dependencies defined in |dep_table|. Assumes that |asts| contains syntax 
+/// trees in their dependency order.
+void resolve_dependencies(const Options& options, const Asts& asts, 
+                          const std::unordered_map<AST*, Asts>& dep_table) {
     for (AST* ast : asts) {
-        std::vector<AST*> deps = compute_dependencies(ast);
+        Asts deps = dep_table.at(ast);
         std::vector<NamedDefn*> symbols = {};
 
         // For each dependency, fetch all of its public, named definitions.
@@ -252,7 +219,7 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
     }
 }
 
-void drive_llvm_backend(const Options& options, const std::vector<AST*>& asts) {
+void drive_llvm_backend(const Options& options, const Asts& asts) {
     assert(options.llvm);
 
     llvm::InitializeAllTargetInfos();
@@ -438,7 +405,7 @@ int32_t main(int32_t argc, char** argv) {
             log::note("parsing file: " + file);
 
         Parser parser(read_file(file), file);
-        asts.push_back(parser.parse());
+        asts.insert(parser.parse());
         
         if (options.verbose)
             log::note("finishing parsing for: " + file);
@@ -448,8 +415,13 @@ int32_t main(int32_t argc, char** argv) {
 
     setup_file_table(asts);
 
-    Asts ordered = compute_dependency_order(asts);
-    resolve_dependencies(options, ordered);
+    Asts ordering = {};
+    std::unordered_map<AST*, Asts> dep_table = {};
+    ordering.reserve(asts.size());
+    dep_table.reserve(asts.size());
+
+    compute_dependencies(asts, ordering, dep_table);
+    resolve_dependencies(options, ordering, dep_table);
     
     log::flush();
 
