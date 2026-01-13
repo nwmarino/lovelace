@@ -45,7 +45,7 @@ bb6:
 	$120 = load border: **void |8
 	$121 = reint $120: *void
 	$122 = load inc: *i64 |8
-	$123 = ap $121: *i8, $122: i64
+	$123 = pwalk $121: *i8, $122: i64
 	$124 = reint $123: *i8
 	store $124: *void, new_border: **void
 	$125 = load new_border: **void |8
@@ -89,13 +89,13 @@ bb1:
 	jif $136: i1, bb7, bb2
 bb2:
 	$137 = load curr: **Metadata |8
-	$138 = access $137: *Metadata, 2: i64
+	$138 = pwalk $137: *Metadata, 0: i32, 2: i32
 	$139 = load $138: *i8 |1
 	$140 = cmp ine $139: i8, 0: i8
 	jif $140: i1, bb3, bb4(0: i1)
 bb3:
 	$141 = load curr: **Metadata |8
-	$142 = access $141: *Metadata, 0: i64
+	$142 = pwalk $141: *Metadata, 0: i32, 0: i32
 	$143 = load $142: *i64 |8
 	$144 = load size: *i64 |8
 	$145 = cmp uge $143: i64, $144: i64
@@ -109,7 +109,7 @@ bb6:
 	$147 = load curr: **Metadata |8
 	store $147: *Metadata, $146: **Metadata
 	$148 = load curr: **Metadata |8
-	$149 = access $148: *Metadata, 1: i64
+	$149 = pwalk $148: *Metadata, 0: i32, 1: i32
 	$150 = load $149: **Metadata |8
 	store $150: *Metadata, curr: **Metadata
 	jmp bb1
@@ -124,7 +124,7 @@ bb0:
 	store p: *void, p: **void
 	$107 = load p: **void |8
 	$108 = reint $107: *void
-	$109 = ap $108: *Metadata, -1: i64
+	$109 = pwalk $108: *Metadata, -1: i64
 	ret $109: *Metadata
 }
 
@@ -178,7 +178,7 @@ bb6:
 	jif $36: i1, bb7, bb8
 bb7:
 	$37 = load block: **Metadata |8
-	$38 = access $37: *Metadata, 2: i64
+	$38 = pwalk $37: *Metadata, 0: i32, 2: i32
 	store 0: i8, $38: *i8
 	jmp bb11
 bb8:
@@ -197,7 +197,7 @@ bb11:
 	jmp bb12
 bb12:
 	$44 = load block: **Metadata |8
-	$45 = ap $44: *Metadata, 1: i64
+	$45 = pwalk $44: *Metadata, 1: i64
 	$46 = reint $45: *Metadata
 	ret $46: *void
 }
@@ -226,10 +226,10 @@ bb1:
 bb2:
 	$7 = load d: **i8 |8
 	$8 = load n: *i64 |8
-	$9 = ap $7: *i8, $8: i64
+	$9 = pwalk $7: *i8, $8: i64
 	$10 = load s: **i8 |8
 	$11 = load n: *i64 |8
-	$12 = ap $10: *i8, $11: i64
+	$12 = pwalk $10: *i8, $11: i64
 	$13 = load $12: *i8 |1
 	store $13: i8, $9: *i8
 	$14 = load n: *i64 |8
@@ -255,41 +255,41 @@ bb2:
 	$50 = call get_block_pointer: *Metadata ($49: *void)
 	store $50: *Metadata, block: **Metadata
 	$51 = load block: **Metadata |8
-	$52 = access $51: *Metadata, 2: i64
+	$52 = pwalk $51: *Metadata, 0: i32, 2: i32
 	store 1: i8, $52: *i8
 	$53 = load block: **Metadata |8
-	$54 = access $53: *Metadata, 1: i64
+	$54 = pwalk $53: *Metadata, 0: i32, 1: i32
 	$55 = load $54: **Metadata |8
 	$56 = cmp ine $55: *Metadata, null
 	jif $56: i1, bb3, bb6
 bb3:
 	$57 = load block: **Metadata |8
-	$58 = access $57: *Metadata, 1: i64
+	$58 = pwalk $57: *Metadata, 0: i32, 1: i32
 	$59 = load $58: **Metadata |8
-	$60 = access $59: *Metadata, 2: i64
+	$60 = pwalk $59: *Metadata, 0: i32, 2: i32
 	$61 = load $60: *i8 |1
 	$62 = cmp ine $61: i8, 0: i8
 	jif $62: i1, bb4, bb5
 bb4:
 	$63 = load block: **Metadata |8
-	$64 = access $63: *Metadata, 0: i64
+	$64 = pwalk $63: *Metadata, 0: i32, 0: i32
 	$65 = load block: **Metadata |8
-	$66 = access $65: *Metadata, 0: i64
+	$66 = pwalk $65: *Metadata, 0: i32, 0: i32
 	$67 = load $66: *i64 |8
 	store $67: i64, $64: *i64
 	$68 = load block: **Metadata |8
-	$69 = access $68: *Metadata, 1: i64
+	$69 = pwalk $68: *Metadata, 0: i32, 1: i32
 	$70 = load $69: **Metadata |8
-	$71 = access $70: *Metadata, 0: i64
+	$71 = pwalk $70: *Metadata, 0: i32, 0: i32
 	$72 = load $71: *i64 |8
 	$73 = iadd $67: i64, $72: i64
 	$74 = iadd $73: i64, 24: i64
 	$75 = load block: **Metadata |8
-	$76 = access $75: *Metadata, 1: i64
+	$76 = pwalk $75: *Metadata, 0: i32, 1: i32
 	$77 = load block: **Metadata |8
-	$78 = access $77: *Metadata, 1: i64
+	$78 = pwalk $77: *Metadata, 0: i32, 1: i32
 	$79 = load $78: **Metadata |8
-	$80 = access $79: *Metadata, 1: i64
+	$80 = pwalk $79: *Metadata, 0: i32, 1: i32
 	$81 = load $80: **Metadata |8
 	store $81: *Metadata, $76: **Metadata
 	jmp bb5
@@ -319,7 +319,7 @@ bb2:
 	$87 = call get_block_pointer: *Metadata ($86: *void)
 	store $87: *Metadata, block: **Metadata
 	$88 = load block: **Metadata |8
-	$89 = access $88: *Metadata, 0: i64
+	$89 = pwalk $88: *Metadata, 0: i32, 0: i32
 	$90 = load $89: *i64 |8
 	$91 = load size: *i64 |8
 	$92 = cmp uge $90: i64, $91: i64
@@ -340,7 +340,7 @@ bb6:
 	$98 = load new_p: **void |8
 	$99 = load p: **void |8
 	$100 = load block: **Metadata |8
-	$101 = access $100: *Metadata, 0: i64
+	$101 = pwalk $100: *Metadata, 0: i32, 0: i32
 	$102 = load $101: *i64 |8
 	call mem_copy: void ($98: *void, $99: *void, $102: i64)
 	$103 = load p: **void |8
@@ -388,7 +388,7 @@ bb0:
 	jif $166: i1, bb1, bb2
 bb1:
 	$167 = load last: **Metadata |8
-	$168 = access $167: *Metadata, 1: i64
+	$168 = pwalk $167: *Metadata, 0: i32, 1: i32
 	$169 = load block: **Metadata |8
 	store $169: *Metadata, $168: **Metadata
 	jmp bb2
@@ -397,14 +397,14 @@ bb2:
 "
 	$171 = call write: i64 (1: i64, $170: *i8, 2: i64)
 	$172 = load block: **Metadata |8
-	$173 = access $172: *Metadata, 0: i64
+	$173 = pwalk $172: *Metadata, 0: i32, 0: i32
 	$174 = load size: *i64 |8
 	store $174: i64, $173: *i64
 	$175 = load block: **Metadata |8
-	$176 = access $175: *Metadata, 1: i64
+	$176 = pwalk $175: *Metadata, 0: i32, 1: i32
 	store null, $176: **Metadata
 	$177 = load block: **Metadata |8
-	$178 = access $177: *Metadata, 2: i64
+	$178 = pwalk $177: *Metadata, 0: i32, 2: i32
 	store 0: i8, $178: *i8
 	$179 = load block: **Metadata |8
 	ret $179: *Metadata

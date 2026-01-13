@@ -50,7 +50,7 @@ void Codegen::codegen_addition(BinaryOp& node, AddOp op) {
             }
         }
 
-        m_temp = m_builder.build_ap(lhs_type, lhs, rhs);
+        m_temp = m_builder.build_pwalk(lhs_type, lhs, { rhs });
     } else if (lhs_type->is_integer_type()) {
         if (op == AddOp::Add) {
             m_temp = m_builder.build_iadd(lhs, rhs);

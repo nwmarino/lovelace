@@ -63,9 +63,9 @@ void Codegen::visit(AccessExpr& node) {
     lir::Type* field_type = lower_type(field->get_type());
 
     lir::Integer* index = lir::Integer::get(
-        m_cfg, lir::Type::get_i64_type(m_cfg), field->get_index());
+        m_cfg, lir::Type::get_i32_type(m_cfg), field->get_index());
 
-    m_temp = m_builder.build_access(lir::PointerType::get(m_cfg, field_type), m_temp, index);
+    m_temp = m_builder.build_pwalk(lir::PointerType::get(m_cfg, field_type), m_temp, { lir::Integer::get_zero(m_cfg, lir::Type::get_i32_type(m_cfg)), index });
     if (ctx == RValue)
         m_temp = m_builder.build_load(field_type, m_temp, m_mach.get_align(field_type));
 }
@@ -153,7 +153,7 @@ void Codegen::visit(SubscriptExpr& node) {
     assert(m_temp && "index does not produce a value!");
     index = m_temp;
 
-    m_temp = m_builder.build_ap(lir::PointerType::get(m_cfg, type), base, index);
+    m_temp = m_builder.build_pwalk(lir::PointerType::get(m_cfg, type), base, { index });
     if (ctx == RValue)
         m_temp = m_builder.build_load(type, m_temp, m_mach.get_align(type));
 }

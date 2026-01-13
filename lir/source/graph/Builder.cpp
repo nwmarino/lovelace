@@ -64,33 +64,20 @@ Instruction* Builder::build_store(Value* value, Value* dest, uint16_t alignment)
         { .alignment = alignment });
 }
 
-Instruction* Builder::build_access(Type* type, Value* source, Integer* index) {
+Instruction* Builder::build_pwalk(Type* type, Value* source, 
+                                  const std::vector<Value*>& indices) {
     assert(type && "type cannot be null!");
+    assert(type->is_pointer_type() && "result must be a pointer!");
     assert(source && "source cannot be null!");
-    assert(index && "index cannot be null!");
     assert(source->get_type()->is_pointer_type() && "source must be a pointer!");
-    assert(index->get_value() >= 0 && "index cannot be negative!");
+    assert(!indices.empty() && "index list cannot be empty!");
 
-    return insert(
-        OP_ACCESS,
-        m_cfg.get_def_id(),
-        type,
-        { source, index });
-}
+    std::vector<Value*> ops(indices.size() + 1, nullptr);
+    ops[0] = source;
+    for (uint32_t i = 0; i < indices.size(); ++i)
+        ops[i + 1] = indices[i];
 
-Instruction* Builder::build_ap(Type* type, Value* source, Value* index) {
-    assert(type && "type cannot be null!");
-    assert(source && "source cannot be null!");
-    assert(index && "index cannot be null!");
-    assert(type->is_pointer_type() && "AP must result in a pointer!");
-    assert(source->get_type()->is_pointer_type() && "source must be a pointer!");
-    assert(index->get_type()->is_integer_type() && "index must be an integer!");
-    
-    return insert(
-        OP_AP, 
-        m_cfg.get_def_id(), 
-        type, 
-        { source, index });
+    return insert(OP_PWALK, m_cfg.get_def_id(), type, ops);
 }
 
 Instruction* Builder::build_jif(Value* cond, BasicBlock* true_dest, 

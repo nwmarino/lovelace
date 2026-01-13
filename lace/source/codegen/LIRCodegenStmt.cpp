@@ -67,15 +67,16 @@ void Codegen::visit(RestartStmt& node)  {
     }
 }
 
-void Codegen::visit(RetStmt& node)  {
+void Codegen::visit(RetStmt& node) {
+    m_temp = nullptr;
+
     if (node.has_expr()) {
         m_vctx = RValue;
         node.get_expr()->accept(*this);
         assert(m_temp && "return does not produce a value!");
-        m_builder.build_ret(m_temp);
-    } else {
-        m_builder.build_ret_void();
     }
+
+    m_builder.build_ret(m_temp);
 }
 
 void Codegen::visit(StopStmt& node)  {

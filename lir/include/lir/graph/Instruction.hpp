@@ -19,9 +19,7 @@ class BasicBlock;
 /// The different mnemonics for instructions in the IR.
 enum Mnemonic : uint16_t {
     OP_ABORT,
-    OP_ACCESS,
     OP_AND,
-    OP_AP,
     OP_CALL,
     OP_CMP,
     OP_F2S,
@@ -45,6 +43,7 @@ enum Mnemonic : uint16_t {
     OP_NOT,
     OP_OR,
     OP_P2I,
+    OP_PWALK,
     OP_REINT,
     OP_RET,
     OP_S2F,

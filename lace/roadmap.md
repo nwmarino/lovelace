@@ -24,9 +24,7 @@ Runes
 
 -- todo
 
-setup cmake for lir
-
-make pointer walk
+do isel for pointer walk
 
 reiterate graph builder
 

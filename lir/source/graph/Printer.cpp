@@ -19,12 +19,8 @@ static const char* to_string(Mnemonic op) {
     switch (op) {
         case OP_ABORT:
             return "abort";
-        case OP_ACCESS:
-            return "access";
         case OP_AND:
             return "and";
-        case OP_AP:
-            return "ap";
         case OP_CALL:
             return "call";
         case OP_CMP:
@@ -71,6 +67,8 @@ static const char* to_string(Mnemonic op) {
             return "or";
         case OP_P2I:
             return "p2i";
+        case OP_PWALK:
+            return "pwalk";
         case OP_REINT:
             return "reint";
         case OP_RET:

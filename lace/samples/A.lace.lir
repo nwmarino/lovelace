@@ -53,7 +53,7 @@ bb0:
 bb1:
 	$1 = load str: **i8 |8
 	$2 = load len: *i64 |8
-	$3 = ap $1: *i8, $2: i64
+	$3 = pwalk $1: *i8, $2: i64
 	$4 = load $3: *i8 |1
 	$5 = cmp ieq $4: i8, 0: i8
 	jif $5: i1, bb3, bb2

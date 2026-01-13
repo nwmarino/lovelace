@@ -194,6 +194,8 @@ void drive_lir_backend(const Options& options, const std::vector<AST*>& asts) {
             file.close();
         }
 
+        continue; // @Todo: remove.
+
         lir::Segment seg(cfg);
 
         lir::LoweringPass lowering(cfg, seg);

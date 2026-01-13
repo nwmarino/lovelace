@@ -63,14 +63,11 @@ public:
     /// |alignment|.
     Instruction* build_store(Value* value, Value* dest, uint16_t alignment);
 
-    /// Create a new struct access that deferences the struct pointer |source| 
-    /// to access the field at the given |index|. The |type| argument indicates 
-    /// the resulting value.
-    Instruction* build_access(Type* type, Value* source, Integer* index);
-
-    /// Create a new pointer access that accesses |source| at the given |index|. 
-    /// The |type| argument indicates the resulting pointer.
-    Instruction* build_ap(Type* type, Value* source, Value* index);
+    /// Create a new pointer walk that steps through the list of integer 
+    /// |indices| to access the base pointer |source|. The |type| argument
+    /// indicates the type of the resulting value.
+    Instruction* build_pwalk(Type* type, Value* source, 
+                             const std::vector<Value*>& indices);
 
     /// Create a new conditional jump that chooses |true_dest| or
     /// |false_dest| based on the result of |cond|.
@@ -79,16 +76,16 @@ public:
                            BasicBlock* false_dest,
                            const std::vector<Value*>& false_args);
 
-    /// Create a new jump to |dest|.
+    /// Build a new jump (JMP) instruction to the given |dest| block. 
+    /// Optionally, provide a list of |args| to the basic block, if the block
+    /// requires any.
     Instruction* build_jmp(BasicBlock* dest, const std::vector<Value*>& args = {});
 
-    /// Create a new return instruction that returns |value|.
-    Instruction* build_ret(Value* value);
+    /// Build a new return (RET) instruction that returns the given |value|.
+    /// If |value| is null, then the instruction is a void return.
+    Instruction* build_ret(Value* value = nullptr);
 
-    /// Create a new return instruction that returns nothing.
-    Instruction* build_ret_void() { return build_ret(nullptr); }
-
-    /// Create a new abort instruction that stops execution.
+    /// Build a new abort (ABORT) instruction that stops execution.
     Instruction* build_abort();
 
     /// Create a new unreachable instruction, used as a pseudo-terminator to

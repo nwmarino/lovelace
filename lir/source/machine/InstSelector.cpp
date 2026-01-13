@@ -397,15 +397,14 @@ void InstSelector::select(const Instruction* inst) {
     switch (inst->op()) {
         case OP_ABORT:
             return select_abort(inst);
+        case OP_F2S:
+        case OP_F2U:
+            return select_cast_f2i(inst);
         case OP_UNREACHABLE:
             return select_unreachable(inst);
         case OP_LOAD:
         case OP_STORE:
             return select_load_store(inst);
-        case OP_ACCESS:
-            return select_access(inst);
-        case OP_AP:
-            return select_ap(inst);
         case OP_STRING:
             return select_string(inst);
         case OP_CALL:
@@ -452,9 +451,6 @@ void InstSelector::select(const Instruction* inst) {
         case OP_S2F:
         case OP_U2F:
             return select_cast_i2f(inst);
-        case OP_F2S:
-        case OP_F2U:
-            return select_cast_f2i(inst);
         case OP_SEXT:
         case OP_ZEXT:
         case OP_FEXT:
@@ -468,6 +464,8 @@ void InstSelector::select(const Instruction* inst) {
             return select_cast_p2i(inst);
         case OP_REINT:
             return select_cast_reinterpret(inst);
+        case OP_PWALK:
+            return;
     }
 }
 

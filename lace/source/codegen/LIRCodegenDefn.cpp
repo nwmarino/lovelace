@@ -91,7 +91,7 @@ void Codegen::define_ir_function(FunctionDefn& node) {
 
     if (!m_builder.get_insert()->terminates()) {
         if (m_function->get_return_type()->is_void_type()) {
-            m_builder.build_ret_void();
+            m_builder.build_ret();
         } else {
             log::warn("function does not always return", 
                 log::Span(m_cfg.get_filename(), node.get_span()));
