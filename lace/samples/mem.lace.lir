@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/mem.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/mem.lace"
 
 Metadata :: { i64, *Metadata, i8 }
 
@@ -142,11 +142,11 @@ bb0:
 	jif $19: i1, bb1, bb2
 bb1:
 	$20 = load align: *i64 |8
-	store $20: i64, align: *i64
 	$21 = iadd $20: i64, 16: i64
 	$22 = load size: *i64 |8
 	$23 = umod $22: i64, 16: i64
 	$24 = isub $21: i64, $23: i64
+	store $24: i64, align: *i64
 	jmp bb2
 bb2:
 	$25 = load @head: **Metadata |8
@@ -231,8 +231,8 @@ bb2:
 	$13 = load $12: *i8 |1
 	store $13: i8, $9: *i8
 	$14 = load n: *i64 |8
-	store $14: i64, n: *i64
 	$15 = isub $14: i64, 1: i64
+	store $15: i64, n: *i64
 	jmp bb1
 bb3:
 	ret 
@@ -274,7 +274,6 @@ bb4:
 	$65 = load block: **Metadata |8
 	$66 = pwalk $65: *Metadata, 0: i32, 0: i32
 	$67 = load $66: *i64 |8
-	store $67: i64, $64: *i64
 	$68 = load block: **Metadata |8
 	$69 = pwalk $68: *Metadata, 0: i32, 1: i32
 	$70 = load $69: **Metadata |8
@@ -282,6 +281,7 @@ bb4:
 	$72 = load $71: *i64 |8
 	$73 = iadd $67: i64, $72: i64
 	$74 = iadd $73: i64, 24: i64
+	store $74: i64, $64: *i64
 	$75 = load block: **Metadata |8
 	$76 = pwalk $75: *Metadata, 0: i32, 1: i32
 	$77 = load block: **Metadata |8

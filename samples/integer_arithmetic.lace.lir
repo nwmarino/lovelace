@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/integer_arithmetic.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/samples/integer_arithmetic.lace"
 
 main :: external () -> i64 {
 	x := i64 |8

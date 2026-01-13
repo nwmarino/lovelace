@@ -1,4 +1,4 @@
-AST "/home/nwm/statim/samples/if.lace"
+AST "/home/statim/samples/if.lace"
   Function <2:1, 2:1> main '() -> s64'
     Block <2:19, 2:19>
       Adapter <3:5, 3:5>

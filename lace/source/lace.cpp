@@ -371,16 +371,16 @@ int32_t main(int32_t argc, char** argv) {
             std::to_string(LACE_VERSION_MINOR));
 
     std::vector<std::string> files = {
-        "/home/nwm/statim/samples/return_zero.lace",
-        "/home/nwm/statim/samples/integer_arithmetic.lace",
-        "/home/nwm/statim/samples/casting.lace",
-        "/home/nwm/statim/samples/if.lace",
-        "/home/nwm/statim/samples/until_loop.lace",
-        "/home/nwm/statim/samples/functions.lace",
+        "/home/statim/samples/return_zero.lace",
+        "/home/statim/samples/integer_arithmetic.lace",
+        "/home/statim/samples/casting.lace",
+        "/home/statim/samples/if.lace",
+        "/home/statim/samples/until_loop.lace",
+        "/home/statim/samples/functions.lace",
 
-        "/home/nwm/statim/lace/samples/A.lace", 
-        "/home/nwm/statim/lace/samples/linux.lace",
-        "/home/nwm/statim/lace/samples/mem.lace",
+        "/home/statim/lace/samples/A.lace", 
+        "/home/statim/lace/samples/linux.lace",
+        "/home/statim/lace/samples/mem.lace",
     };
 
     for (int32_t i = 1; i < argc; ++i) {

@@ -107,18 +107,6 @@ int8_t Parser::get_op_precedence(BinaryOp::Operator op) const {
         case BinaryOp::LogicOr:
             return 2;
         case BinaryOp::Assign:
-        /*
-        case BinaryOp::AddAssign:
-        case BinaryOp::SubAssign:
-        case BinaryOp::MulAssign:
-        case BinaryOp::DivAssign:
-        case BinaryOp::ModAssign:
-        case BinaryOp::AndAssign:
-        case BinaryOp::OrAssign:
-        case BinaryOp::XorAssign:
-        case BinaryOp::LeftShiftAssign:
-        case BinaryOp::RightShiftAssign:
-        */
             return 1;
         case BinaryOp::Unknown:
             return -1;
@@ -255,20 +243,20 @@ Expr* Parser::parse_postfix_operator() {
 Expr* Parser::parse_binary_operator(Expr* base, int8_t precedence) {
     const SourceLocation start = loc();
 
-    do {
-        int8_t curr_precedence = get_binary_op(curr().kind);
-        if (curr_precedence < precedence)
-            break;
-
+    while (true) {
         BinaryOp::Operator op = get_binary_op(curr().kind);
         if (op == BinaryOp::Unknown)
+            break;
+
+        int8_t curr_precedence = get_op_precedence(op);
+        if (curr_precedence < precedence)
             break;
 
         next();
         Expr* right = parse_prefix_operator();
         assert(right && "unable to parse rhs expression!");
 
-        int32_t next_precedence = get_op_precedence(get_binary_op(curr().kind));
+        int8_t next_precedence = get_op_precedence(get_binary_op(curr().kind));
         if (curr_precedence < next_precedence) {
             right = parse_binary_operator(right, precedence + 1);
             if (!right)
@@ -281,7 +269,7 @@ Expr* Parser::parse_binary_operator(Expr* base, int8_t precedence) {
             op, 
             base, 
             right);
-    } while (true);
+    };
 
     return base;
 }

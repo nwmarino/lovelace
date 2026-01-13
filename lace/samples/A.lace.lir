@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/lace/samples/A.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/lace/samples/A.lace"
 
 Box :: { i64, i64, i64 }
 

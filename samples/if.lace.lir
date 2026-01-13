@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/if.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/samples/if.lace"
 
 main :: external () -> i64 {
 	x := *i64 |8

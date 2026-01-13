@@ -1,4 +1,4 @@
-LIR_CONTROL_FLOW_GRAPH "/home/nwm/statim/samples/return_zero.lace"
+LIR_CONTROL_FLOW_GRAPH "/home/statim/samples/return_zero.lace"
 
 main :: external () -> i64 {
 bb0:

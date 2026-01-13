@@ -1,4 +1,4 @@
-AST "/home/nwm/statim/samples/functions.lace"
+AST "/home/statim/samples/functions.lace"
   Function <1:1, 1:1> min '(s64, s64) -> s64'
     Parameter <1:9, 1:9> x 's64'
     Parameter <1:17, 1:17> y 's64'

@@ -1,4 +1,4 @@
-AST "/home/nwm/statim/lace/samples/linux.lace"
+AST "/home/statim/lace/samples/linux.lace"
   Function <2:1, 2:1> exit '(s64) -> void'
     Parameter <2:10, 2:10> _ 's64'
   Function <5:1, 5:1> open '(*char, s64, s64) -> s64'
