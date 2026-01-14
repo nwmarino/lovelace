@@ -1,9 +1,0 @@
-AST "/home/statim/samples/casting.lace"
-  Function <2:1, 2:1> main '() -> s64'
-    Block <2:19, 2:19>
-      Adapter <3:5, 3:5>
-        Variable <3:5, 3:5> x 'f64'
-          Float <3:18, 3:18> 42.5 'mut f64'
-      Ret <5:5, 5:5>
-        Cast <5:9, 5:9> 's64'
-          Ref <5:19, 5:19> x 'f64'

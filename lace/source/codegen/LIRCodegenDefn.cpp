@@ -19,7 +19,10 @@ void Codegen::declare_ir_global(VariableDefn& node) {
         m_cfg, 
         lower_type(node.get_type()), 
         linkage, 
-        !node.get_type().is_mut(), 
+        // @Todo: for now, all lowered globals should be mutable. for the case
+        // of arrays like [5]mut s64, where the elements are mutable, but the
+        // array itself is not, we need some special semantics here.
+        false, /* !node.get_type().is_mut(), */ 
         node.get_name());
 }
 

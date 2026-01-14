@@ -1,6 +1,0 @@
-LIR_CONTROL_FLOW_GRAPH "/home/statim/samples/return_zero.lace"
-
-main :: external () -> i64 {
-bb0:
-	ret 0: i64
-}

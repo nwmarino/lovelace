@@ -392,6 +392,7 @@ int32_t main(int32_t argc, char** argv) {
         InputFile("/home/statim/samples/functions.lace"),
         InputFile("/home/statim/samples/structs.lace"),
         InputFile("/home/statim/samples/enums.lace"),
+        InputFile("/home/statim/samples/arrays.lace"),
 
         InputFile("/home/statim/lace/samples/A.lace"), 
         InputFile("/home/statim/lace/samples/linux.lace"),
