@@ -20,9 +20,12 @@
 - Added the `ThreadPool` class for an easier multi-threading interface with jthreads.
 - Added multi-threading support for parsing.
 - Remove some unused tokens.
+- Added LLVM as a native backend rather than an IR translation pass.
 
 ## IR
 
+- Switch instructions "opcode" to a more fitting "mnemonic".
+- Simplify instruction API.
 - Changed the IR *ap* operation to a GEP-like *pw* pointer walk.
 - Replaced phi nodes with a cleaner basic block argument approach.
 - Remove some unused instructions and value types e.g. inline asm, aggregates.
