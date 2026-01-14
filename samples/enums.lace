@@ -1,0 +1,13 @@
+Colors :: enum {
+    Red,
+    Blue = -1,
+    Yellow = 42,
+    Orange = 15,
+    Green,
+}
+
+$[public]
+main :: () -> s64 {
+    let yellow: Colors = Yellow;
+    ret yellow;
+}

@@ -1,0 +1,4 @@
+$[public]
+main :: () -> s64 {
+    ret 0;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "lovelace",
+  "displayName": "Syntax highlighting for Lovelace",
+  "description": "Syntax highlighting for Lovelace (.lace)",
+  "version": "1.0.0",
+  "publisher": "nwmarino",
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "lovelace",
+        "aliases": ["lovelace", "lace"],
+        "extensions": [".lace"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lovelace",
+        "scopeName": "source.lace",
+        "path": "./syntaxes/lovelace.tmLanguage.json"
+      }
+    ]
+  }
+}

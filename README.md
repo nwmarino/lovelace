@@ -1,46 +1,54 @@
-# statim ('stat·​im) *"immediately"*
+# lovelace
 
-Statim is to be a multi-purpose, strongly typed language designed with kernel 
-development in mind. The main point of the project is to expirement with the 
-potential of an interpretable intermediate represenation (IR) closely coupled 
-into the compiler.
+lovelace is a recreational systems language that takes major inspiration from
+the philosophies of most of your favorite langs. It is, however, most similar
+in nature to C by way of what is possible out of the box.
 
-## Overview
+The project is split down the middle, with an x86-64 backend that is 
+theoretically modular enough to be carved out and made to work with other 
+frontends. 
 
-Overarching priorities of the language are reduced compilation times from that 
-of modern C/C++, metaprogramming capabilities, and compile-time executions of 
-arbitrary code. Although costly to the former, having a unique IR allows for 
-some interesting compiler feedback and compile-time opportunities.
+### lace
 
-## Desugaring
+lace is the frontend for the language, and in particular, handles the process
+of turning source code into a "valid" syntax tree, which is used to represent
+input programs. Later, a code generation pass turns the syntax tree into a 
+target agnostic intermediate representation (LIR).
 
-Although keeping with the general purpose idea, to write software that we want, 
-we need features like complex casting, pointer arithmetic, etc. and thus the 
-language won't shy away from those constructs; it's not meant to be 
-"high-level".
+### LIR
 
-### What *is* part of the plan
+The lovelace intermediate representation (LIR) handles target-specific jobs 
+like ABI control, register allocation, and SSA-based optimizations. The IR uses
+basic block arguments instead of phi nodes, for the reason that I like being
+different and more importantly, it becomes a little bit easier to write an 
+interpreter down the road. The IR is capable of true SSA form through an
+optional rewrite pass based on algorithms described by 
+[Braun et al.](https://link.springer.com/chapter/10.1007/978-3-642-37051-9_6)
+Barring the use of block arguments, since the IR is based on a control-flow 
+graph, it can cleanly translate into similarly structured representation like 
+LLVM IR.
 
-* compile-time evaluation
-* operator overloading
-* templates via monomorphization
-* parallelization
-* runtime type reflection
-* auto dereferencing (no `->` operator)
-* functions with multiple return values, natively
-* namespaces
-* `defer` statements
-* optional bounds, null pointer checks
+Without getting too theoretical, the advantages of SSA form mean most 
+operations produce an immutable value by using other mostly immutable values,
+which gives way to a very clean use-def chain of values. This means analysis 
+and optimization passes can easily model dead code, register naming, and 
+propogations. 
 
-### What *isn't* part of the plan
+## Building
 
-* constructors, destructors
-* `new` & `delete` operators
-* garbage collector
-* RAII
-* function overloading
-* inheritance
-* a preprocessor 
-* external build system(s)
-* exceptions
-* references
+All components of the project use and suggest at least CMake 4.0 to build.
+
+Both the frontend and backend depend only on Boost and Google Test, which are
+available on most distro package managers via `boost` and `gtest`.
+
+Most of the compiler is written in C++20, with the main features used to 
+justify it being ranges, the jthreads interface, and format strings. 
+
+```sh
+cd lovelace/
+cmake -S . -B build/
+cmake --build build/
+
+# for tests, optionally
+ctest --test-dir build/
+```
