@@ -105,7 +105,6 @@ private:
     }
 };
 
-
 } // namespace lace
 
 #endif // LOVELACE_THREAD_POOL_H_

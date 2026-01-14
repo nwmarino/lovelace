@@ -194,8 +194,8 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
         if (options.verbose)
             log::note("running code generation for: " + ast->get_file());
 
-        Codegen cgn(options, cfg);
-        cgn.visit(*ast);
+        LIRCodegen codegen(options, ast, cfg);
+        codegen.run();
 
         if (options.verbose)
             log::note("finished code generation for: " + ast->get_file());

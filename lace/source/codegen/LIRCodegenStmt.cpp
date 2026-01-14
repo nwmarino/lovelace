@@ -4,123 +4,148 @@
 //
 
 #include "lace/codegen/LIRCodegen.hpp"
-#include "lace/tree/AST.hpp"
 #include "lace/tree/Defn.hpp"
+#include "lace/tree/Stmt.hpp"
 
 using namespace lace;
 
-void Codegen::visit(AdapterStmt& node)  {
-    switch (node.get_flavor()) {
-        case AdapterStmt::Definitive:
-            return node.get_defn()->accept(*this);
+void LIRCodegen::codegen_statement(const Stmt* stmt) {
+    switch (stmt->get_kind()) {
+        case Stmt::Adapter:
+            return codegen_adapter(static_cast<const AdapterStmt*>(stmt));
+        case Stmt::Block:
+            return codegen_block(static_cast<const BlockStmt*>(stmt));
+        case Stmt::If:
+            return codegen_if(static_cast<const IfStmt*>(stmt));
+        case Stmt::Restart:
+            return codegen_restart(static_cast<const RestartStmt*>(stmt));
+        case Stmt::Ret:
+            return codegen_return(static_cast<const RetStmt*>(stmt));
+        case Stmt::Stop:
+            return codegen_stop(static_cast<const StopStmt*>(stmt));
+        case Stmt::Until:
+            return codegen_until(static_cast<const UntilStmt*>(stmt));
+    }
+}
+
+void LIRCodegen::codegen_adapter(const AdapterStmt* stmt)  {
+    switch (stmt->get_flavor()) {
+        case AdapterStmt::Definitive: {
+            auto var = dynamic_cast<const VariableDefn*>(stmt->get_defn());
+            assert(var && "cannot generate code for a non-variable adapter!");
+            codegen_local_variable(var);    
+            break;
+        }
+
         case AdapterStmt::Expressive:
-            return node.get_expr()->accept(*this);
+            codegen_valued_expression(stmt->get_expr());
+            break;
     }
 }
 
-void Codegen::visit(BlockStmt& node)  {
-    for (Stmt* stmt : node.get_stmts())
-        stmt->accept(*this);
+void LIRCodegen::codegen_block(const BlockStmt* stmt)  {
+    for (Stmt* stmt : stmt->get_stmts())
+        codegen_statement(stmt);
 }
 
-void Codegen::visit(IfStmt& node)  {
-    m_vctx = RValue;
-    node.get_cond()->accept(*this);
-    assert(m_temp && "condition does not produce a value!");
+void LIRCodegen::codegen_if(const IfStmt* stmt) {
+    lir::Value* condition = codegen_valued_expression(stmt->get_cond());
+    assert(condition);
+    condition = inject_comparison(condition);
 
-    lir::BasicBlock* thn = lir::BasicBlock::create({}, m_function);
-    lir::BasicBlock* els = nullptr;
-    lir::BasicBlock* mrg = lir::BasicBlock::create();
+    lir::BasicBlock* then_bb = lir::BasicBlock::create({}, m_func);
+    lir::BasicBlock* else_bb = nullptr;
+    lir::BasicBlock* merge_bb = lir::BasicBlock::create();
 
-    if (node.has_else()) {
-        els = lir::BasicBlock::create();
-        m_builder.build_jif(inject_bool_comparison(m_temp), thn, {}, els, {});
+    if (stmt->has_else()) {
+        else_bb = lir::BasicBlock::create();
+        m_builder.build_jif(condition, then_bb, {}, else_bb, {});
     } else {
-        m_builder.build_jif(inject_bool_comparison(m_temp), thn, {}, mrg, {});
+        m_builder.build_jif(condition, then_bb, {}, merge_bb, {});
     }
 
-    m_builder.set_insert(thn);
-    node.get_then()->accept(*this);
+    m_builder.set_insert(then_bb);
+    codegen_statement(stmt->get_then());
 
     if (!m_builder.get_insert()->terminates())
-        m_builder.build_jmp(mrg);
+        m_builder.build_jmp(merge_bb);
 
-    if (node.has_else()) {
-        m_function->append(els);
-        m_builder.set_insert(els);
-        node.get_else()->accept(*this);
-
-        if (!m_builder.get_insert()->terminates())
-            m_builder.build_jmp(mrg);
-    }
-
-    if (mrg->has_preds()) {
-        m_function->append(mrg);
-        m_builder.set_insert(mrg);
-    }
-}
-
-void Codegen::visit(RestartStmt& node)  {
-    if (!m_builder.get_insert()->terminates()) {
-        assert(m_cnd && "no condition block to restart to!");
-        m_builder.build_jmp(m_cnd);
-    }
-}
-
-void Codegen::visit(RetStmt& node) {
-    m_temp = nullptr;
-
-    if (node.has_expr()) {
-        m_vctx = RValue;
-        node.get_expr()->accept(*this);
-        assert(m_temp && "return does not produce a value!");
-    }
-
-    m_builder.build_ret(m_temp);
-}
-
-void Codegen::visit(StopStmt& node)  {
-    if (!m_builder.get_insert()->terminates()) {
-        assert(m_mrg && "no merge block to stop to!");
-        m_builder.build_jmp(m_mrg);
-    }
-}
-
-void Codegen::visit(UntilStmt& node)  {
-    lir::BasicBlock* cnd = lir::BasicBlock::create({}, m_function);
-    lir::BasicBlock* bdy = nullptr;
-    lir::BasicBlock* mrg = lir::BasicBlock::create();
-
-    m_builder.build_jmp(cnd);
-
-    m_builder.set_insert(cnd);
-    m_vctx = RValue;
-    node.get_cond()->accept(*this);
-    assert(m_temp && "condition does not produce a value!");
-
-    if (node.has_body()) {
-        bdy = lir::BasicBlock::create({}, m_function);
-        m_builder.build_jif(inject_bool_comparison(m_temp), mrg, {}, bdy, {});
-
-        m_builder.set_insert(bdy);
-
-        lir::BasicBlock* prev_cnd = m_cnd;
-        lir::BasicBlock* prev_mrg = m_mrg;
-        m_cnd = cnd;
-        m_mrg = mrg;
-
-        if (node.has_body())
-            node.get_body()->accept(*this);
+    if (stmt->has_else()) {
+        m_func->append(else_bb);
+        m_builder.set_insert(else_bb);
+        codegen_statement(stmt->get_else());
 
         if (!m_builder.get_insert()->terminates())
-            m_builder.build_jmp(cnd);
+            m_builder.build_jmp(merge_bb);
+    }
 
-        m_cnd = prev_cnd;
-        m_mrg = prev_mrg;
+    if (merge_bb->has_preds()) {
+        m_func->append(merge_bb);
+        m_builder.set_insert(merge_bb);
     } else {
-        m_builder.build_jif(inject_bool_comparison(m_temp), mrg, {}, cnd, {});
+        delete merge_bb;
+    }
+}
+
+void LIRCodegen::codegen_until(const UntilStmt* stmt)  {
+    lir::BasicBlock* cond_bb = lir::BasicBlock::create({}, m_func);
+    lir::BasicBlock* body_bb = nullptr;
+    lir::BasicBlock* merge_bb = lir::BasicBlock::create();
+
+    m_builder.build_jmp(cond_bb);
+
+    m_builder.set_insert(cond_bb);
+    lir::Value* condition = codegen_valued_expression(stmt->get_cond());
+    assert(condition);
+    condition = inject_comparison(condition);
+
+    if (stmt->has_body()) {
+        body_bb = lir::BasicBlock::create({}, m_func);
+        m_builder.build_jif(condition, merge_bb, {}, body_bb, {});
+
+        m_builder.set_insert(body_bb);
+
+        lir::BasicBlock* prev_cnd = m_parent_cond;
+        lir::BasicBlock* prev_mrg = m_parent_merge;
+        m_parent_cond = cond_bb;
+        m_parent_merge = merge_bb;
+
+        codegen_statement(stmt->get_body());
+
+        if (!m_builder.get_insert()->terminates())
+            m_builder.build_jmp(cond_bb);
+
+        m_parent_cond = prev_cnd;
+        m_parent_merge = prev_mrg;
+    } else {
+        m_builder.build_jif(condition, merge_bb, {}, cond_bb, {});
     }
 
-    m_function->append(mrg);
-    m_builder.set_insert(mrg);
+    m_func->append(merge_bb);
+    m_builder.set_insert(merge_bb);
+}
+
+void LIRCodegen::codegen_restart(const RestartStmt* stmt)  {
+    if (!m_builder.get_insert()->terminates()) {
+        assert(m_parent_cond && "no condition block to restart to!");
+        m_builder.build_jmp(m_parent_cond);
+    }
+}
+
+void LIRCodegen::codegen_stop(const StopStmt* stmt)  {
+    if (!m_builder.get_insert()->terminates()) {
+        assert(m_parent_merge && "no merge block to stop to!");
+        m_builder.build_jmp(m_parent_merge);
+    }
+}
+
+void LIRCodegen::codegen_return(const RetStmt* stmt) {
+    lir::Value* value = nullptr;
+
+    if (stmt->has_expr()) {
+        value = codegen_valued_expression(stmt->get_expr());
+        assert(value);
+    }
+
+    m_builder.build_ret(value);
 }

@@ -1,12 +1,10 @@
 set(CODEGEN_SOURCES
     LIRCodegen.cpp
-    LIRCodegenBinary.cpp
-    LIRCodegenCall.cpp
-    LIRCodegenCast.cpp
+    LIRCodegenAddressed.cpp
     LIRCodegenDefn.cpp
-    LIRCodegenExpr.cpp
+    LIRCodegenOp.cpp
     LIRCodegenStmt.cpp
-    LIRCodegenUnary.cpp
+    LIRCodegenValued.cpp
     LLVMCodegen.cpp
     LLVMCodegenAddressed.cpp
     LLVMCodegenDefn.cpp

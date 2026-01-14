@@ -9,10 +9,6 @@
 #include "lir/graph/Type.hpp"
 #include "lir/graph/User.hpp"
 
-#include <cstdint>
-#include <initializer_list>
-#include <string>
-
 namespace lir {
 
 class BasicBlock;

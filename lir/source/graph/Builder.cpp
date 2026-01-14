@@ -38,10 +38,12 @@ Instruction* Builder::build_string(String* string) {
     return insert(OP_STRING, m_cfg.get_def_id(), string->get_type(), { string });
 }
 
-Instruction* Builder::build_load(Type* type, Value* source, uint16_t alignment) {
+Instruction* Builder::build_load(Type* type, Value* source) {
     assert(type && "type cannot be null!");
     assert(source && "source cannot be null!");
     assert(source->get_type()->is_pointer_type() && "source must be a pointer!");
+
+    uint16_t alignment = m_cfg.get_machine().get_align(type);
 
     return insert(
         OP_LOAD, 
@@ -51,11 +53,13 @@ Instruction* Builder::build_load(Type* type, Value* source, uint16_t alignment) 
         { .alignment = alignment });
 }
 
-Instruction* Builder::build_store(Value* value, Value* dest, uint16_t alignment) {
+Instruction* Builder::build_store(Value* value, Value* dest) {
     assert(value && "value cannot be null!");
     assert(dest && "dst cannot be null!");
     assert(dest->get_type()->is_pointer_type() && "dest must be a pointer!");
     
+    uint16_t alignment = m_cfg.get_machine().get_align(value->get_type());
+
     return insert(
         OP_STORE, 
         0, 

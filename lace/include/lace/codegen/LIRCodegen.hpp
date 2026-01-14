@@ -7,13 +7,14 @@
 #define LOVELACE_CODEGEN_H_
 
 //
-//  This header file declares the Codegen class, whom instances thereof 
+//  This header file declares the LIRCodegen class, whom instances thereof 
 //  generate LIR code from a valid abstract syntax tree.
 //
 
 #include "lace/core/Options.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Expr.hpp"
+#include "lace/tree/Stmt.hpp"
 #include "lace/tree/Type.hpp"
 #include "lace/tree/Visitor.hpp"
 
@@ -23,133 +24,142 @@
 #include "lir/graph/Function.hpp"
 #include "lir/machine/Machine.hpp"
 
-#include <cstdint>
-
 namespace lace {
 
-class Codegen final : public Visitor {
-    /// The different contexts for a value.
-    enum ValueContext : uint8_t {
-        LValue, RValue
-    };
-
-    /// The different phases of code generation.
-    enum Phase : uint8_t {
-        Declare, Define
-    };
-
-    /// The different kinds of addition operators.
-    enum class AddOp : uint8_t {
-        Add, Sub
-    };
-
-    /// The different kinds of multiplication operators.
-    enum class MulOp : uint8_t {
-        Mul, Div, Mod
-    };
-
-    /// The different kinds of bitwise arithmetic operators.
-    enum class BitwiseOp : uint8_t {
-        And, Or, Xor
-    };
-
-    /// The different kinds of bitwise shift operators.
-    enum class ShiftOp : uint8_t {
-        LShift, RShift
-    };
-
-    /// The different kinds of numerical comparison operators.
-    enum class CmpOp : uint8_t {
-        Eq, NEq, Lt, LtEq, Gt, GtEq
-    };
-
+class LIRCodegen final {
     const Options& m_options;
     const lir::Machine& m_mach;
 
-    Phase m_phase = Declare;
-    ValueContext m_vctx = RValue;
-
+    const AST* m_ast;
     lir::CFG& m_cfg;
     lir::Builder m_builder;
-    lir::Function* m_function = nullptr;
-    lir::Value* m_temp = nullptr;
-    lir::Value* m_place = nullptr;
-    lir::BasicBlock* m_cnd = nullptr;
-    lir::BasicBlock* m_mrg = nullptr;
+    lir::Function* m_func = nullptr;
+    lir::BasicBlock* m_parent_cond = nullptr;
+    lir::BasicBlock* m_parent_merge = nullptr;
 
-    lir::Function* get_intrinsic(const std::string& name, lir::Type* ret, 
-                                 const std::vector<lir::Type*>& params = {});
+public:
+    LIRCodegen(const Options& options, const AST* ast, lir::CFG& cfg);
 
-    /// Lower the given |type| to an LIR equivelant, where applicable.
-    lir::Type* lower_type(const QualType& type);
+    /// Run the code generation process.
+    void run();
+
+private:
+    /// Lower the given lace |type| to its LIR equivelant, where possible.
+    lir::Type* to_lir_type(const QualType& type);
 
     /// Attempt to inject a boolean comparison unto the given |value|, such
     /// that the result is some form of comparison of a boolean type.
-    lir::Value* inject_bool_comparison(lir::Value* value);
+    ///
+    /// Ultimately, the type of the returned value will be a 1-bit integer 
+    /// representation a.k.a boolean.
+    lir::Value* inject_comparison(lir::Value* value);
 
-    void declare_ir_global(VariableDefn& node);
-    void define_ir_global(VariableDefn& node);
+    /// Generate an empty lowering for the given |defn|.
+    void codegen_initial_definition(const Defn* defn);
 
-    void declare_ir_function(FunctionDefn& node);
-    void define_ir_function(FunctionDefn& node);
+    /// Generate the body for the given |defn|. Assumes that the definition has
+    /// been lowered already, and exists by name in the graph.
+    void codegen_lowered_definition(const Defn* defn);
 
-    void declare_ir_structure(StructDefn& node);
-    void define_ir_structure(StructDefn& node);
+    lir::Function* codegen_initial_function(const FunctionDefn* defn);
+    lir::Function* codegen_lowered_function(const FunctionDefn* defn);
 
-    void codegen_assignment(BinaryOp& node);
-    void codegen_addition(BinaryOp& node, AddOp op);
-    void codegen_multiplication(BinaryOp& node, MulOp op);
-    void codegen_bitwise_arithmetic(BinaryOp& node, BitwiseOp op);
-    void codegen_bitwise_shift(BinaryOp& node, ShiftOp op);
-    void codegen_numerical_comparison(BinaryOp& node, CmpOp op);
-    void codegen_logical_and(BinaryOp& node);
-    void codegen_logical_or(BinaryOp& node);
+    lir::Global* codegen_initial_global(const VariableDefn* defn);
+    lir::Global* codegen_lowered_global(const VariableDefn* defn);
 
-    void codegen_negate(UnaryOp& node);
-    void codegen_bitwise_not(UnaryOp& node);
-    void codegen_logical_not(UnaryOp& node);
-    void codegen_address_of(UnaryOp& node);
-    void codegen_dereference(UnaryOp& node);
+    lir::StructType* codegen_initial_struct(const StructDefn* defn);
+    lir::StructType* codegen_lowered_struct(const StructDefn* defn);
 
-    void codegen_cast_integer(lir::Value* value, lir::Type* dest, bool is_signed);
-    void codegen_cast_float(lir::Value* value, lir::Type* dest);
-    void codegen_cast_array(lir::Value* value, lir::Type* dest);
-    void codegen_cast_pointer(lir::Value* value, lir::Type* dest);
+    /// Generate a LIR local for the given local variable |defn|.
+    lir::Local* codegen_local_variable(const VariableDefn* defn);
 
-public:
-    Codegen(const Options& options, lir::CFG& cfg);
+    /// Generate a value (rvalue) for the given |expr|.
+    lir::Value* codegen_valued_expression(const Expr* expr);
 
-    void visit(AST& ast) override;
+    /// Generate an address (lvalue) for the given |expr|.
+    lir::Value* codegen_addressed_expression(const Expr* expr);
 
-    void visit(VariableDefn& node) override;
-    void visit(FunctionDefn& node) override;
-    void visit(StructDefn& node) override;
+    lir::Value* codegen_addressed_access(const AccessExpr* expr);
+    lir::Value* codegen_valued_access(const AccessExpr* expr);
 
-    void visit(AdapterStmt& node) override;
-    void visit(BlockStmt& node) override;
-    void visit(IfStmt& node) override;
-    void visit(RestartStmt& node) override;
-    void visit(RetStmt& node) override;
-    void visit(StopStmt& node) override;
-    void visit(UntilStmt& node) override;
+    lir::Value* codegen_addressed_reference(const RefExpr* expr);
+    lir::Value* codegen_valued_reference(const RefExpr* expr);
 
-    void visit(BoolLiteral& node) override;
-    void visit(CharLiteral& node) override;
-    void visit(IntegerLiteral& node) override;
-    void visit(FloatLiteral& node) override;
-    void visit(NullLiteral& node) override;
-    void visit(StringLiteral& node) override;
+    lir::Value* codegen_addressed_subscript(const SubscriptExpr* expr);
+    lir::Value* codegen_valued_subscript(const SubscriptExpr* expr);
 
-    void visit(BinaryOp& node) override;
-    void visit(UnaryOp& node) override;
+    lir::Value* codegen_addressed_dereference(const UnaryOp* expr);
+    lir::Value* codegen_valued_dereference(const UnaryOp* expr);
 
-    void visit(AccessExpr& node) override;
-    void visit(CallExpr& node) override;
-    void visit(CastExpr& node) override;
-    void visit(ParenExpr& node) override;
-    void visit(RefExpr& node) override;
-    void visit(SizeofExpr& node) override;
-    void visit(SubscriptExpr& node) override;
+    /// Generate an assignment '=' expression. Returns the valued right operand.
+    lir::Value* codegen_assignment(const BinaryOp* expr);
+
+    /// Generate an add '+' or subtract '-' expression. Returns the resulting 
+    /// value.
+    lir::Value* codegen_addition(const BinaryOp* expr);
+
+    /// Generate a multiply '*' expression. Returns the resulting value.
+    lir::Value* codegen_multiply(const BinaryOp* expr);
+
+    /// Generate a division '/' or modulo '%' expression. Returns the resulting 
+    /// value.
+    lir::Value* codegen_division(const BinaryOp* expr);
+
+    /// Generate a bitwise arithmetic expression, in particular one of the
+    /// '&', '|', '^' operators. Returns the resulting value.
+    lir::Value* codegen_bitwise_arithmetic(const BinaryOp* expr);
+
+    /// Generate a bit shift '<<', '>>' expression. Returns the resulting value.
+    lir::Value* codegen_bit_shift(const BinaryOp* expr);
+
+    /// Generate a numerical comparison expression. Returns the resulting 
+    /// boolean value.
+    lir::Value* codegen_numerical_comparison(const BinaryOp* expr);
+
+    /// Generate a logical and '&&' expression. Returns the value that is the 
+    /// result of the control flow.
+    lir::Value* codegen_logical_and(const BinaryOp* expr);
+
+    /// Generate a logical or '||' expression. Returns the value that is the 
+    /// result of the control flow.
+    lir::Value* codegen_logical_or(const BinaryOp* expr);
+
+    /// Generate a negation '-' expression. Returns the resulting value.
+    lir::Value* codegen_negation(const UnaryOp* expr);
+
+    /// Generate a bitwise not '~' expression. Returns the resulting value.
+    lir::Value* codegen_bitwise_not(const UnaryOp* expr);
+
+    /// Generate a logical not '!' expression. Returns the resulting value.
+    lir::Value* codegen_logical_not(const UnaryOp* expr);
+
+    /// Generate an address-of '&' expression. Returns the resulting value.
+    lir::Value* codegen_address_of(const UnaryOp* expr);
+
+    lir::Value* codegen_literal_boolean(const BoolLiteral* expr);
+    lir::Value* codegen_literal_integer(const IntegerLiteral* expr);
+    lir::Value* codegen_literal_character(const CharLiteral* expr);
+    lir::Value* codegen_literal_float(const FloatLiteral* expr);
+    lir::Value* codegen_literal_null(const NullLiteral* expr);
+    lir::Value* codegen_literal_string(const StringLiteral* expr);
+
+    lir::Value* codegen_type_cast(const CastExpr* expr);
+    lir::Value* codegen_function_call(const CallExpr* expr);
+    lir::Value* codegen_parentheses(const ParenExpr* expr);
+    lir::Value* codegen_sizeof(const SizeofExpr* expr);
+
+    /// Generate code for an arbitrary |stmt|.
+    void codegen_statement(const Stmt* stmt);
+    
+    void codegen_adapter(const AdapterStmt* stmt);
+    void codegen_block(const BlockStmt* stmt);
+    
+    void codegen_if(const IfStmt* stmt);
+    void codegen_until(const UntilStmt* stmt);
+
+    void codegen_restart(const RestartStmt* stmt);
+    void codegen_stop(const StopStmt* stmt);
+    void codegen_return(const RetStmt* stmt);
 };
 
 } // namespace lace
