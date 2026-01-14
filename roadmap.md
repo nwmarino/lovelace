@@ -28,4 +28,3 @@ Runes
 - Add printing policies for LIR values.
 - Add debug comments to machine representation, that are printed from LIR.
 - Add line debugging symbols to assembly output.
-- Make the diagnostics logger thread-safe.

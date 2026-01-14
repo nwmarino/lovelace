@@ -369,7 +369,7 @@ int32_t main(int32_t argc, char** argv) {
     options.threads = 1;
 
     options.debug = true;
-    options.multithread = false;
+    options.multithread = true;
     options.time = true;
     options.verbose = true;
     options.version = true;
@@ -463,9 +463,15 @@ int32_t main(int32_t argc, char** argv) {
         assert(pool);
 
         for (InputFile& f : files) {
-            pool->push([&f] {
+            pool->push([&f, options] {
+                if (options.verbose)
+                    log::note("parsing file: " + f.file);
+
                 Parser parser(read_file(f.file), f.file);
                 f.ast = parser.parse();
+
+                if (options.verbose)
+                    log::note("finishing parsing for: " + f.file);
             });
         }
 
