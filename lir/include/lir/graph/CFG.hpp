@@ -35,6 +35,7 @@ class CFG final {
     friend class Null;
     friend class String;
     friend class BlockAddress;
+    friend class Aggregate;
 
     using Functions = std::map<std::string, Function*>;
     using Globals = std::map<std::string, Global*>;
@@ -56,6 +57,7 @@ class CFG final {
     using NullPool = std::unordered_map<const Type*, Null*>;
     using StringPool = std::unordered_map<std::string, String*>;
     using AddressPool = std::unordered_map<const BasicBlock*, BlockAddress*>;
+    using AggregatePool = std::vector<Aggregate*>;
 
     const Machine& m_mach;
 
@@ -86,6 +88,7 @@ class CFG final {
         NullPool nulls = {};
         StringPool strings = {};
         AddressPool addresses = {};
+        AggregatePool aggregates = {};
     } m_constants;
 
 public:

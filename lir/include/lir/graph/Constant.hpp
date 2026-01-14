@@ -24,7 +24,7 @@ class CFG;
 /// are comprised of constant operands.
 class Constant : public User {
 protected:
-    Constant(Type* type, std::initializer_list<Value*> ops = {}) 
+    Constant(Type* type, const std::vector<Value*>& ops = {}) 
       : User(type, ops) {}
 
 public:
@@ -132,6 +132,35 @@ public:
 
     const BasicBlock* get_block() const { return m_block; }
     BasicBlock* get_block() { return m_block; }
+
+    void print(std::ostream& os) const override;
+};
+
+/// An aggregate of constant values.
+class Aggregate final : public Constant {
+    friend class CFG;
+
+    Aggregate(Type* type, const std::vector<Value*>& values)
+      : Constant(type, values) {}
+
+public:
+    /// Create a new aggregate of the given |values|.
+    static Constant* get(CFG& cfg, Type* type, 
+                         const std::vector<Constant*>& values = {});
+
+    const Constant* get_value(uint32_t i) const {
+        assert(i < num_operands() && "index out of bounds!");
+        assert(dynamic_cast<const Constant*>(get_operand(i)->get_value()));
+        
+        return static_cast<const Constant*>(get_operand(i)->get_value());
+    }
+
+    Constant* get_value(uint32_t i) {
+        assert(i < num_operands() && "index out of bounds!");
+        assert(dynamic_cast<Constant*>(get_operand(i)->get_value()));
+        
+        return static_cast<Constant*>(get_operand(i)->get_value());
+    }
 
     void print(std::ostream& os) const override;
 };

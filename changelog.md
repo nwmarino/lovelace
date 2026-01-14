@@ -8,3 +8,5 @@
 that isn't a parameter or variable reference.
 
 ## LIR
+
+- Add aggregate constant values.

@@ -444,3 +444,16 @@ void Null::print(std::ostream& os) const {
 void String::print(std::ostream& os) const {
     os << std::format("\"{}\"", m_value);
 }
+
+void Aggregate::print(std::ostream& os) const {
+    os << "{";
+
+    for (uint32_t i = 0, e = num_operands(); i < e; ++i) {
+        get_value(i)->print(os);
+        
+        if (i + 1 != e)
+            os << ", ";
+    }
+
+    os << std::format("}}: {}", get_type()->to_string());
+}

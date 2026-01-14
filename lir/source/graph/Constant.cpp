@@ -153,3 +153,13 @@ Constant* BlockAddress::get(CFG& cfg, BasicBlock* block) {
     cfg.m_constants.addresses.emplace(block, addr);
     return addr;
 }
+
+Constant* Aggregate::get(CFG& cfg, Type* type, const std::vector<Constant*>& values) {
+    std::vector<Value*> vs(values.begin(), values.end());
+    
+    Aggregate* agg = new Aggregate(type, vs);
+    assert(agg);
+
+    cfg.m_constants.aggregates.push_back(agg);
+    return agg;
+}
