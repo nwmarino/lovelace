@@ -8,7 +8,7 @@
 //  library functions. It can be compiled using an ordinary C compiler, but
 //  requires special flags to waive away special libc things:
 //
-//  clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -c rt.c
+//  clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -c
 //
 
 void __attribute__((naked)) _start(void) {

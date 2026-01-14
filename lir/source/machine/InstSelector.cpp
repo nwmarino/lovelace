@@ -307,7 +307,7 @@ MachOperand InstSelector::as_operand(const Value* value) {
     } 
     else if (const BlockAddress* block = dynamic_cast<const BlockAddress*>(value)) 
     {
-        // @Revise: change to adjust for position changes in the blocks of
+        // @Todo: change to adjust for position changes in the blocks of
         // machine functions. Specifically, if blocks change positions or
         // numbering during lowering, this breaks.
         return MachOperand::create_label(
@@ -474,7 +474,7 @@ void InstSelector::select_abort(const Instruction* inst) {
 }
 
 void InstSelector::select_unreachable(const Instruction* inst) {
-    // @Revise: could do more.
+    // @Todo: could do more here.
     emit(X64_Mnemonic::UD2);
 }
 
@@ -499,7 +499,7 @@ void InstSelector::select_load_store(const Instruction* inst) {
         if (source.get_mem_base().is_physical()) {
             source.set_is_use(true);
 
-            // @Unknown
+            // @Todo: what is the point of this...
             if (dynamic_cast<const Function::Arg*>(inst->get_operand(0)))
                 source.set_is_kill(true);
         }
@@ -509,7 +509,7 @@ void InstSelector::select_load_store(const Instruction* inst) {
         if (source.is_reg() && source.get_reg().is_physical()) {
             source.set_is_use(true);
 
-            // @Unknown
+            // @Todo: what is the point of this...
             if (dynamic_cast<const Function::Arg*>(inst->get_operand(0)))
                 source.set_is_kill(true);
         } else if (source.is_symbol() || source.is_mem() || 
@@ -1106,7 +1106,7 @@ void InstSelector::select_iadd(const Instruction* inst) {
         rhs = tmp;
     }
 
-    // @Revise: a lot of x64 arithmetic operations implicitly kill values, but
+    // @Todo: a lot of x64 arithmetic operations implicitly kill values, but
     // whether that information is needed for register liveness is kind of on
     // the fence. Keeping for future reference.
     // 

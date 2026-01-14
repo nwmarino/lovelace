@@ -7,7 +7,7 @@
 //  This source file defines a small arena allocator fur dynamically allocating
 //  formatted strings at runtime.
 //
-//  clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -O2 -c fmt.c
+//  clang -ffreestanding -fno-stack-protector -fno-builtin -nostdlib -O2 -c
 //
 
 extern void* mem_alloc(unsigned long);

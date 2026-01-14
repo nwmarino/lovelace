@@ -7,7 +7,6 @@ Runes
 - Per-field destruction
 - Allocator
 - Format strings
-
 - Inline assembly
 - Unnamed Enums
 - Unions
@@ -31,7 +30,13 @@ same with function args
 
 add aggregate initializers
 
+restructure LIR code generation to be inline with the LLVM code generator
+
 add comments to machine representation, that are printed from lir
 
+add line debugging symbols
+
 even though refs can be used as lvalues, make sure a reference to constants 
-like enum variants isnt an lvalue.
+like enum variants isnt used as an lvalue.
+
+thread-safe logger

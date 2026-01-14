@@ -2,9 +2,9 @@
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "lovelace",
 	"fileTypes": [
-		"stm"
+		"lace"
 	],
-	"scopeName": "source.stm",
+	"scopeName": "source.lace",
 	"patterns": [
 		{ "include": "#translation_unit" }
     ],
@@ -343,26 +343,7 @@
 		},
 
 		"types": {
-			"patterns": [
-				{
-					"name": "support.type.builtin.lovelace",
-					"match": "(\\*)*\\b(?:void|bool|char|u8|u16|u32|u64|s8|s16|s32|s64|f32|f64)\\b",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.pointer.lovelace"
-						}
-					}
-				},
-				{
-					"name": "support.type.custom.lovelace",
-					"match": "(\\*+)?\\b[A-Z][A-Za-z0-9_]*\\b",
-					"captures": {
-						"1": {
-							"name": "storage.modifier.pointer.lovelace"
-						}
-					}
-				}
-			]
-		}
+			"patterns": []
+			}
     }
 }
