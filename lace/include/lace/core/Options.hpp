@@ -29,7 +29,10 @@ struct Options final {
 
     std::string output; //< (-o) The name of the output file.
     OptLevel opt;       //< (-O0/-O1/-O2/-O3/-Os) The optimization level.
+    uint32_t threads;       //< (-j) Number of threads to use, overriden. 
+
     bool debug;         //< (-g) If debugging symbols should be added.
+    bool multithread;   //< (-mt) If multithreading should be used.
     bool time;          //< (-t) If pipeline stages should be timed.
     bool verbose;       //< (-b) If extra notes should be logged.
     bool version;       //< (-v) If the version should be printed.

@@ -6,6 +6,7 @@
 #include "lace/codegen/LIRCodegen.hpp"
 #include "lace/codegen/LLVMCodegen.hpp"
 #include "lace/core/Diagnostics.hpp"
+#include "lace/core/ThreadPool.hpp"
 #include "lace/core/Options.hpp"
 #include "lace/parser/Parser.hpp"
 #include "lace/tools/Files.hpp"
@@ -46,6 +47,7 @@
 #include <functional>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -59,6 +61,14 @@ using namespace std::filesystem;
 using Asts = std::unordered_set<AST*>;
 using DepTable = std::unordered_map<AST*, Asts>;
 using FileTable = std::unordered_map<std::string, AST*>;
+
+struct InputFile final {
+    std::string file;
+    AST* ast;
+
+    InputFile(const std::string& file, AST* ast = nullptr) 
+      : file(file), ast(ast) {}
+};
 
 /// A mapping between the absolute path of an input file and its parsed AST.
 static FileTable g_files = {};
@@ -356,7 +366,10 @@ int32_t main(int32_t argc, char** argv) {
     Options options;
     options.output = "main";
     options.opt = Options::OptLevel::None;
+    options.threads = 1;
+
     options.debug = true;
+    options.multithread = false;
     options.time = true;
     options.verbose = true;
     options.version = true;
@@ -370,23 +383,37 @@ int32_t main(int32_t argc, char** argv) {
         log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + '.' + 
             std::to_string(LACE_VERSION_MINOR));
 
-    std::vector<std::string> files = {
-        "/home/statim/samples/return_zero.lace",
-        "/home/statim/samples/integer_arithmetic.lace",
-        "/home/statim/samples/casting.lace",
-        "/home/statim/samples/if.lace",
-        "/home/statim/samples/until_loop.lace",
-        "/home/statim/samples/functions.lace",
+    std::vector<InputFile> files = {
+        InputFile("/home/statim/samples/return_zero.lace"),
+        InputFile("/home/statim/samples/integer_arithmetic.lace"),
+        InputFile("/home/statim/samples/casting.lace"),
+        InputFile("/home/statim/samples/if.lace"),
+        InputFile("/home/statim/samples/until_loop.lace"),
+        InputFile("/home/statim/samples/functions.lace"),
+        InputFile("/home/statim/samples/structs.lace"),
+        InputFile("/home/statim/samples/enums.lace"),
 
-        "/home/statim/lace/samples/A.lace", 
-        "/home/statim/lace/samples/linux.lace",
-        "/home/statim/lace/samples/mem.lace",
+        InputFile("/home/statim/lace/samples/A.lace"), 
+        InputFile("/home/statim/lace/samples/linux.lace"),
+        InputFile("/home/statim/lace/samples/mem.lace"),
     };
 
     for (int32_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
-        if (arg == "-o") {
+        if (arg == "-mt") {
+            options.multithread = true;
+        } else if (arg == "-j") {
+            if (i + 1 == argc)
+                log::fatal("expected number after -j");
+
+            int32_t threads = std::stoi(argv[++i]);
+            if (threads <= 0)
+                log::fatal("thread count must be a positive number, got " 
+                    + std::to_string(threads));
+
+            options.threads = static_cast<uint32_t>(threads);
+        } else if (arg == "-o") {
             if (i + 1 == argc)
                 log::fatal("expected filename after -o");
 
@@ -404,21 +431,63 @@ int32_t main(int32_t argc, char** argv) {
 
     log::flush();
 
-    Asts asts = {};
-    asts.reserve(files.size());
+    if (options.multithread) {
+        const uint32_t supported_threads = std::thread::hardware_concurrency(); 
 
-    for (const std::string& file : files) {
-        if (options.verbose)
-            log::note("parsing file: " + file);
+        if (options.threads == 1) {
+            // If no -j was provided, then take the larger of 1 and the 
+            // detected thread count.
+            options.threads = std::max(1u, supported_threads);
+        } else {
+            // A -j was provided, but if it's larger than the number of threads 
+            // supported, then use only what's available.
+            options.threads = std::min(options.threads, supported_threads);
+        }
 
-        Parser parser(read_file(file), file);
-        asts.insert(parser.parse());
-        
+        // No point in us using more threads than there are files.
+        options.threads = std::min(options.threads, 
+            static_cast<uint32_t>(files.size()));
+    }
+
+    ThreadPool* pool = nullptr;
+    if (options.multithread) {
+        pool = new ThreadPool(options.threads);
+        assert(pool);
+
         if (options.verbose)
-            log::note("finishing parsing for: " + file);
+            log::note("using " + std::to_string(options.threads) + " threads");
+    }
+
+    if (options.multithread) {
+        assert(pool);
+
+        for (InputFile& f : files) {
+            pool->push([&f] {
+                Parser parser(read_file(f.file), f.file);
+                f.ast = parser.parse();
+            });
+        }
+
+        pool->wait();
+    } else {
+        for (InputFile& f : files) {
+            if (options.verbose)
+                log::note("parsing file: " + f.file);
+
+            Parser parser(read_file(f.file), f.file);
+            f.ast = parser.parse();
+            
+            if (options.verbose)
+                log::note("finishing parsing for: " + f.file);
+        }
     }
 
     log::flush();
+
+    Asts asts = {};
+    asts.reserve(files.size());
+    for (InputFile& file : files)
+        asts.insert(file.ast);
 
     setup_file_table(asts);
 

@@ -1,0 +1,9 @@
+LIR_CONTROL_FLOW_GRAPH "/home/statim/samples/enums.lace"
+
+main :: external () -> i64 {
+	yellow := i64 |8
+bb0:
+	store 42: i64, yellow: *i64
+	$1 = load yellow: *i64 |8
+	ret $1: i64
+}

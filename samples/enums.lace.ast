@@ -1,0 +1,15 @@
+AST "/home/statim/samples/enums.lace"
+  Enum <1:1, 1:1> Colors
+    Variant <2:5, 2:5> Red 'Colors'
+    Variant <3:5, 3:5> Blue 'Colors'
+    Variant <4:5, 4:5> Yellow 'Colors'
+    Variant <5:5, 5:5> Orange 'Colors'
+    Variant <6:5, 6:5> Green 'Colors'
+  Function <10:1, 10:1> main '() -> s64'
+    Block <10:19, 10:19>
+      Adapter <11:5, 11:5>
+        Variable <11:5, 11:5> yellow 'Colors'
+          Ref <11:26, 11:26> Yellow 'mut Colors'
+      Ret <12:5, 12:5>
+        Cast <12:9, 12:9> 's64'
+          Ref <12:9, 12:9> yellow 'Colors'
