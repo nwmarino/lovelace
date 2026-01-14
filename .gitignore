@@ -22,8 +22,6 @@ lib/
 dump
 main
 vgcore.*
-*.stm.o
-*.stm.s
-std/*.s
-std/*.ll
+*.lovelace.o
+*.lovelace.s
 legacy/

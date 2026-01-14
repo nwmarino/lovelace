@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/statim/lace
+cd /home/lovelace/lace
 ./lace
 cd samples/
 as A.lace.s -o A.lace.o

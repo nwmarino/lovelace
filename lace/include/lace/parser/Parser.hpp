@@ -20,7 +20,7 @@
 
 namespace lace {
 
-/// Definition of a parser for a statim translation unit into a syntax tree.
+/// Definition of a parser for a lace translation unit into a syntax tree.
 class Parser final {
     using Tokens = std::vector<Token>;
 
