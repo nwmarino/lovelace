@@ -621,8 +621,11 @@ void AsmWriter::emit_global(std::ostream& os, const Global& global) {
        << "\t.size\t" << global.get_name() << ", " << size << '\n'
        << global.get_name() << ":\n";
 
-    if (init)
+    if (init) {
         emit_constant(os, *init);
+    } else {
+        os << std::format("\t.zero\t{}\n", size);
+    }
 }
 
 void AsmWriter::run(std::ostream& os) {

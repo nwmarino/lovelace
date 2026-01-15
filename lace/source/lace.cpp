@@ -385,20 +385,7 @@ int32_t main(int32_t argc, char** argv) {
             std::to_string(LACE_VERSION_MINOR));
 
     std::vector<InputFile> files = {
-        InputFile("/home/lovelace/samples/return_zero.lace"),
-        InputFile("/home/lovelace/samples/integer_arithmetic.lace"),
-        InputFile("/home/lovelace/samples/casting.lace"),
-        InputFile("/home/lovelace/samples/if.lace"),
-        InputFile("/home/lovelace/samples/until_loop.lace"),
-        InputFile("/home/lovelace/samples/functions.lace"),
-        InputFile("/home/lovelace/samples/structs.lace"),
-        InputFile("/home/lovelace/samples/enums.lace"),
-        InputFile("/home/lovelace/samples/arrays.lace"),
-        InputFile("/home/lovelace/samples/pointer_arith.lace"),
-
-        InputFile("/home/lovelace/lace/samples/A.lace"), 
-        InputFile("/home/lovelace/lace/samples/linux.lace"),
-        InputFile("/home/lovelace/lace/samples/mem.lace"),
+        
     };
 
     for (int32_t i = 1; i < argc; ++i) {
