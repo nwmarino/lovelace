@@ -380,19 +380,36 @@ int32_t main(int32_t argc, char** argv) {
 
     log::init();
 
-    if (options.version)
-        log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + '.' + 
-            std::to_string(LACE_VERSION_MINOR));
-
-    std::vector<InputFile> files = {
-        
-    };
+    std::vector<InputFile> files = {};
 
     for (int32_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
-        if (arg == "-mt") {
-            options.multithread = true;
+        if (arg == "-b") {
+            options.verbose = true;
+        } else if (arg == "-g") {
+            options.debug = true;
+        } else if (arg == "-t") {
+            options.time = true;
+        } else if (arg == "-v") {
+            log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + "." + 
+                std::to_string(LACE_VERSION_MINOR));
+        } else if (arg == "-O0") {
+            options.opt = Options::OptLevel::None;
+        } else if (arg == "-O1") {
+            options.opt = Options::OptLevel::Few;
+        } else if (arg == "-O2") {
+            options.opt = Options::OptLevel::Default;
+        } else if (arg == "-O3") {
+            options.opt = Options::OptLevel::Many;
+        } else if (arg == "-Os") {
+            options.opt = Options::OptLevel::Space;
+        } else if (arg == "-st") {
+            options.multithread = false;
+        } else if (arg == "-dump-ast") {
+            options.print_tree = true;
+        } else if (arg == "-dump-ir") {
+            options.print_ir = true;
         } else if (arg == "-j") {
             if (i + 1 == argc)
                 log::fatal("expected number after -j");
