@@ -186,7 +186,7 @@ uint32_t BasicBlock::size() const {
     return size;
 }
 
-uint32_t BasicBlock::get_number() const {
+uint32_t BasicBlock::position() const {
     assert(m_parent && "block does not belong to a function!");
 
     uint32_t num = 0;

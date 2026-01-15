@@ -209,8 +209,6 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
             file.close();
         }
 
-        continue; // @Todo: remove.
-
         lir::Segment seg(cfg);
 
         lir::LoweringPass lowering(cfg, seg);
@@ -219,13 +217,16 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
         lir::RegisterAnalysis rega(seg);
         rega.run();
 
-        std::ofstream out(ast->get_file() + ".s");
-        if (!out || !out.is_open())
+        std::ofstream as(ast->get_file() + ".s");
+        if (!as || !as.is_open())
             log::fatal("failed to open: " + ast->get_file() + ".s");
 
         lir::AsmWriter writer(seg);
-        writer.run(out);
-        out.close();
+        writer.run(as);
+        as.close();
+
+        std::string assembler = "as " + ast->get_file() + ".s -o " + ast->get_file() + ".o";
+        std::system(assembler.c_str());
     }
 }
 
@@ -393,6 +394,7 @@ int32_t main(int32_t argc, char** argv) {
         InputFile("/home/lovelace/samples/structs.lace"),
         InputFile("/home/lovelace/samples/enums.lace"),
         InputFile("/home/lovelace/samples/arrays.lace"),
+        InputFile("/home/lovelace/samples/pointer_arith.lace"),
 
         InputFile("/home/lovelace/lace/samples/A.lace"), 
         InputFile("/home/lovelace/lace/samples/linux.lace"),

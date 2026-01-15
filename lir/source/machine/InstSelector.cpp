@@ -18,6 +18,7 @@
 #include "lir/machine/InstSelector.hpp"
 
 #include <string>
+#include <sstream>
 
 using namespace lir;
 
@@ -293,9 +294,10 @@ MachOperand InstSelector::as_operand(const Value* value) {
         uint32_t const_index = m_func.get_constant_pool().get_or_create_constant(
             fp, m_mach.get_align(value->get_type()));
 
-        emit(X64_Mnemonic::MOV, as_size(value->get_type()))
+        emit(X64_Mnemonic::MOVS, as_size(value->get_type()))
             .add_constant(const_index)
-            .add_operand(reg);
+            .add_operand(reg)
+            .add_comment("use fp (" + std::to_string(fp->get_value()) + ")");
 
         reg.set_is_use();
         return reg;
@@ -310,7 +312,7 @@ MachOperand InstSelector::as_operand(const Value* value) {
         // machine functions. Specifically, if blocks change positions or
         // numbering during lowering, this breaks.
         return MachOperand::create_label(
-            m_func.at(block->get_block()->get_number()));
+            m_func.at(block->get_block()->position()));
     } 
     else if (auto global = dynamic_cast<const Global*>(value)) 
     {
@@ -373,6 +375,12 @@ MachOperand InstSelector::as_argument(const Value* value, uint32_t index) const 
         reg, get_subregister(value->get_type()), true);
 }
 
+std::string InstSelector::get_asm_comment(const Instruction* inst) const {
+    std::stringstream ss;
+    inst->print(ss, PrintPolicy::Def);
+    return ss.str();
+}
+
 MachInst& InstSelector::emit(X64_Mnemonic op, X64_Size size, 
                              const MachInst::Operands& ops, bool before_terms) {
     assert(m_insert && "no insertion point set!");
@@ -404,6 +412,8 @@ void InstSelector::select(const Instruction* inst) {
         case OP_LOAD:
         case OP_STORE:
             return select_load_store(inst);
+        case OP_PWALK:
+            return select_pwalk(inst);
         case OP_STRING:
             return select_string(inst);
         case OP_CALL:
@@ -463,18 +473,20 @@ void InstSelector::select(const Instruction* inst) {
             return select_cast_p2i(inst);
         case OP_REINT:
             return select_cast_reinterpret(inst);
-        case OP_PWALK:
-            return;
+        default:
+            assert(false && "unknown mnemonic!");
     }
 }
 
 void InstSelector::select_abort(const Instruction* inst) {
-    emit(X64_Mnemonic::UD2);
+    emit(X64_Mnemonic::UD2)
+        .add_comment("abort");
 }
 
 void InstSelector::select_unreachable(const Instruction* inst) {
     // @Todo: could do more here.
-    emit(X64_Mnemonic::UD2);
+    emit(X64_Mnemonic::UD2)
+        .add_comment("unreachable");
 }
 
 void InstSelector::select_load_store(const Instruction* inst) {
@@ -488,6 +500,7 @@ void InstSelector::select_load_store(const Instruction* inst) {
         type = inst->get_operand(0)->get_type();
     }
 
+    bool emitted_comment = false;
     MachOperand source = as_operand(inst->get_operand(0));
     if (inst->op() == OP_LOAD && source.is_reg()) {
         // The pointer to load from is in a register, e.g. the result of a
@@ -504,6 +517,10 @@ void InstSelector::select_load_store(const Instruction* inst) {
         }
     }
 
+    X64_Mnemonic op = X64_Mnemonic::MOV;
+    if (type->is_float_type())
+        op = X64_Mnemonic::MOVS;
+
     if (inst->op() == OP_STORE) {
         if (source.is_reg() && source.get_reg().is_physical()) {
             source.set_is_use(true);
@@ -519,7 +536,10 @@ void InstSelector::select_load_store(const Instruction* inst) {
             MachOperand tmp = MachOperand::create_reg(
                 RAX, get_subregister(type), true);
 
-            emit(X64_Mnemonic::LEA, X64_Size::Quad, { source, tmp });
+            emit(X64_Mnemonic::LEA, X64_Size::Quad, { source, tmp })
+                .add_comment(get_asm_comment(inst));
+
+            emitted_comment = true;
 
             // Now the source of the store can be considered tmp i.e. in %rax,
             // and the next use will kill the value in it.
@@ -539,117 +559,100 @@ void InstSelector::select_load_store(const Instruction* inst) {
                 dest.set_is_use(true);
         }
 
-        emit(X64_Mnemonic::MOV, as_size(type), { source, dest });
+        MachInst& move = emit(op, as_size(type), { source, dest });
+        
+        if (!emitted_comment)
+            move.add_comment(get_asm_comment(inst));
     } else {
-        emit(X64_Mnemonic::MOV, as_size(type), { source })
-            .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        emit(op, as_size(type), { source })
+            .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+            .add_comment(get_asm_comment(inst));
     }
 }
 
-void InstSelector::select_access(const Instruction* inst) {
+void InstSelector::select_pwalk(const Instruction* inst) {
+    assert(inst->num_operands() >= 2 && 
+        "pwalk expects a base and at least 1 index!");
+
     const Value* base = inst->get_operand(0);
-    assert(base->get_type()->is_pointer_type() && 
-        "OpAccess source must be a pointer!");
+    assert(base->get_type()->is_pointer_type());
 
-    const MachOperand source = as_operand(inst->get_operand(0));
-    const MachOperand dest = MachOperand::create_reg(as_register(inst), 8, true);
-    const X64_Mnemonic op = dynamic_cast<const Local*>(inst->get_operand(0))
-        ? X64_Mnemonic::LEA
-        : X64_Mnemonic::MOV;
-    const Type* pointee = 
-        static_cast<const PointerType*>(base->get_type())->get_pointee();
+    // Move the base pointer to the destination immediately.
+    MachOperand source = as_operand(base);
+    MachOperand dest = MachOperand::create_reg(as_register(inst), 8, true);
+    emit(source.is_reg() ? X64_Mnemonic::MOV : X64_Mnemonic::LEA, X64_Size::Quad)
+        .add_operand(source)
+        .add_operand(dest)
+        .add_comment(get_asm_comment(inst));
 
-    emit(op, X64_Size::Quad, { source, dest });
+    struct DynamicIndex {
+        const Value* index;
+        int64_t scale;
+    };
 
     int64_t offset = 0;
-    const Integer* index = dynamic_cast<const Integer*>(inst->get_operand(1));
-    assert(index && "index is not a constant integer!");
+    std::vector<DynamicIndex> dynamics = {};
+    const Type* curr_type = static_cast<const PointerType*>(
+        base->get_type());
 
-    // The index to access the base pointer at is a constant integer, so we
-    // determine the pointer by adding the necessary byte offset.
-    assert(pointee->is_struct_type() && "pointee is not a struct type!");
-    offset = m_mach.get_field_offset(
-        static_cast<const StructType*>(pointee), index->get_value());
+    for (uint32_t i = 1, e = inst->num_operands(); i < e; ++i) {
+        const Value* index = inst->get_operand(i);
+        auto integer = dynamic_cast<const Integer*>(index);
+    
+        if (curr_type->is_array_type()) {
+            auto array = static_cast<const ArrayType*>(curr_type);
+            int64_t scale = m_mach.get_size(array->get_element_type());
 
-    // Offset is zero, so no point adding it.
-    if (offset == 0)
-        return;
+            if (integer) {
+                offset += scale * integer->get_value();
+            } else {
+                dynamics.push_back({ index, scale });
+            }
 
-    emit(X64_Mnemonic::ADD, X64_Size::Quad)
-        .add_imm(offset)
-        .add_operand(dest);
-}
+            curr_type = array->get_element_type();
+        } else if (curr_type->is_pointer_type()) {
+            auto ptr = static_cast<const PointerType*>(curr_type);
+            int64_t scale = m_mach.get_size(ptr->get_pointee());
 
-void InstSelector::select_ap(const Instruction* inst) {
-    const Value* base = inst->get_operand(0);
-    assert(base->get_type()->is_pointer_type() && 
-        "OpAP source must be a pointer!");
+            if (integer) {
+                offset += scale * integer->get_value();
+            } else {
+                dynamics.push_back({ index, scale });
+            }
 
-    const MachOperand source = as_operand(inst->get_operand(0));
-    const MachOperand dest = MachOperand::create_reg(as_register(inst), 8, true);
-    const X64_Mnemonic op = dynamic_cast<const Local*>(inst->get_operand(0))
-        ? X64_Mnemonic::LEA
-        : X64_Mnemonic::MOV;
-    const Type* pointee = 
-        static_cast<const PointerType*>(base->get_type())->get_pointee();
-
-    emit(op, X64_Size::Quad, { source, dest });
-
-    int64_t offset = 0;
-    if (const Integer* integer = dynamic_cast<const Integer*>(inst->get_operand(1))) {
-        // The index to access the base pointer at is a constant integer, so we
-        // determine the pointer by adding the necessary byte offset.
-        offset = m_mach.get_size(pointee) * integer->get_value();
-
-        // Offset is zero, so no point adding it.
-        if (offset == 0)
-            return;
-
-        emit(X64_Mnemonic::ADD)
-            .add_imm(offset)
-            .add_operand(dest);
-    } else {
-        // The index is not necessarily known at compile-time, so we need to
-        // perform a bit of pointer arithmetic via multiplication.
-
-        // This switch determines the constant operand of the multiplication 
-        // i.e. the size of the pointee/element which the destination pointer 
-        // will point to.
-        //
-        // @Todo: test with nested pointers/arrays.
-        switch (pointee->get_class()) {
-            case Type::Array:
-                offset = m_mach.get_size(
-                    static_cast<const ArrayType*>(pointee)->get_element_type());
-                break;
-            case Type::Pointer:
-                offset = m_mach.get_size(
-                    static_cast<const PointerType*>(pointee)->get_pointee());
-                break;
-            default:
-                offset = m_mach.get_size(pointee);
-        }
-
-        MachOperand index = as_operand(inst->get_operand(1));
-        MachOperand multiplier = MachOperand::create_imm(offset);
-         
-        if (offset == 1) {
-            // The offset is 1, so multiplication is redundant since x * 1 = x.
-            emit(X64_Mnemonic::ADD, X64_Size::Quad, { index, dest });
+            curr_type = ptr->get_pointee();
+        } else if (curr_type->is_struct_type()) {
+            assert(integer);
+            
+            auto structure = static_cast<const StructType*>(curr_type);
+            offset += m_mach.get_field_offset(structure, integer->get_value());
+            curr_type = structure->get_field(integer->get_value());
         } else {
-            // Use %rax temporarily.
-            MachOperand tmp = MachOperand::create_reg(RAX, 8, true);
-
-            emit(X64_Mnemonic::IMUL, X64_Size::Quad)
-                .add_imm(offset)
-                .add_operand(index)
-                .add_operand(tmp);
-
-            tmp.set_is_use();
-            tmp.set_is_kill();
-
-            emit(X64_Mnemonic::ADD, X64_Size::Quad, { tmp, dest });
+            assert(false && "invalid PWALK step type!");
         }
+    }
+
+    if (dynamics.empty() && offset != 0) {
+        emit(X64_Mnemonic::ADD, X64_Size::Quad, { 
+            MachOperand::create_imm(offset), 
+            dest 
+        });
+    } else {
+        for (const auto& dyn : dynamics) {
+            MachOperand index = as_operand(dyn.index);
+
+            if (dyn.scale != 1)
+                emit(X64_Mnemonic::IMUL, X64_Size::Quad)
+                    .add_imm(dyn.scale)
+                    .add_operand(index);
+            
+            emit(X64_Mnemonic::ADD, X64_Size::Quad, { index, dest });
+        }
+
+        if (offset != 0)
+            emit(X64_Mnemonic::ADD, X64_Size::Quad)
+                .add_imm(offset)
+                .add_operand(dest);
     }
 }
 
@@ -662,28 +665,15 @@ void InstSelector::select_string(const Instruction* inst) {
 
     emit(X64_Mnemonic::LEA, X64_Size::Quad)
         .add_constant(pool_index)
-        .add_reg(as_register(inst), 8, true);
+        .add_reg(as_register(inst), 8, true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_comparison(const Instruction* inst) {
-    /* Old CMP deferral logic.
-
-    if (inst->num_uses() == 1) {
-        // If the only user of this comparison is a conditional branch, then
-        // we defer this instruction until later (at the location of the
-        // branch) so that we can skip a set and subsequent comparison.
-        const User* user = inst->use_front()->get_user();
-        const auto* instr = dynamic_cast<const Instruction*>(user);
-        if (instr && instr->is_branch_if()) {
-            defer(inst);
-            return;
-        }
-    }
-    */
-
     MachOperand lhs = as_operand(inst->get_operand(0));
     MachOperand rhs = as_operand(inst->get_operand(1));
     X64_Mnemonic setcc = to_setcc(inst->desc().cmp);
+    
     if (rhs.is_imm()) {
         const MachOperand tmp = lhs;
         lhs = rhs;
@@ -692,7 +682,9 @@ void InstSelector::select_comparison(const Instruction* inst) {
         setcc = flip_setcc(setcc);
     }
 
-    emit(X64_Mnemonic::CMP, as_size(inst->get_operand(0)->get_type()), { lhs, rhs });
+    emit(X64_Mnemonic::CMP, as_size(inst->get_operand(0)->get_type()), { lhs, rhs })
+        .add_comment(get_asm_comment(inst));
+
     emit(setcc, X64_Size::Byte)
         .add_reg(as_register(inst), 1, true);
 }
@@ -725,7 +717,8 @@ void InstSelector::select_conditional_jump(const Instruction* inst) {
     assert(cond.is_reg());
     cond.set_subreg(1);
 
-    emit(X64_Mnemonic::CMP, X64_Size::Byte, { MachOperand::create_imm(0), cond });
+    emit(X64_Mnemonic::CMP, X64_Size::Byte, { MachOperand::create_imm(0), cond })
+        .add_comment(get_asm_comment(inst));
 
     if (true_dest + 1 != false_dest) {
         // There are operands i.e. block arguments between the true and false
@@ -779,78 +772,7 @@ void InstSelector::select_conditional_jump(const Instruction* inst) {
     emit(X64_Mnemonic::JMP, X64_Size::None, { 
         as_operand(inst->get_operand(false_dest)) 
     });
-
-    /*
-    const auto* instr = dynamic_cast<const Instruction*>(condition);
-    if (instr && instr->is_comparison() && is_deferred(instr)) {
-        x64::Opcode jcc = get_jcc_op(instr->opcode());
-        MachOperand lhs = as_operand(instr->get_operand(0));
-        MachOperand rhs = as_operand(instr->get_operand(1));
-
-        if (rhs.is_imm()) {
-            MachOperand tmp = lhs;
-            lhs = rhs;
-            rhs = tmp;
-        } else {
-            jcc = flip_jcc(jcc);
-        }
-
-        x64::Opcode cmp_opc = get_cmp_op(instr->get_operand(0)->get_type());
-        emit(cmp_opc, { lhs, rhs });
-
-        MachOperand tdst = as_operand(inst->get_operand(1));
-        MachOperand fdst = as_operand(inst->get_operand(2));
-
-        emit(jcc, { tdst });
-        emit(x64::JMP, { fdst });
-    } else {
-        MachOperand cond = as_operand(condition);
-        MachOperand tdst = as_operand(inst->get_operand(1));
-        MachOperand fdst = as_operand(inst->get_operand(2));
-        MachOperand zero = MachOperand::create_imm(0);
-
-        // TODO: Adjust for floating point comparisons, using XORPx for zero.
-        emit(x64::CMP8, { zero, cond });
-        emit(x64::JNE, { tdst });
-        emit(x64::JMP, { fdst });
-    }
-    */
 }
-
-/*
-void InstSelector::select_phi(const Instruction* inst) {
-    Register dst_reg = as_register(inst);
-    uint32_t subreg = get_subregister(inst->get_type());
-
-    for (uint32_t i = 0, e = inst->num_operands(); i != e; ++i) {
-        // TODO: Currently, this implementation works for trivial merges since
-        // it's naively inserting moves at the end of predecessors (before any
-        // terminating instructions). However, when dealing with parallel 
-        // copies, the implementation probably won't hold up.
-
-        const Value* operand = inst->get_operand(i);
-        const PhiOperand* phi_op = dynamic_cast<const PhiOperand*>(operand);
-        assert(phi_op && "unexpected phi operand");
-
-        const Value* incoming = phi_op->get_value();
-        const BasicBlock* pred = phi_op->get_pred();
-
-        MachBasicBlock* pred_mbb = m_function.at(pred->get_number());
-        assert(pred_mbb && "could not find machine block for phi predecessor!");
-
-        MachBasicBlock* saved_insert = m_insert;
-        m_insert = pred_mbb;
-
-        MachOperand src = as_operand(incoming);
-        x64::Opcode opc = get_move_op(incoming->get_type());
-
-        emit(opc, { src }, true)
-            .add_reg(dst_reg, subreg, true);
-
-        m_insert = saved_insert;
-    }
-}
-*/
 
 void InstSelector::select_jump(const Instruction* inst) {
     const BlockAddress* label = dynamic_cast<const BlockAddress*>(
@@ -860,32 +782,43 @@ void InstSelector::select_jump(const Instruction* inst) {
     const BasicBlock* dest = label->get_block();
     assert(dest);
 
+    bool emitted_comment = false;
     if (inst->num_operands() > 1) {
         assert(dest->num_args() == inst->num_operands() - 1);
 
         for (uint32_t i = 1, e = inst->num_operands(); i < e; ++i) {
             const Value* arg = inst->get_operand(i);
-            X64_Mnemonic move;
+            X64_Mnemonic op;
             if (arg->get_type()->is_float_type()) {
-                move = X64_Mnemonic::MOVS;
+                op = X64_Mnemonic::MOVS;
             } else {
-                move = X64_Mnemonic::MOV;
+                op = X64_Mnemonic::MOV;
             }
 
-            emit(move, as_size(arg->get_type()), { 
+            MachInst& move = emit(op, as_size(arg->get_type()), { 
                 as_operand(arg), 
                 as_operand(dest->get_arg(i - 1)) 
             });
+
+            if (!emitted_comment) {
+                move.add_comment(get_asm_comment(inst));
+                emitted_comment = true;
+            }
         }
     }
 
-    emit(X64_Mnemonic::JMP, X64_Size::None, { as_operand(inst->get_operand(0) )});
+    MachInst& jump = emit(X64_Mnemonic::JMP, X64_Size::None, { 
+        as_operand(inst->get_operand(0) )
+    });
+
+    if (!emitted_comment)
+        jump.add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_return(const Instruction* inst) {
     Register ret_reg = Register::NoRegister;
     uint16_t sub_reg = 0;
-
+    
     if (inst->num_operands() == 1) {
         // If the instruction uses a value, move it to the relevant return
         // register.
@@ -900,11 +833,17 @@ void InstSelector::select_return(const Instruction* inst) {
             sub_reg = get_subregister(value->get_type());
         }
 
-        emit(X64_Mnemonic::MOV, as_size(value->get_type()), { as_operand(value) })
-            .add_reg(ret_reg, sub_reg, false);
+        MachInst& move = emit(X64_Mnemonic::MOV, as_size(value->get_type()))
+            .add_operand(as_operand(value))
+            .add_reg(ret_reg, sub_reg, false)
+            .add_comment(get_asm_comment(inst));
     }
 
     MachInst& ret = emit(X64_Mnemonic::RET);
+
+    // Emit a comment on the ret if one wasn't added onto the register move.
+    if (inst->num_operands() != 1)
+        ret.add_comment(get_asm_comment(inst));
 
     // If a value was returned, add the return register as an implicit use.
     if (ret_reg != Register::NoRegister)
@@ -912,133 +851,9 @@ void InstSelector::select_return(const Instruction* inst) {
 }
 
 void InstSelector::select_call(const Instruction* inst) {
-    /*
-    if (const auto* iasm = dynamic_cast<const InlineAsm*>(first_oper)) {
-        const std::string& str = iasm->string();
-        std::size_t pos = 0;
-
-        while (pos != std::string::npos) {
-            // Instructions are either divided by newlines '\n' or are the
-            // substrings after the last newline. 
-            std::size_t line_end = str.find_first_of('\n', pos);
-            std::string line = (line_end == std::string::npos)
-                ? str.substr(pos)
-                : str.substr(pos, line_end - pos);
-
-            if (line.empty()) {
-                // If the line is empty (either intentionally or cause the real 
-                // last line used a newline), then we can either stop now or
-                // loop if there is more to the template string.
-                if (line_end == std::string::npos)
-                    break;
-
-                pos = line_end + 1;
-                continue;
-            }
-
-            std::size_t mnemonic_end = line.find_first_of(' ');
-            std::string mnemonic_str = (mnemonic_end == std::string::npos)
-                ? line.substr(0)
-                : line.substr(0, mnemonic_end);
-            
-            x64::Opcode mnemonic = x64::parse_opcode(mnemonic_str);
-            assert(mnemonic != NO_OPC && "unrecognized mnemonic!");
-            MachInstruction& minst = emit(mnemonic);
-
-            std::string post_mnemonic = (mnemonic_end == std::string::npos)
-                ? ""
-                : line.substr(mnemonic_end + 1);
-            
-            std::vector<std::string> operands = {};
-            std::string curr = "";
-            for (std::size_t i = 0, e = post_mnemonic.size(); i < e; ++i) {
-                char c = post_mnemonic[i];
-                if (c == ' ')
-                    continue;
-                
-                if (c == ',' || c == '\n') {
-                    operands.push_back(curr);
-                    curr.clear();
-                } else {
-                    curr.push_back(c);
-                }
-
-                if (i + 1 == e)
-                    operands.push_back(curr);
-            }
-
-            for (uint32_t i = 0, e = operands.size(); i < e; ++i) {
-                const std::string& op = operands[i];
-
-                switch (op[0]) {
-                case '%': {
-                    std::pair<x64::Register, uint16_t> reg = 
-                        parse_register(op.substr(1));
-                    assert(reg.first != x64::NO_REG);
-
-                    if (i + 1 == e) {
-                        minst.add_reg(reg.first, reg.second, true);
-                    } else {
-                        minst.add_reg(reg.first, reg.second, false);
-                    }
-                    
-                    break;
-                }
-
-                case '$': {
-                    minst.add_imm(std::stoll(op.substr(1)));
-                    break;
-                }
-
-                case '#': {
-                    uint32_t index = std::stoul(op.substr(1));
-
-                    MachOperand oper = as_operand(inst->get_operand(index + 1));
-
-                    const std::string& constraint = iasm->constraints()[index];
-
-                    // @Todo: figure out these actual constraints, and deal 
-                    // with clobbers.
-                    if (constraint == "|m") {
-                        //oper.set_is_def();
-                    } else if (constraint == "|r") {
-                        oper.set_is_def();
-                    } else if (constraint == "&m") {
-                        //oper.set_is_use();
-                        //oper.set_is_def();
-                    } else if (constraint == "&r") {
-                        oper.set_is_use();
-                        oper.set_is_def();
-                    } else if (constraint == "m") {
-                        //oper.set_is_use();
-                    } else if (constraint == "r") {
-                        oper.set_is_use();
-                    } else if (constraint == "...") {
-
-                    }
-
-                    minst.add_operand(oper);
-                    break;
-                }
-
-                default:
-                    assert(false && "unknown inline assembly operand type!");
-                }
-            }
-
-            if (line_end == std::string::npos)
-                break;
-
-            pos = line_end + 1;
-        }
-
-        return;
-    }
-    */
-
     // @Todo: Add stack spilling for calls with more than 6 arguments.
-
     const Value* first_oper = inst->get_operand(0);
+    bool emitted_comment = false;
 
     std::vector<Register> regs = {};
     regs.reserve(inst->num_operands() - 1); // All args, but not callee.
@@ -1055,7 +870,11 @@ void InstSelector::select_call(const Instruction* inst) {
             ? X64_Mnemonic::LEA
             : X64_Mnemonic::MOV;
 
-        emit(op, as_size(arg->get_type()), { source, dest });
+        MachInst& move = emit(op, as_size(arg->get_type()), { source, dest });
+        if (!emitted_comment) {
+            move.add_comment(get_asm_comment(inst));
+            emitted_comment = true;
+        }
     }
 
     const Function* callee = dynamic_cast<const Function*>(first_oper);
@@ -1063,6 +882,9 @@ void InstSelector::select_call(const Instruction* inst) {
 
     MachInst& call = emit(X64_Mnemonic::CALL)
         .add_symbol(callee->get_name());
+
+    if (!emitted_comment)
+        call.add_comment(get_asm_comment(inst));
     
     for (Register reg : regs)
         call.add_reg(reg, 8, false, true, true);
@@ -1114,7 +936,9 @@ void InstSelector::select_iadd(const Instruction* inst) {
     //     instr.add_reg(rhs.get_reg(), 8, true);
     // }
 
-    emit(X64_Mnemonic::ADD, as_size(inst->get_type()), { lhs, rhs });
+    emit(X64_Mnemonic::ADD, as_size(inst->get_type()), { lhs, rhs })
+        .add_comment(get_asm_comment(inst));
+
     emit(X64_Mnemonic::MOV, as_size(inst->get_type()), { rhs })
         .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
 }
@@ -1130,7 +954,8 @@ void InstSelector::select_fadd(const Instruction* inst) {
         rhs = tmp;
     }
 
-    MachInst& add = emit(X64_Mnemonic::ADDS, as_size(inst->get_type()), { lhs, rhs });
+    emit(X64_Mnemonic::ADDS, as_size(inst->get_type()), { lhs, rhs })
+        .add_comment(get_asm_comment(inst));
 
     emit(X64_Mnemonic::MOVS, as_size(inst->get_type()), { rhs })
         .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
@@ -1145,13 +970,15 @@ void InstSelector::select_isub(const Instruction* inst) {
         MachOperand dst = MachOperand::create_reg(
             as_register(inst), get_subregister(inst->get_type()), true);
 
-        emit(X64_Mnemonic::MOV, size, { lhs, dst });
+        emit(X64_Mnemonic::MOV, size, { lhs, dst })
+            .add_comment(get_asm_comment(inst));
         emit(X64_Mnemonic::SUB, size, { rhs, dst });
     } else {
         // Left hand side is not an immediate, so move the right operand to the
         // destination first (so that even if it's an immediate it doesn't 
         // matter, which tends to be the more common case anyways).
-        emit(X64_Mnemonic::SUB, size, { rhs, lhs });
+        emit(X64_Mnemonic::SUB, size, { rhs, lhs })
+            .add_comment(get_asm_comment(inst));
         emit(X64_Mnemonic::MOV, size, { lhs })
             .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
     }   
@@ -1166,13 +993,15 @@ void InstSelector::select_fsub(const Instruction* inst) {
         MachOperand dst = MachOperand::create_reg(
             as_register(inst), get_subregister(inst->get_type()), true);
 
-        emit(X64_Mnemonic::MOVS, size, { lhs, dst });
+        emit(X64_Mnemonic::MOVS, size, { lhs, dst })
+            .add_comment(get_asm_comment(inst));
         emit(X64_Mnemonic::SUBS, size, { rhs, dst });
     } else {
         // Left hand side is not an immediate, so move the right operand to the
         // destination first (so that even if it's an immediate it doesn't 
         // matter, which tends to be the more common case anyways).
-        emit(X64_Mnemonic::SUBS, size, { rhs, lhs });
+        emit(X64_Mnemonic::SUBS, size, { rhs, lhs })
+            .add_comment(get_asm_comment(inst));
         emit(X64_Mnemonic::MOVS, size, { lhs })
             .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
     } 
@@ -1191,7 +1020,8 @@ void InstSelector::select_imul(const Instruction* inst) {
     }
 
     const X64_Size size = as_size(inst->get_type());
-    emit(X64_Mnemonic::MOV, size, { lhs, dest });
+    emit(X64_Mnemonic::MOV, size, { lhs, dest })
+        .add_comment(get_asm_comment(inst));
     emit(X64_Mnemonic::IMUL, size, { rhs, dest });
 }
 
@@ -1206,7 +1036,8 @@ void InstSelector::select_division(const Instruction* inst) {
     MachOperand rhs = as_operand(rhs_value);
 
     emit(X64_Mnemonic::MOV, size, { lhs })
-        .add_reg(RAX, get_subregister(lhs_value->get_type()), true);
+        .add_reg(RAX, get_subregister(lhs_value->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 
     const MachOperand dest = MachOperand::create_reg(
         as_register(inst), get_subregister(inst->get_type()), true);
@@ -1271,14 +1102,18 @@ void InstSelector::select_float_mul_div(const Instruction* inst) {
 
     if (lhs.is_constant()) {
         MachOperand tmp = MachOperand::create_reg(XMM0, 0, true);
-        emit(X64_Mnemonic::MOVS, size, { lhs, tmp });
+        emit(X64_Mnemonic::MOVS, size, { lhs, tmp })
+            .add_comment(get_asm_comment(inst));
 
         lhs = tmp;
         lhs.set_is_use();
         lhs.set_is_kill();
     }
  
-    emit(op, size, { rhs, lhs });
+    MachInst& add = emit(op, size, { rhs, lhs });
+    if (!lhs.is_constant())
+        add.add_comment(get_asm_comment(inst));
+
     emit(X64_Mnemonic::MOVS, size, { lhs })
         .add_reg(as_register(inst), 8, true);
 }
@@ -1305,7 +1140,9 @@ void InstSelector::select_logic(const Instruction* inst) {
     MachOperand rhs = as_operand(inst->get_operand(1));
     const X64_Size size = as_size(inst->get_type());
 
-    emit(op, size, { lhs, rhs });
+    emit(op, size, { lhs, rhs })
+        .add_comment(get_asm_comment(inst));
+
     emit(X64_Mnemonic::MOV, size, { rhs })
         .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
 }
@@ -1331,7 +1168,9 @@ void InstSelector::select_shift(const Instruction* inst) {
     MachOperand dest = MachOperand::create_reg(
         as_register(inst), get_subregister(inst->get_type()), true);
 
-    emit(X64_Mnemonic::MOV, as_size(inst->get_operand(0)->get_type()), { lhs, dest });
+    emit(X64_Mnemonic::MOV, as_size(inst->get_operand(0)->get_type()), { lhs, dest })
+        .add_comment(get_asm_comment(inst));
+
     dest.set_is_use();
 
     if (rhs.is_imm()) {
@@ -1351,7 +1190,9 @@ void InstSelector::select_not(const Instruction* inst) {
     const MachOperand source = as_operand(inst->get_operand(0));
     const X64_Size size = as_size(inst->get_type());
 
-    emit(X64_Mnemonic::NOT, size, { source });
+    emit(X64_Mnemonic::NOT, size, { source })
+        .add_comment(get_asm_comment(inst));
+
     emit(X64_Mnemonic::MOV, size, { source })
         .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
 }
@@ -1361,7 +1202,8 @@ void InstSelector::select_negate(const Instruction* inst) {
     const X64_Size size = as_size(inst->get_type());
 
     if (inst->op() == OP_INEG) {
-        emit(X64_Mnemonic::NEG, size, { source });
+        emit(X64_Mnemonic::NEG, size, { source })
+            .add_comment(get_asm_comment(inst));
         emit(X64_Mnemonic::MOV, size, { source })
             .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
     } else if (inst->op() == OP_FNEG) {
@@ -1405,7 +1247,8 @@ void InstSelector::select_extension(const Instruction* inst) {
     }
 
     emit(op, X64_Size::None, { as_operand(value) })
-        .add_reg(as_register(inst), dest_subreg, true);
+        .add_reg(as_register(inst), dest_subreg, true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_truncation(const Instruction* inst) {
@@ -1428,7 +1271,8 @@ void InstSelector::select_truncation(const Instruction* inst) {
     }
 
     emit(op, X64_Size::None, { src })
-        .add_reg(as_register(inst), dst_subreg, true);
+        .add_reg(as_register(inst), dst_subreg, true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_cast_i2f(const Instruction* inst) {
@@ -1442,7 +1286,8 @@ void InstSelector::select_cast_i2f(const Instruction* inst) {
     }
 
     emit(op, X64_Size::None, { as_operand(inst->get_operand(0)) })
-        .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_cast_f2i(const Instruction* inst) {
@@ -1458,7 +1303,8 @@ void InstSelector::select_cast_f2i(const Instruction* inst) {
     }
 
     emit(op, as_size(inst->get_type()), { as_operand(operand) })
-        .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_cast_p2i(const Instruction* inst) {
@@ -1476,13 +1322,15 @@ void InstSelector::select_cast_p2i(const Instruction* inst) {
 
     emit(op, X64_Size::Quad)
         .add_operand(as_operand(source))
-        .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_cast_i2p(const Instruction* inst) {
     emit(X64_Mnemonic::MOV, X64_Size::Quad)
         .add_operand(as_operand(inst->get_operand(0)))
-        .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::select_cast_reinterpret(const Instruction* inst) {
@@ -1497,7 +1345,8 @@ void InstSelector::select_cast_reinterpret(const Instruction* inst) {
 
     emit(op, X64_Size::Quad)
         .add_operand(as_operand(source))
-        .add_reg(as_register(inst), get_subregister(inst->get_type()), true);
+        .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
+        .add_comment(get_asm_comment(inst));
 }
 
 void InstSelector::run() {

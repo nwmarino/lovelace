@@ -172,7 +172,7 @@ public:
 
     /// Returns the numeric position of this basic block relative to other
     /// blocks in the parent function.
-    uint32_t get_number() const;
+    uint32_t position() const;
 
     const Preds& get_preds() const { return m_preds; }
     Preds& get_preds() { return m_preds; }

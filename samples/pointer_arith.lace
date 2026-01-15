@@ -1,0 +1,12 @@
+Data :: struct {
+    x: s64,
+    y: *bool,
+    z: bool,
+}
+
+$[public]
+main :: () -> s64 {
+    let x: *Data = null;
+    let y: *Data = x - 1;
+    ret y.z;
+}

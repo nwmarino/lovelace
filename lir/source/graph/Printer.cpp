@@ -147,7 +147,7 @@ static const char* to_string(CMPPredicate pred) {
 void BasicBlock::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            os << std::format("bb{}", get_number());
+            os << std::format("bb{}", position());
 
             if (has_args()) {
                 os << "(";
@@ -167,12 +167,13 @@ void BasicBlock::print(std::ostream& os, PrintPolicy policy) const {
             for (const Instruction* curr = get_head(); curr; curr = curr->get_next()) {
                 os << '\t';
                 curr->print(os, PrintPolicy::Def);
+                os << '\n';
             }
 
             break;
         
         case PrintPolicy::Use:
-            os << std::format("bb{}", get_number());
+            os << std::format("bb{}", position());
             break;
     }
 }
@@ -201,8 +202,10 @@ void CFG::print(std::ostream& os) const {
     if (!m_types.structs.empty())
         os << '\n';
 
-    for (const auto& pair : m_globals)
+    for (const auto& pair : m_globals) {
         pair.second->print(os, PrintPolicy::Def);
+        os << '\n';
+    }
 
     if (!m_globals.empty())
         os << '\n';
@@ -210,6 +213,8 @@ void CFG::print(std::ostream& os) const {
     uint32_t i = 0, e = m_functions.size();
     for (const auto& pair : m_functions) {
         pair.second->print(os, PrintPolicy::Def);
+
+        // Don't print double empty lines at the end of a graph print.
         if (++i != e)
             os << '\n';
     }
@@ -312,7 +317,6 @@ void Global::print(std::ostream& os, PrintPolicy policy) const {
                 get_initializer()->print(os, PrintPolicy::Use);
             }
             
-            os << '\n';
             break;
 
         case PrintPolicy::Use:
@@ -413,7 +417,6 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
                     os << std::format(" |{}", desc().alignment);
             }
 
-            os << '\n';
             break;
         }
 
@@ -460,7 +463,42 @@ void Null::print(std::ostream& os, PrintPolicy policy) const {
 }
 
 void String::print(std::ostream& os, PrintPolicy policy) const {
-    os << std::format("\"{}\"", get_value());
+    os << '"';
+
+    const std::string& string = get_value();
+    for (uint32_t i = 0, e = string.size(); i < e; ++i) {
+        switch (string[i]) {
+            case '\\':
+                os << "\\\\";
+                break;
+            case '\'':
+                os << "\\'";
+                break;
+            case '\"':
+                os << "\\\"";
+                break;
+            case '\n':
+                os << "\\n";
+                break;
+            case '\t':
+                os << "\\t";
+                break;
+            case '\r':
+                os << "\\r";
+                break;
+            case '\b':
+                os << "\\b";
+                break;
+            case '\0':
+                os << "\\0";
+                break;
+            default:
+                os << string[i];
+                break;
+        }
+    }
+    
+    os << '"';
 }
 
 void Aggregate::print(std::ostream& os, PrintPolicy policy) const {

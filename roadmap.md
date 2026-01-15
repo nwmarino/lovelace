@@ -8,6 +8,7 @@ Runes
 - Dynamic memory allocator
 - Per-field destruction
 - Defer statement
+- Line-by-line debugging symbols.
 - For Loops
 - Format strings
 - Inline assembly
@@ -24,8 +25,3 @@ Runes
 - Full DWARF symbols
 - Type polymorphism
 - Slices
-
--- todo
-
-- Add debug comments to machine representation, that are printed from LIR.
-- Add line debugging symbols to assembly output.

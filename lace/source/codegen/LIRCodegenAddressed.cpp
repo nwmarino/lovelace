@@ -125,7 +125,14 @@ lir::Value* LIRCodegen::codegen_addressed_subscript(const SubscriptExpr* expr) {
     assert(ptr);
     assert(index);
 
-    return m_builder.build_pwalk(type, ptr, { index });
+    if (expr->get_base()->get_type()->is_array()) {
+        return m_builder.build_pwalk(type, ptr, { 
+            lir::Integer::get_zero(m_cfg, lir::Type::get_i32_type(m_cfg)), 
+            index 
+        });
+    } else {
+        return m_builder.build_pwalk(type, ptr, { index });
+    }
 }
 
 lir::Value* LIRCodegen::codegen_addressed_dereference(const UnaryOp* expr) {
