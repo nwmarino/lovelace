@@ -146,7 +146,6 @@ public:
     /// Return a new unique definition id to create an instruction with.
     uint32_t get_def_id() { return m_def_id++; }
 
-    /// Print this graph in a plaintext format to |os|.
     void print(std::ostream& os) const;
 };
 

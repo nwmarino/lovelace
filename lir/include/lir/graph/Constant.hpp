@@ -55,7 +55,7 @@ public:
 
     int64_t get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 /// A constant floating-point literal.
@@ -78,7 +78,7 @@ public:
 
     double get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 /// A constant, typed null pointer literal.
@@ -91,7 +91,7 @@ public:
     /// Get the constant null for the given |type|.
     static Null* get(CFG& cfg, Type* type);
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 /// A constant string of ASCII characters.
@@ -109,7 +109,7 @@ public:
 
     const std::string& get_value() const { return m_value; }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 /// A constant block address, used for direct branching.
@@ -129,7 +129,7 @@ public:
     const BasicBlock* get_block() const { return m_block; }
     BasicBlock* get_block() { return m_block; }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 /// An aggregate of constant values.
@@ -158,7 +158,7 @@ public:
         return static_cast<Constant*>(get_operand(i)->get_value());
     }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 } // namespace lir

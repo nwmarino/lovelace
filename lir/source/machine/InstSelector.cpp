@@ -18,7 +18,6 @@
 #include "lir/machine/InstSelector.hpp"
 
 #include <string>
-#include <iostream>
 
 using namespace lir;
 

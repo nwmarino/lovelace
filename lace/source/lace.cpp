@@ -476,17 +476,15 @@ int32_t main(int32_t argc, char** argv) {
         }
 
         pool->wait();
-    } else {
-        for (InputFile& f : files) {
-            if (options.verbose)
-                log::note("parsing file: " + f.file);
+    } else for (InputFile& f : files) {
+        if (options.verbose)
+            log::note("parsing file: " + f.file);
 
-            Parser parser(read_file(f.file), f.file);
-            f.ast = parser.parse();
-            
-            if (options.verbose)
-                log::note("finishing parsing for: " + f.file);
-        }
+        Parser parser(read_file(f.file), f.file);
+        f.ast = parser.parse();
+        
+        if (options.verbose)
+            log::note("finishing parsing for: " + f.file);
     }
 
     log::flush();

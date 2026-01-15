@@ -101,10 +101,12 @@ private:
     X64_Size m_size;
     MachLabel* m_parent;
     Operands m_ops;
+    std::string m_comment;
 
 public:
     explicit MachInst(X64_Mnemonic op, X64_Size size = X64_Size::None, 
-                      const Operands& ops = {}, MachLabel* parent = nullptr);
+                      const Operands& ops = {}, MachLabel* parent = nullptr,
+                      const std::string& comment = "");
 
     X64_Mnemonic op() const { return m_op; }
     X64_Size size() const { return m_size; }
@@ -119,6 +121,10 @@ public:
         return const_cast<MachFunction*>(
             static_cast<const MachInst*>(this)->get_function());
     }
+
+    void set_comment(const std::string& comment) { m_comment = comment; }
+    const std::string& get_comment() const { return m_comment; }
+    bool has_comment() const { return !m_comment.empty(); }
 
     const Operands& get_operands() const { return m_ops; }
     Operands& get_operands() { return m_ops; }
@@ -259,6 +265,11 @@ public:
 
     MachInst& add_symbol(const std::string& symbol) {
         m_ops.push_back(MachOperand::create_symbol(symbol.c_str()));
+        return *this;
+    }
+
+    MachInst& add_comment(const std::string& comment) {
+        m_comment = comment;
         return *this;
     }
 };

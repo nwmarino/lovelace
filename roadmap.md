@@ -4,27 +4,28 @@ Runes
 - Syscall
 - Unreachable
 
+- Aggregate initializers
+- Dynamic memory allocator
 - Per-field destruction
-- Allocator
+- Defer statement
+- For Loops
 - Format strings
 - Inline assembly
-- Unnamed Enums
+- Custom enum types
+- Unnamed enums
+- Enum flags
 - Unions
-- For Loops
 - Ternary '?' operator
+  - TernaryExpr
+  - Select instruction
 - CTFE
 - Build system
-- Enum flags
 - Namespacing
-- DWARF symbols
+- Full DWARF symbols
 - Type polymorphism
 - Slices
-- Defer statement
 
 -- todo
 
-- Write instruction selection for pointer walks.
-- Add aggregate initializers for arrays & structs.
-- Add printing policies for LIR values.
 - Add debug comments to machine representation, that are printed from LIR.
 - Add line debugging symbols to assembly output.

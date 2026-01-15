@@ -10,8 +10,8 @@
 using namespace lir;
 
 MachInst::MachInst(X64_Mnemonic op, X64_Size size, const Operands& ops, 
-                   MachLabel* parent)
-  : m_op(op), m_size(size), m_parent(parent), m_ops(ops) {
+                   MachLabel* parent, const std::string& comment)
+  : m_op(op), m_size(size), m_parent(parent), m_ops(ops), m_comment(comment) {
     if (m_parent)
         m_parent->append(*this);
 }

@@ -22,6 +22,12 @@ namespace lir {
 class Use;
 class User;
 
+/// The different policies for value printing.
+enum class PrintPolicy {
+    Def,
+    Use,
+};
+
 /// A typed value in the IR.
 class Value {
 public:
@@ -73,8 +79,9 @@ public:
     /// Returns true if this value is a constant.
     virtual bool is_constant() const { return false; }
 
-    /// Print this value in a reproducible plaintext format to |os|.
-    virtual void print(std::ostream& os) const = 0;
+    /// Print this value in a reproducible plaintext format to |os|, with the
+    /// given printing |policy|.
+    virtual void print(std::ostream& os, PrintPolicy policy) const = 0;
 };
 
 } // namespace lir
