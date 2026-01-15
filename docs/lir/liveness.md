@@ -13,6 +13,10 @@ architecture, some ABI rules or instructions may require the use of particular
 registers, i.e. division ops in x86_64 or the clobbering of caller-saved 
 registers around callsites.
 
+Only physical registers necessarily need special context, since they are not
+uniquely numbered as in SSA. The allocator cannot discern the use of `%rax`
+in the beginning and end of a function as it can for a virtual register `$42`.
+
 These constraints can be realized during instruction selection, with clear
 flags on the physical registers used to help the allocator recognize where
 these live ranges exist. Take for example the following,
@@ -69,17 +73,21 @@ mul rbx  # rdx:rax = rax * rbx
 
 ## Kill
 
-The `kill` flag marks the death of a value, ending its live range.
+The `kill` flag on a used register marks the death of the value in it, ending 
+its live range at that location.
 
-If the value in `%rbx` used in `addq %rbx, %rax` is not used after the 
-instruction, it is considered killed at that point.
+The integer division instructions `idiv` and `div` perform `RDX:RAX / op` and
+store the quotient into `rax` and the remainder into `%rdx`. This means that
+the instructions (implicitly) use `%rax` and `%rdx`, but also kill them in the
+process.
 
 ## Dead 
 
 The `dead` flag marks the result of a `def` as unused.
 
-If `%rax` in `movq %rbx, %rax` is not used after the instruction, it is 
-considered dead.
+For example, if we are trying to get the remainder of some integer division
+`idiv` or `div`, it definites the quotient into `%rax`, but it's never used,
+so it's dead.
 
 * *It is not considered a kill because its a definition, and a kill implies the 
 existence of a range.*
@@ -90,7 +98,7 @@ existence of a range.*
 kills a value, it has still technically used it.
 
 * The `implicit` flag acts as both a modifier to the operand visibility as well
-as the explicitness of its `use` or `def` flag. This means we can have
-operands on instructions that don't appear in the final assembly. This is
-important because it means we can describe all the effects an instruction has
-without some extra descriptor info, and nicely dumps during print passes.
+as the explicitness of its `use` or `def` flag. This means machine instructions
+can carry pure context just in their operand list. This is important because 
+it means we can describe all the effects an instruction has without some extra 
+descriptor info, and nicely dumps during print passes.

@@ -430,14 +430,17 @@ void AsmWriter::emit_operand(
 
 void AsmWriter::emit_inst(
         std::ostream& os, const MachFunction& func, const MachInst& inst) {
+    if (inst.has_comment())
+        os << std::format("#\t{}\n", inst.get_comment());
+    
     if (is_redundant_move(func, inst))
-        return;
+        os << "#RM"; // Little marking for removed instructions.
 
     // If this is a return instruction, inject necessary epilogue parts.
     // @Todo: make this optional along with prologue injection.
     if (inst.op() == X64_Mnemonic::RET) {
         os << std::format(
-            "\taddq\t${}, %rsp\n\tpopq\t%rbp\n\tret\n", 
+            "\taddq\t${}, %rsp\n\tpopq\t%rbp\n\tretq\n", 
             func.get_stack_frame().alignment());
         return;
     }
@@ -618,8 +621,11 @@ void AsmWriter::emit_global(std::ostream& os, const Global& global) {
        << "\t.size\t" << global.get_name() << ", " << size << '\n'
        << global.get_name() << ":\n";
 
-    if (init)
+    if (init) {
         emit_constant(os, *init);
+    } else {
+        os << std::format("\t.zero\t{}\n", size);
+    }
 }
 
 void AsmWriter::run(std::ostream& os) {

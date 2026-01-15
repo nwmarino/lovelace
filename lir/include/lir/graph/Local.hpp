@@ -61,7 +61,7 @@ public:
     void set_alignment(uint32_t align) { m_align = align; }
     uint32_t get_alignment() const { return m_align; }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 } // namespace lir

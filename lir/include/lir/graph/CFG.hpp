@@ -35,6 +35,7 @@ class CFG final {
     friend class Null;
     friend class String;
     friend class BlockAddress;
+    friend class Aggregate;
 
     using Functions = std::map<std::string, Function*>;
     using Globals = std::map<std::string, Global*>;
@@ -56,6 +57,7 @@ class CFG final {
     using NullPool = std::unordered_map<const Type*, Null*>;
     using StringPool = std::unordered_map<std::string, String*>;
     using AddressPool = std::unordered_map<const BasicBlock*, BlockAddress*>;
+    using AggregatePool = std::vector<Aggregate*>;
 
     const Machine& m_mach;
 
@@ -86,6 +88,7 @@ class CFG final {
         NullPool nulls = {};
         StringPool strings = {};
         AddressPool addresses = {};
+        AggregatePool aggregates = {};
     } m_constants;
 
 public:
@@ -143,7 +146,6 @@ public:
     /// Return a new unique definition id to create an instruction with.
     uint32_t get_def_id() { return m_def_id++; }
 
-    /// Print this graph in a plaintext format to |os|.
     void print(std::ostream& os) const;
 };
 

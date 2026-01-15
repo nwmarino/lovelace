@@ -636,7 +636,7 @@ public:
 
     void accept(Visitor& visitor) override { visitor.visit(*this); }
 
-    bool is_lvalue() const override { return true; }
+    bool is_lvalue() const override;
 
     const std::string& get_name() const { return m_name; }
 

@@ -54,6 +54,10 @@ class InstSelector final {
     /// ABI in use by the machine. 
     MachOperand as_argument(const Value* value, uint32_t index) const;
 
+    /// Returns a stringifed assembly comment taken from a print of the given
+    /// |inst|.
+    std::string get_asm_comment(const Instruction* inst) const;
+
     /// Create and emit a new instruction with the given |op|, instruction 
     /// |size|, and optional |ops|. The |before_term| flag determines if extra
     /// care should be given to place the new instruction before any existing 
@@ -65,6 +69,7 @@ class InstSelector final {
     void select_abort(const Instruction* inst);
     void select_unreachable(const Instruction* inst);
     void select_load_store(const Instruction* inst);
+    void select_pwalk(const Instruction* inst);
     void select_access(const Instruction* inst);
     void select_ap(const Instruction* inst);
     void select_string(const Instruction* inst);

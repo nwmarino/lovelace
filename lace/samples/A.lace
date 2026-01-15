@@ -18,36 +18,24 @@ FileSeek :: enum {
     FILE_SEEK_END = 2,
 }
 
-strlen :: (str: *char) -> u64 {
-    let len: mut u64 = 0;
-    until str[len] == '\0' {
-        len = len + 1;
-    }
 
-    ret len;
-}
-
-print :: (str: *char) -> void {
-    write(1, str, strlen(str));
-}
-
-Box :: struct {
-    a: mut s64,
-    b: mut s64,
-    c: mut s64,
-}
-
-glob :: mut s64 = 5;
 
 $[public]
 main :: () -> s64 {
-    //let p: *s64 = mem_alloc(sizeof(s64));
-    //mem_free(p);
+    let p: mut *mut s64 = mem_alloc(sizeof(s64));
+    
+    if !p {
+        print("p is null!\n");
+        ret 1;
+    }
+    
+    *p = 41;
 
-    glob = 5;
 
-    let p: *mut s64 = &glob;
-    *p = 42;
 
-    ret glob;
+    let x: s64 = *p;
+    mem_free(p);
+
+    
+    ret x;
 }

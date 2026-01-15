@@ -119,7 +119,7 @@ class Instruction final : public User {
       : User(type, ops), m_op(op), m_parent(parent), m_def(def), m_desc(desc) {}
 
 public:
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 
     /// Returns the mnemonic for the operation this instruction performs.
     inline Mnemonic op() const { return m_op; }

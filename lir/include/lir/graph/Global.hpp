@@ -91,7 +91,7 @@ public:
     /// Test if this global has a constant initializer.
     bool has_initializer() const { return has_operands(); }
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 } // namespace lir

@@ -57,7 +57,7 @@ public:
         /// this argument does not belong to a function.
         uint32_t get_index() const;
 
-        void print(std::ostream& os) const override;
+        void print(std::ostream& os, PrintPolicy policy) const override;
     };
 
     using Args = std::vector<Arg*>;
@@ -184,7 +184,7 @@ public:
     /// Returns the size of this function by the number of basic blocks in it.
     uint32_t size() const;
 
-    void print(std::ostream& os) const override;
+    void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
 } // namespace spbe

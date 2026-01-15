@@ -56,12 +56,12 @@ public:
     Instruction* build_string(String* string);
 
     /// Create a new memory load that reads a value typed with |type| from
-    /// |source| with the given |alignment|.
-    Instruction* build_load(Type* type, Value* source, uint16_t alignment);
+    /// |source| with the natural alignment of |type|.
+    Instruction* build_load(Type* type, Value* source);
 
-    /// Create a new memory store that writes |value| to |dest| with the given 
-    /// |alignment|.
-    Instruction* build_store(Value* value, Value* dest, uint16_t alignment);
+    /// Create a new memory store that writes |value| to |dest| with the 
+    /// natural alignment for the type of |value|. 
+    Instruction* build_store(Value* value, Value* dest);
 
     /// Create a new pointer walk that steps through the list of integer 
     /// |indices| to access the base pointer |source|. The |type| argument

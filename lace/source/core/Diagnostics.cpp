@@ -7,6 +7,7 @@
 #include "lace/tools/Files.hpp"
 
 #include <cassert>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,7 @@ using namespace lace;
 using namespace lace::log;
 
 static std::ostream* g_out = nullptr;
+static std::mutex g_mutex;
 static bool g_color = false;
 static bool g_errors = false;
 
@@ -77,15 +79,19 @@ void log::init(std::ostream& os) {
 }
 
 void log::set_output_stream(std::ostream& os) {
+    std::lock_guard<std::mutex> lock(g_mutex);
     g_out = &os;
     adjust_color_compatibility();
 }
 
 void log::clear_output_stream() {
+    std::lock_guard<std::mutex> lock(g_mutex);
     g_out = nullptr;
 }
 
 void log::flush() {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_errors) {
         log::fatal("unrecoverable errors found, stopping");
         std::exit(1);
@@ -96,6 +102,8 @@ void log::flush() {
 }
 
 void log::note(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -103,6 +111,8 @@ void log::note(const std::string& msg) {
 }
 
 void log::note(const std::string& msg, const Location& loc) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -111,6 +121,8 @@ void log::note(const std::string& msg, const Location& loc) {
 }
 
 void log::note(const std::string& msg, const Span& span) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -119,6 +131,8 @@ void log::note(const std::string& msg, const Span& span) {
 }
 
 void log::warn(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -127,6 +141,8 @@ void log::warn(const std::string& msg) {
 }
 
 void log::warn(const std::string& msg, const Location& loc) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -136,6 +152,8 @@ void log::warn(const std::string& msg, const Location& loc) {
 }
 
 void log::warn(const std::string& msg, const Span& span) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (!g_out)
         return;
 
@@ -144,6 +162,8 @@ void log::warn(const std::string& msg, const Span& span) {
 }
 
 void log::error(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_out) {
         *g_out << (g_color ? "\033[1;31merror:\033[0m " : "error: ") << msg 
                << '\n';
@@ -153,6 +173,8 @@ void log::error(const std::string& msg) {
 }
 
 void log::error(const std::string& msg, const Location& loc) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_out) {
         *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
                << (g_color ? " \033[1;31merror:\033[0m " : " error: ") << msg 
@@ -163,6 +185,8 @@ void log::error(const std::string& msg, const Location& loc) {
 }
 
 void log::error(const std::string& msg, const Span& span) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_out) {
         *g_out << (g_color ? "\033[1;31m x \033[0m" : " x ") << msg << '\n';
         print_source(span);
@@ -172,6 +196,8 @@ void log::error(const std::string& msg, const Span& span) {
 }
 
 void log::fatal(const std::string& msg) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_out) {
         *g_out << (g_color ? "\033[1;31mfatal:\033[0m " : "fatal: ") << msg 
                << '\n';
@@ -181,6 +207,8 @@ void log::fatal(const std::string& msg) {
 }
 
 void log::fatal(const std::string& msg, const Location& loc) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
     if (g_out) {
         *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
                << (g_color ? " \033[1;31mfatal:\033[0m " : " fatal: ") << msg 
@@ -191,6 +219,6 @@ void log::fatal(const std::string& msg, const Location& loc) {
 }
 
 void log::fatal(const std::string& msg, const Span& span) {
-    error(msg, span);
+    error(msg, span); // Functionally identical to what we want here.
     std::exit(1);
 }

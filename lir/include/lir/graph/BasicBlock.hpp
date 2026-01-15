@@ -43,7 +43,7 @@ public:
         /// this argument does not belong to a block.
         uint32_t get_index() const;
 
-        void print(std::ostream& os) const override;
+        void print(std::ostream& os, PrintPolicy policy) const override;
     };
 
     using Args = std::vector<Arg*>;
@@ -172,7 +172,7 @@ public:
 
     /// Returns the numeric position of this basic block relative to other
     /// blocks in the parent function.
-    uint32_t get_number() const;
+    uint32_t position() const;
 
     const Preds& get_preds() const { return m_preds; }
     Preds& get_preds() { return m_preds; }
@@ -201,7 +201,7 @@ public:
     }
 
     /// Print this basic block in a plaintext format to |os|.
-    void print(std::ostream& os) const;
+    void print(std::ostream& os, PrintPolicy policy) const;
 };
 
 } // namespace lir

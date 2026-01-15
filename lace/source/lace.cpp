@@ -194,8 +194,8 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
         if (options.verbose)
             log::note("running code generation for: " + ast->get_file());
 
-        Codegen cgn(options, cfg);
-        cgn.visit(*ast);
+        LIRCodegen codegen(options, ast, cfg);
+        codegen.run();
 
         if (options.verbose)
             log::note("finished code generation for: " + ast->get_file());
@@ -209,8 +209,6 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
             file.close();
         }
 
-        continue; // @Todo: remove.
-
         lir::Segment seg(cfg);
 
         lir::LoweringPass lowering(cfg, seg);
@@ -219,13 +217,16 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
         lir::RegisterAnalysis rega(seg);
         rega.run();
 
-        std::ofstream out(ast->get_file() + ".s");
-        if (!out || !out.is_open())
+        std::ofstream as(ast->get_file() + ".s");
+        if (!as || !as.is_open())
             log::fatal("failed to open: " + ast->get_file() + ".s");
 
         lir::AsmWriter writer(seg);
-        writer.run(out);
-        out.close();
+        writer.run(as);
+        as.close();
+
+        std::string assembler = "as " + ast->get_file() + ".s -o " + ast->get_file() + ".o";
+        std::system(assembler.c_str());
     }
 }
 
@@ -369,7 +370,7 @@ int32_t main(int32_t argc, char** argv) {
     options.threads = 1;
 
     options.debug = true;
-    options.multithread = false;
+    options.multithread = true;
     options.time = true;
     options.verbose = true;
     options.version = true;
@@ -379,31 +380,36 @@ int32_t main(int32_t argc, char** argv) {
 
     log::init();
 
-    if (options.version)
-        log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + '.' + 
-            std::to_string(LACE_VERSION_MINOR));
-
-    std::vector<InputFile> files = {
-        InputFile("/home/statim/samples/return_zero.lace"),
-        InputFile("/home/statim/samples/integer_arithmetic.lace"),
-        InputFile("/home/statim/samples/casting.lace"),
-        InputFile("/home/statim/samples/if.lace"),
-        InputFile("/home/statim/samples/until_loop.lace"),
-        InputFile("/home/statim/samples/functions.lace"),
-        InputFile("/home/statim/samples/structs.lace"),
-        InputFile("/home/statim/samples/enums.lace"),
-        InputFile("/home/statim/samples/arrays.lace"),
-
-        InputFile("/home/statim/lace/samples/A.lace"), 
-        InputFile("/home/statim/lace/samples/linux.lace"),
-        InputFile("/home/statim/lace/samples/mem.lace"),
-    };
+    std::vector<InputFile> files = {};
 
     for (int32_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
-        if (arg == "-mt") {
-            options.multithread = true;
+        if (arg == "-b") {
+            options.verbose = true;
+        } else if (arg == "-g") {
+            options.debug = true;
+        } else if (arg == "-t") {
+            options.time = true;
+        } else if (arg == "-v") {
+            log::note("version: " + std::to_string(LACE_VERSION_MAJOR) + "." + 
+                std::to_string(LACE_VERSION_MINOR));
+        } else if (arg == "-O0") {
+            options.opt = Options::OptLevel::None;
+        } else if (arg == "-O1") {
+            options.opt = Options::OptLevel::Few;
+        } else if (arg == "-O2") {
+            options.opt = Options::OptLevel::Default;
+        } else if (arg == "-O3") {
+            options.opt = Options::OptLevel::Many;
+        } else if (arg == "-Os") {
+            options.opt = Options::OptLevel::Space;
+        } else if (arg == "-st") {
+            options.multithread = false;
+        } else if (arg == "-dump-ast") {
+            options.print_tree = true;
+        } else if (arg == "-dump-ir") {
+            options.print_ir = true;
         } else if (arg == "-j") {
             if (i + 1 == argc)
                 log::fatal("expected number after -j");
@@ -463,24 +469,28 @@ int32_t main(int32_t argc, char** argv) {
         assert(pool);
 
         for (InputFile& f : files) {
-            pool->push([&f] {
+            pool->push([&f, options] {
+                if (options.verbose)
+                    log::note("parsing file: " + f.file);
+
                 Parser parser(read_file(f.file), f.file);
                 f.ast = parser.parse();
+
+                if (options.verbose)
+                    log::note("finishing parsing for: " + f.file);
             });
         }
 
         pool->wait();
-    } else {
-        for (InputFile& f : files) {
-            if (options.verbose)
-                log::note("parsing file: " + f.file);
+    } else for (InputFile& f : files) {
+        if (options.verbose)
+            log::note("parsing file: " + f.file);
 
-            Parser parser(read_file(f.file), f.file);
-            f.ast = parser.parse();
-            
-            if (options.verbose)
-                log::note("finishing parsing for: " + f.file);
-        }
+        Parser parser(read_file(f.file), f.file);
+        f.ast = parser.parse();
+        
+        if (options.verbose)
+            log::note("finishing parsing for: " + f.file);
     }
 
     log::flush();

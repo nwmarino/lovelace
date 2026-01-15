@@ -26,21 +26,25 @@ class LinearScan final {
 
     LiveRange& update_range(Register reg, RegisterClass cls, uint32_t pos) {
         // Attempt to find an existing range for |reg|.
+        // @Todo: map ranges by the register they involve for faster lookup.
         for (auto& range : m_ranges) {
             // The range has been killed, so we never update it.
             if (range.killed)
                 continue;
 
             if (range.reg == reg) {
+                // A "live" range still exists for |reg|, so update its 
+                // endpoint and stop here.
                 range.end = pos;
                 return range;
             }
         }
 
-        // No existing range could be found, so we begin a new one.
+        // No live range for |reg| could be found, so we begin a new one.
         LiveRange range = {};
         range.reg = reg;
-        range.start = range.end = pos;
+        range.start = pos;
+        range.end = pos;
         range.cls = cls;
         range.killed = false;
         range.alloc = Register::NoRegister;
@@ -53,6 +57,7 @@ class LinearScan final {
     }
 
     void process_inst(const MachInst& inst) {
+        // For each operand that involves a register, update its live range.
         for (const MachOperand& op : inst.get_operands()) {
             if (!op.is_reg() && !op.is_mem())
                 continue;
@@ -60,6 +65,7 @@ class LinearScan final {
             Register reg;
             RegisterClass cls;
 
+            // Determine the register used in this operand.
             if (op.is_reg()) {
                 reg = op.get_reg();
             } else if (op.is_mem()) {
@@ -69,16 +75,21 @@ class LinearScan final {
             if (reg.is_physical()) {
                 cls = get_register_class(static_cast<X64_Register>(reg.id()));
             } else {
-                // reg refers to a virtual register, whose
-                // information is stored in the parent function.
-                const MachFunction::RegisterTable& regs = 
-                    m_function.get_register_table();
+                // The register is virtual, so we need to determine the 
+                // register class it needs to be allocated to. This is stored
+                // in the function register table created during instruction
+                // selection.
+                const MachFunction::RegisterTable& regs = m_function.get_register_table();
                 assert(regs.count(reg.id()) != 0);
                 cls = regs.at(reg.id()).cls;
             }
 
             LiveRange& range = update_range(reg, cls, m_position);
-            if (op.is_reg() && op.is_kill()) {
+
+            if (op.is_reg() && (op.is_kill() || op.is_dead())) {
+                // If the register is no longer live at this point, then it's 
+                // value is no longer used and thus the range should be killed
+                // off immediately.
                 range.end = m_position;
                 range.killed = true;
             }
@@ -176,10 +187,9 @@ void RegisterAnalysis::run() {
         std::cerr << "Function '" << name << "' ranges:\n";
         for (const auto& range : ranges) {
             if (range.reg.is_virtual()) {
-                std::cerr << 'v' << range.reg.id() - MachRegister::VirtualBarrier;
+                std::cerr << 'v' << range.reg.id() - Register::VirtualBarrier;
             } else {
-                std::cerr << '%' << x64::to_string(static_cast<x64::Register>(
-                    range.reg.id()), 8);
+                std::cerr << '%' << range.reg.id();
             }
 
             std::cerr << " [" << range.start << ", " << range.end << "]\n";

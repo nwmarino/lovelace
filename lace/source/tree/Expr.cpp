@@ -132,6 +132,13 @@ RefExpr* RefExpr::create(AST::Context& ctx, SourceSpan span,
     return new RefExpr(span, defn ? defn->get_type() : nullptr, name, defn);
 }
 
+bool RefExpr::is_lvalue() const {
+    assert(m_defn && "reference not resolved yet!");
+
+    return m_defn->get_kind() == Defn::Parameter 
+        || m_defn->get_kind() == Defn::Variable;
+}
+
 SizeofExpr* SizeofExpr::create(AST::Context& ctx, SourceSpan span, 
                                const QualType& target) {
     return new SizeofExpr(

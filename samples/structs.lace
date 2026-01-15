@@ -1,20 +1,14 @@
 Box :: struct {
-    a: mut s64,
-    b: mut f32,
+    a: mut f32,
+    b: mut s64,
     c: mut bool,
-}
-
-make_box :: (a: s64, b: f32, c: bool) -> Box {
-    let box: mut Box;
-    box.a = a;
-    box.b = b;
-    box.c = c;
-
-    ret box;
 }
 
 $[public]
 main :: () -> s64 {
-    let box: Box = make_box(42, 1.5, false);
-    ret box.a;
+    let box: Box;
+    box.a = 1.17;
+    box.b = 42;
+    
+    ret box.b;
 }
