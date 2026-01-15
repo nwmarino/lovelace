@@ -886,6 +886,7 @@ void InstSelector::select_call(const Instruction* inst) {
     if (!emitted_comment)
         call.add_comment(get_asm_comment(inst));
     
+    // All argument registers are implicitly used (and killed) by the callee.
     for (Register reg : regs)
         call.add_reg(reg, 8, false, true, true);
 
