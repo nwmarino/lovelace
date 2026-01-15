@@ -483,7 +483,7 @@ lir::Value* LIRCodegen::codegen_logical_not(const UnaryOp* expr) {
             );
         }
 
-        return inject_comparison(value);
+        return m_builder.build_cmp_ieq(value, lir::Integer::get_zero(m_cfg, type));
     } else if (type->is_float_type()) {
         if (auto fp = dynamic_cast<lir::Float*>(value)) {
             return lir::Integer::get(
@@ -493,13 +493,13 @@ lir::Value* LIRCodegen::codegen_logical_not(const UnaryOp* expr) {
             );
         }
 
-        return m_builder.build_cmp_one(value, lir::Float::get_zero(m_cfg, type));
+        return m_builder.build_cmp_oeq(value, lir::Float::get_zero(m_cfg, type));
     } else if (type->is_pointer_type()) {
         if (dynamic_cast<lir::Null*>(value)) {
             return lir::Integer::get_true(m_cfg); 
         }
 
-        return m_builder.build_cmp_ine(value, lir::Null::get(m_cfg, type));
+        return m_builder.build_cmp_ieq(value, lir::Null::get(m_cfg, type));
     }
 
     assert(false && "invalid logical not operation!");

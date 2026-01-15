@@ -1035,51 +1035,72 @@ void InstSelector::select_division(const Instruction* inst) {
     MachOperand lhs = as_operand(lhs_value);
     MachOperand rhs = as_operand(rhs_value);
 
+    // Both IDIV & DIV use RDX:RAX to hold the left operand of division.
     emit(X64_Mnemonic::MOV, size, { lhs })
+        // RAX is defined here, and will be killed by the division instruction.
         .add_reg(RAX, get_subregister(lhs_value->get_type()), true)
         .add_comment(get_asm_comment(inst));
 
     const MachOperand dest = MachOperand::create_reg(
         as_register(inst), get_subregister(inst->get_type()), true);
 
+    // Move the right operand to the destination register now. Since both IDIV
+    // & DIV require a single r/m operand, this satisfies that constraint
+    // immediately.
     emit(X64_Mnemonic::MOV, size, { rhs, dest });
 
     if (inst->op() == OP_SDIV || inst->op() == OP_SMOD) {
-        emit(X64_Mnemonic::CQO) // cqo
-            .add_reg(RAX, 8, true, true) // impl-def %rax
-            .add_reg(RDX, 8, true, true) // impl-def %rdx
-            .add_reg(RAX, 8, false, true); // impl %rax
+        // IDIV: RAX = RDX:RAX / r/m, RDX = remainder
 
-        emit(X64_Mnemonic::IDIV, size, { dest }) // idivx ..rhs..
-            .add_reg(RAX, 8, true, true, false, is_mod) // impl (dead) %rax
-            .add_reg(RDX, 8, true, true, false, !is_mod) // impl (dead) %rdx
-            .add_reg(RAX, 8, false, true) // impl %rax
-            .add_reg(RDX, 8, false, true, true); // impl killed %rdx
-    } else {
-        emit(X64_Mnemonic::MOV, X64_Size::Long) // movl $0, %edx
-            .add_imm(0)
-            .add_reg(RDX, 4, true, false, false, true) // dead %edx
-            .add_reg(RDX, 8, true, true); // impl-def %rdx
+        emit(X64_Mnemonic::CQO)
+            // CQO implicitly reads the value in %rax.
+            .add_reg(RAX, 8, false, true)
+            // RDX is implicitly written to, but is not dead since IDIV uses it.
+            .add_reg(RDX, 8, true, true);
+
+        emit(X64_Mnemonic::IDIV, size, { dest }) // IDIVsz ..rhs..
+            // IDIV implicitly uses RAX, and kills the value in it.
+            .add_reg(RAX, 8, false, true, true)
+            // IDIV implicitly uses RDX, and kills the value in it.
+            .add_reg(RDX, 8, false, true, true)
+            // If the remainder is being used, then RAX (the quotient) is dead.
+            .add_reg(RAX, 8, true, true, false, is_mod)
+            // If the quotient is being used, then RDX (the remainder) is dead.
+            .add_reg(RDX, 8, true, true, false, !is_mod);
             
-        emit(X64_Mnemonic::DIV, size, { dest }) // divx ..rhs..
-            .add_reg(RAX, 8, true, true, false, is_mod) // (dead) %rax
-            .add_reg(RDX, 8, true, true, false, !is_mod) // (dead) %rdx
-            .add_reg(RAX, 8, false, true) // impl %rax
-            .add_reg(RDX, 8, false, true, true); // impl killed %rdx
+    } else {
+        // DIV: RAX = RDX:RAX / r/m, RDX = remainder
+
+        emit(X64_Mnemonic::MOV, X64_Size::Long)
+            .add_imm(0)
+            // Technically defines a value (0) in EDX, but it's dead.
+            .add_reg(RDX, 4, true, false, false, true);
+            
+        emit(X64_Mnemonic::DIV, size, { dest }) // DIVsz ..rhs..
+            // DIV implicitly uses RAX, and kills the value in it.
+            .add_reg(RAX, 8, false, true, true)
+            // DIV implicitly uses RDX, and kills the value in it.
+            .add_reg(RDX, 8, false, true, true)
+            // If the remainder is being used, then RAX (the quotient) is dead.
+            .add_reg(RAX, 8, true, true, false, is_mod)
+            // If the quotient is being used, then RDX (the remainder) is dead.
+            .add_reg(RDX, 8, true, true, false, !is_mod);
     }
 
     if (is_mod) {
-        // Mark RDX as an implicit kill here, since the remainder is now in 
-        // dest.
-        emit(X64_Mnemonic::MOV)
+        emit(X64_Mnemonic::MOV, size)
+            // The remainder is explicitly taken from RDX, so it's killed here.
             .add_reg(RDX, get_subregister(inst->get_type()), false, false, true)
             .add_operand(dest);
+
+        // Since the quotient (RAX) is unused, it is already dead at this point.
     } else {
-        // Mark RAX as an implicit kill here, since the quotient is now in 
-        // dest.
-        emit(X64_Mnemonic::MOV)
+        emit(X64_Mnemonic::MOV, size)
+            // The quotient is explicitly taken from RAX, so it's killed here.
             .add_reg(RAX, get_subregister(inst->get_type()), false, false, true)
             .add_operand(dest);
+
+        // Since the remainder (RDX) is unused, it is already dead here.
     }
 }
 
