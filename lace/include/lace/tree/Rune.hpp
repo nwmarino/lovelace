@@ -29,8 +29,10 @@ public:
 
     /// The different kinds of runes.
     enum Kind : uint32_t {
+        Abort,
         Public,
         Private,
+        Unreachable,
     };
 
 private:
@@ -38,7 +40,7 @@ private:
     Args m_args;
 
 public:
-    Rune(Kind kind, const Args& args) : m_kind(kind), m_args(args) {}
+    Rune(Kind kind, const Args& args = {}) : m_kind(kind), m_args(args) {}
 
     ~Rune();
         

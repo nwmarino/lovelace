@@ -11,20 +11,22 @@ using namespace lace;
 
 void LIRCodegen::codegen_statement(const Stmt* stmt) {
     switch (stmt->get_kind()) {
-        case Stmt::Adapter:
+        case Stmt::Kind::Adapter:
             return codegen_adapter(static_cast<const AdapterStmt*>(stmt));
-        case Stmt::Block:
+        case Stmt::Kind::Block:
             return codegen_block(static_cast<const BlockStmt*>(stmt));
-        case Stmt::If:
+        case Stmt::Kind::If:
             return codegen_if(static_cast<const IfStmt*>(stmt));
-        case Stmt::Restart:
+        case Stmt::Kind::Restart:
             return codegen_restart(static_cast<const RestartStmt*>(stmt));
-        case Stmt::Ret:
+        case Stmt::Kind::Ret:
             return codegen_return(static_cast<const RetStmt*>(stmt));
-        case Stmt::Stop:
+        case Stmt::Kind::Stop:
             return codegen_stop(static_cast<const StopStmt*>(stmt));
-        case Stmt::Until:
+        case Stmt::Kind::Until:
             return codegen_until(static_cast<const UntilStmt*>(stmt));
+        case Stmt::Kind::Rune:
+            return codegen_rune_statement(static_cast<const RuneStmt*>(stmt));
     }
 }
 
@@ -148,4 +150,19 @@ void LIRCodegen::codegen_return(const RetStmt* stmt) {
     }
 
     m_builder.build_ret(value);
+}
+
+void LIRCodegen::codegen_rune_statement(const RuneStmt* stmt) {
+    switch (stmt->get_rune()->get_kind()) {
+        case Rune::Abort:
+            m_builder.build_abort();
+            return;
+
+        case Rune::Unreachable:
+            m_builder.build_unreachable();
+            return;
+
+        default:
+            assert(false && "invalid rune statement!");
+    }
 }

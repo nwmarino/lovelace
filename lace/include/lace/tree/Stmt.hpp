@@ -12,6 +12,7 @@
 //
 
 #include "lace/tree/AST.hpp"
+#include "lace/tree/Rune.hpp"
 #include "lace/tree/Visitor.hpp"
 #include "lace/types/SourceSpan.hpp"
 
@@ -27,12 +28,13 @@ class Scope;
 class Stmt {
 public:
     /// The different kinds of statements.
-    enum Kind : uint32_t {
+    enum class Kind : uint32_t {
         Adapter,
         Block,
         If,
         Restart,
         Ret,
+        Rune,
         Stop,
         Until,
     };
@@ -58,28 +60,7 @@ public:
     virtual void accept(Visitor& visitor) = 0;
 
     Kind get_kind() const { return m_kind; }
-
-    /// Test if this is an adapter statement.
-    bool is_adapter() const { return m_kind == Adapter; }
-
-    /// Test if this is a block statement.
-    bool is_block() const { return m_kind == Block; }
-
-    /// Test if this is an if statement.
-    bool is_if() const { return m_kind == If; }
-
-    /// Test if this is a restart statement.
-    bool is_restart() const { return m_kind == Restart; }
-
-    /// Test if this is a ret statement.
-    bool is_ret() const { return m_kind == Ret; }
-
-    /// Test if this is a stop statement.
-    bool is_stop() const { return m_kind == Stop; }
-
-    /// Test if this is an until statement.
-    bool is_until() const { return m_kind == Until; }
-
+    
     SourceSpan get_span() const { return m_span; }
 };
 
@@ -204,10 +185,10 @@ private:
     };
 
     AdapterStmt(SourceSpan span, Defn* defn) 
-      : Stmt(Stmt::Adapter, span), m_flavor(Definitive), m_defn(defn) {}
+      : Stmt(Stmt::Kind::Adapter, span), m_flavor(Definitive), m_defn(defn) {}
 
     AdapterStmt(SourceSpan span, Expr* expr) 
-      : Stmt(Stmt::Adapter, span), m_flavor(Expressive), m_expr(expr) {}
+      : Stmt(Stmt::Kind::Adapter, span), m_flavor(Expressive), m_expr(expr) {}
 
 public:
     [[nodiscard]]
@@ -253,7 +234,7 @@ private:
     Stmts m_stmts;
 
     BlockStmt(SourceSpan span, Scope* scope, const Stmts& stmts)
-      : Stmt(Stmt::Block, span), m_scope(scope), m_stmts(stmts) {}
+      : Stmt(Stmt::Kind::Block, span), m_scope(scope), m_stmts(stmts) {}
 
 public:
     [[nodiscard]]
@@ -298,7 +279,7 @@ class IfStmt final : public Stmt {
     Stmt* m_else;
 
     IfStmt(SourceSpan span, Expr* cond, Stmt* then, Stmt* els)
-      : Stmt(Stmt::If, span), m_cond(cond), m_then(then), m_else(els) {}
+      : Stmt(Stmt::Kind::If, span), m_cond(cond), m_then(then), m_else(els) {}
 
 public:
     [[nodiscard]]
@@ -329,7 +310,7 @@ public:
 
 /// Represents a `restart` statement.
 class RestartStmt final : public Stmt {
-    RestartStmt(SourceSpan span) : Stmt(Stmt::Restart, span) {}
+    RestartStmt(SourceSpan span) : Stmt(Stmt::Kind::Restart, span) {}
 
 public:
     [[nodiscard]]
@@ -354,7 +335,7 @@ class RetStmt final : public Stmt {
     Expr* m_expr;
 
     RetStmt(SourceSpan span, Expr* expr) 
-      : Stmt(Stmt::Ret, span), m_expr(expr) {}
+      : Stmt(Stmt::Kind::Ret, span), m_expr(expr) {}
 
 public:
     [[nodiscard]]
@@ -378,7 +359,7 @@ public:
 
 /// Represents a `stop` statement.
 class StopStmt final : public Stmt {
-    StopStmt(SourceSpan span) : Stmt(Stmt::Stop, span) {}
+    StopStmt(SourceSpan span) : Stmt(Stmt::Kind::Stop, span) {}
 
 public:
     [[nodiscard]]
@@ -401,7 +382,7 @@ class UntilStmt final : public Stmt {
     Stmt* m_body;
 
     UntilStmt(SourceSpan span, Expr* cond, Stmt* body)
-      : Stmt(Stmt::Until, span), m_cond(cond), m_body(body) {}
+      : Stmt(Stmt::Kind::Until, span), m_cond(cond), m_body(body) {}
 
 public:
     [[nodiscard]]
@@ -425,6 +406,31 @@ public:
     Stmt* get_body() { return m_body; }
 
     bool has_body() const { return m_body != nullptr; }
+};
+
+/// Represents a statement that encapsulates a rune.
+class RuneStmt final : public Stmt {
+    Rune* m_rune;
+
+    RuneStmt(SourceSpan span, Rune* rune)
+      : Stmt(Stmt::Kind::Rune, span), m_rune(rune) {}
+
+public:
+    [[nodiscard]] static RuneStmt* create(AST::Context& ctx, SourceSpan span, 
+                                          Rune* rune);
+
+    ~RuneStmt() override;
+
+    RuneStmt(const RuneStmt&) = delete;
+    void operator=(const RuneStmt&) = delete;
+
+    RuneStmt(RuneStmt&&) noexcept = delete;
+    void operator=(RuneStmt&&) noexcept = delete;
+
+    void accept(Visitor& visitor) override { visitor.visit(*this); }
+
+    const Rune* get_rune() const { return m_rune; }
+    Rune* get_rune() { return m_rune; }
 };
 
 } // namespace lace

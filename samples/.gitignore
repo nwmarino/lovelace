@@ -9,5 +9,6 @@ if
 integer_arithmetic
 pointer_arithmetic
 return_zero
+runes
 structs
 until_loop

@@ -160,6 +160,8 @@ private:
     void codegen_restart(const RestartStmt* stmt);
     void codegen_stop(const StopStmt* stmt);
     void codegen_return(const RetStmt* stmt);
+
+    void codegen_rune_statement(const RuneStmt* stmt);
 };
 
 } // namespace lace

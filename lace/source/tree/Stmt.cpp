@@ -118,3 +118,12 @@ UntilStmt* UntilStmt::create(AST::Context& ctx, SourceSpan span, Expr* cond,
                              Stmt* body) {
     return new UntilStmt(span, cond, body);
 }
+
+RuneStmt* RuneStmt::create(AST::Context& ctx, SourceSpan span, Rune* rune) {
+    return new RuneStmt(span, rune);
+}
+
+RuneStmt::~RuneStmt() {
+    delete m_rune;
+    m_rune = nullptr;
+}

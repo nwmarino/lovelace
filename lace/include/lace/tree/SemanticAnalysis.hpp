@@ -67,6 +67,7 @@ public:
     void visit(RetStmt& node) override;
     void visit(StopStmt& node) override;
     void visit(UntilStmt& node) override;
+    void visit(RuneStmt& node) override;
 
     void visit(BinaryOp& node) override;
     void visit(UnaryOp& node) override;

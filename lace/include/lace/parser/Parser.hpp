@@ -127,6 +127,7 @@ class Parser final {
     Stmt* parse_block_statement();
     Stmt* parse_control_statement();
     Stmt* parse_declarative_statement();
+    Stmt* parse_rune_statement();
 
     Expr* parse_initial_expression();
     Expr* parse_primary_expression();

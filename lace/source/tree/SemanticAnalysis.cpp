@@ -250,6 +250,10 @@ void SemanticAnalysis::visit(UntilStmt& node) {
     }
 }
 
+void SemanticAnalysis::visit(RuneStmt& node) {
+    return; // Nothing to do (yet).
+}
+
 void SemanticAnalysis::visit(BinaryOp& node) {
     Expr* lhs = node.get_lhs();
     Expr* rhs = node.get_rhs();

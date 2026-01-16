@@ -141,6 +141,10 @@ void SymbolAnalysis::visit(UntilStmt& node) {
         node.get_body()->accept(*this);
 }
 
+void SymbolAnalysis::visit(RuneStmt& node) {
+    return; // Nothing to do (yet).
+}
+
 void SymbolAnalysis::visit(BinaryOp& node) {
     node.get_lhs()->accept(*this);
     node.get_rhs()->accept(*this);

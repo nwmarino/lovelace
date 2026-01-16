@@ -17,6 +17,8 @@ using namespace lace;
 Stmt* Parser::parse_initial_statement() {
     if (match(Token::OpenBrace)) {
         return parse_block_statement();
+    } else if (match(Token::Sign)) {
+        return parse_rune_statement();
     //} else if (match("asm")) {
     //   return parse_inline_assembly_statement();
     } else if (match("let")) {
@@ -247,4 +249,26 @@ Stmt* Parser::parse_declarative_statement() {
 
     m_scope->add(var);
     return AdapterStmt::create(*m_context, var);
+}
+
+Stmt* Parser::parse_rune_statement() {
+    const SourceLocation start = loc();
+    next(); // '$'
+
+    static std::unordered_map<std::string, Rune::Kind> runes = {
+        { "abort", Rune::Abort},
+        { "unreachable", Rune::Unreachable },
+    };
+
+    if (!match(Token::Identifier))
+        log::fatal("expected identifier after '$'", log::Span(m_file, loc()));
+
+    if (!runes.contains(curr().value))
+        log::fatal("unknown rune: " + curr().value, log::Span(m_file, loc()));
+    
+    const SourceLocation end = loc();
+    Rune::Kind kind = runes[curr().value];
+    next();
+
+    return RuneStmt::create(*m_context, SourceSpan(start, end), new Rune(kind));
 }

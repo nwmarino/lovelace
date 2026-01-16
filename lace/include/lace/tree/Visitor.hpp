@@ -27,6 +27,7 @@ class RestartStmt;
 class RetStmt;
 class StopStmt;
 class UntilStmt;
+class RuneStmt;
 
 class BoolLiteral;
 class CharLiteral;
@@ -79,6 +80,7 @@ public:
     virtual void visit(RetStmt& node) {}
     virtual void visit(StopStmt& node) {}
     virtual void visit(UntilStmt& node) {}
+    virtual void visit(RuneStmt& node) {}
 
     virtual void visit(BoolLiteral& node) {}
     virtual void visit(CharLiteral& node) {}

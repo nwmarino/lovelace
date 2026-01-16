@@ -5,12 +5,12 @@ set(CODEGEN_SOURCES
     LIRCodegenOp.cpp
     LIRCodegenStmt.cpp
     LIRCodegenValued.cpp
-    LLVMCodegen.cpp
-    LLVMCodegenAddressed.cpp
-    LLVMCodegenDefn.cpp
-    LLVMCodegenOp.cpp
-    LLVMCodegenStmt.cpp
-    LLVMCodegenValued.cpp
+    #LLVMCodegen.cpp
+    #LLVMCodegenAddressed.cpp
+    #LLVMCodegenDefn.cpp
+    #LLVMCodegenOp.cpp
+    #LLVMCodegenStmt.cpp
+    #LLVMCodegenValued.cpp
 )
 
 add_library(Codegen

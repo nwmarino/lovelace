@@ -4,7 +4,7 @@
 //
 
 #include "lace/codegen/LIRCodegen.hpp"
-#include "lace/codegen/LLVMCodegen.hpp"
+//#include "lace/codegen/LLVMCodegen.hpp"
 #include "lace/core/Diagnostics.hpp"
 #include "lace/core/ThreadPool.hpp"
 #include "lace/core/Options.hpp"
@@ -21,6 +21,7 @@
 #include "lir/machine/Machine.hpp"
 #include "lir/machine/RegisterAnalysis.hpp"
 
+/*
 #include "llvm/ADT/Twine.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
@@ -40,6 +41,7 @@
 #include "llvm/TargetParser/Triple.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Scalar/SROA.h"
+*/
 
 #include <cstdint>
 #include <filesystem>
@@ -230,6 +232,7 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
     }
 }
 
+/*
 void drive_llvm_backend(const Options& options, const Asts& asts) {
     assert(options.llvm);
 
@@ -362,6 +365,7 @@ void drive_llvm_backend(const Options& options, const Asts& asts) {
     for (llvm::LLVMContext* ctx : contexts)
         delete ctx;
 }
+*/
 
 int32_t main(int32_t argc, char** argv) {
     Options options;
@@ -552,7 +556,7 @@ int32_t main(int32_t argc, char** argv) {
     log::flush();
 
     if (options.llvm) {
-        drive_llvm_backend(options, asts);
+        //drive_llvm_backend(options, asts);
     } else {
         // Default to LIR.
         drive_lir_backend(options, asts);
