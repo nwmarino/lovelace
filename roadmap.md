@@ -1,15 +1,14 @@
-Runes
-- Assert
-- Abort
-- Syscall
-- Unreachable
-
+- SROA
+- Assertions
+- Print
+- Match statement
+- For statement
+- String, File packages
 - Aggregate initializers
 - Dynamic memory allocator
 - Per-field destruction
 - Defer statement
-- Line-by-line debugging symbols.
-- For Loops
+- Line-by-line debugging symbols
 - Format strings
 - Inline assembly
 - Custom enum types
