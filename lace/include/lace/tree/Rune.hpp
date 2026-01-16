@@ -30,6 +30,7 @@ public:
     /// The different kinds of runes.
     enum Kind : uint32_t {
         Abort,
+        Intrinsic,
         Public,
         Private,
         Unreachable,

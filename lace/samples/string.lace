@@ -1,0 +1,30 @@
+$[public, intrinsic]
+string :: struct {
+    data: *mut char,
+    size: mut u64,
+}
+
+/// Destroy a string.
+string_destroy :: (str: string) -> void {
+    mem_free(str.data);
+    str.data = null;
+    str.size = 0;
+}
+
+/// Compare two strings for equality.
+string_eq :: (str: string, other: string) -> bool {
+    if str.size != other.size {
+        ret false;
+    }
+
+    let i: mut u64 = 0;
+    until i >= str.size {
+        if str.data[i] != other.data[i] {
+            ret false;
+        }
+
+        i = i + 1;
+    }
+
+    ret true;
+}

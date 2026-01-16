@@ -13,6 +13,7 @@ void Parser::parse_rune_decorators(Runes& runes) {
         return;
 
     static std::unordered_map<std::string, Rune::Kind> table = {
+        { "intrinsic", Rune::Intrinsic },
         { "public", Rune::Public },
         { "private", Rune::Private },
     };

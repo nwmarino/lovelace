@@ -1,14 +1,14 @@
-$[public]
+$public
 exit :: (_: s64) -> void;
 
-$[public]
+$public
 open :: (_: *char, _: s64, _: s64) -> s64;
 
-$[public]
+$public
 close :: (_: s64) -> s64;
 
-$[public]
+$public
 write :: (_: s64, _: *char, _: s64) -> s64;
 
-$[public]
+$public
 brk :: (_: u64) -> *void;

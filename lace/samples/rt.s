@@ -14,11 +14,11 @@ _start:
     ud2
 
 __rt_init:
-    #call    __fmt_arena_init@PLT
+#   call    __fmt_arena_init@PLT
     ret
 
 __rt_shutdown:
-    #call    __fmt_arena_destroy@PLT
+#   call    __fmt_arena_destroy@PLT
     ret
 
 # __mem_copy :: (*void, *void, s64) -> void
