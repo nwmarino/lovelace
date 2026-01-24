@@ -7,3 +7,5 @@
 ## lace
 
 ## LIR
+- Move `BasicBlock::Arg` and `Function::Arg` out to standalone classes named
+`BlockArgument` and `FunctionArgument`, respectively.

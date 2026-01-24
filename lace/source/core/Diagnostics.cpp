@@ -107,7 +107,7 @@ void log::note(const std::string& msg) {
     if (!g_out)
         return;
 
-    *g_out << (g_color ? "\033[1;35mnote:\033[0m " : "note: ") << msg << '\n';
+    *g_out << (g_color ? "\033[1;35m!\033[0m " : "note: ") << msg << '\n';
 }
 
 void log::note(const std::string& msg, const Location& loc) {
@@ -117,7 +117,7 @@ void log::note(const std::string& msg, const Location& loc) {
         return;
 
     *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
-           << (g_color ? " \033[1;35mnote:\033[0m " : " note: ") << msg << '\n';
+           << (g_color ? " \033[1;35m!\033[0m " : " note: ") << msg << '\n';
 }
 
 void log::note(const std::string& msg, const Span& span) {
@@ -126,7 +126,7 @@ void log::note(const std::string& msg, const Span& span) {
     if (!g_out)
         return;
 
-    *g_out << (g_color ? "\033[1;35m ! \033[0m" : " ! ") << msg << '\n';
+    *g_out << (g_color ? "\033[1;35m ! \033[0m" : "note: ") << msg << '\n';
     print_source(span);
 }
 
@@ -136,7 +136,7 @@ void log::warn(const std::string& msg) {
     if (!g_out)
         return;
 
-    *g_out << (g_color ? "\033[1;33mwarning:\033[0m " : "warning: ") << msg 
+    *g_out << (g_color ? "\033[1;33m*\033[0m " : "warning: ") << msg 
            << '\n';
 }
 
@@ -147,7 +147,7 @@ void log::warn(const std::string& msg, const Location& loc) {
         return;
 
     *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
-           << (g_color ? " \033[1;33mwarning:\033[0m " : " warning: ") << msg 
+           << (g_color ? " \033[1;33m*\033[0m " : " warning: ") << msg 
            << '\n';
 }
 
@@ -157,7 +157,7 @@ void log::warn(const std::string& msg, const Span& span) {
     if (!g_out)
         return;
 
-    *g_out << (g_color ? "\033[33m * \033[0m" : " * ") << msg << '\n';
+    *g_out << (g_color ? "\033[33m*\033[0m" : "warning: ") << msg << '\n';
     print_source(span);
 }
 
@@ -165,7 +165,7 @@ void log::error(const std::string& msg) {
     std::lock_guard<std::mutex> lock(g_mutex);
 
     if (g_out) {
-        *g_out << (g_color ? "\033[1;31merror:\033[0m " : "error: ") << msg 
+        *g_out << (g_color ? "\033[1;31mx\033[0m " : "error: ") << msg 
                << '\n';
     }
 
@@ -177,7 +177,7 @@ void log::error(const std::string& msg, const Location& loc) {
 
     if (g_out) {
         *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
-               << (g_color ? " \033[1;31merror:\033[0m " : " error: ") << msg 
+               << (g_color ? " \033[1;31mx\033[0m " : " error: ") << msg 
                << '\n';
     }
 
@@ -188,7 +188,7 @@ void log::error(const std::string& msg, const Span& span) {
     std::lock_guard<std::mutex> lock(g_mutex);
 
     if (g_out) {
-        *g_out << (g_color ? "\033[1;31m x \033[0m" : " x ") << msg << '\n';
+        *g_out << (g_color ? "\033[1;31mx\033[0m" : "error: ") << msg << '\n';
         print_source(span);
     }
 
@@ -199,7 +199,7 @@ void log::fatal(const std::string& msg) {
     std::lock_guard<std::mutex> lock(g_mutex);
 
     if (g_out) {
-        *g_out << (g_color ? "\033[1;31mfatal:\033[0m " : "fatal: ") << msg 
+        *g_out << (g_color ? "\033[1;31mx\033[0m " : "fatal: ") << msg 
                << '\n';
     }
 
@@ -211,7 +211,7 @@ void log::fatal(const std::string& msg, const Location& loc) {
 
     if (g_out) {
         *g_out << loc.path << ':' << loc.line << ':' << loc.col << ':'
-               << (g_color ? " \033[1;31mfatal:\033[0m " : " fatal: ") << msg 
+               << (g_color ? " \033[1;31mx\033[0m " : " fatal: ") << msg 
                << '\n';
     }
 
