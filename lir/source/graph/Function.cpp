@@ -10,8 +10,8 @@
 using namespace lir;
 
 FunctionArgument* FunctionArgument::create(
-        Type *type, const std::string &name, Function* parent) {
-    FunctionArgument* arg = new FunctionArgument(type, parent, name);
+        Type *type, const std::string &name, Function* parent, Trait trait) {
+    FunctionArgument* arg = new FunctionArgument(type, parent, name, trait);
     if (parent)
         parent->append_arg(arg);
 

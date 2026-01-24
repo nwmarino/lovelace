@@ -24,16 +24,27 @@ class Function;
 
 /// Represents an argument to a function.
 class FunctionArgument final : public Value {
+public:
+    /// Possible traits for function arguments.
+    enum class Trait : uint32_t {
+        None = 0,
+        ARet,       //< For aggregate return values passed by pointer.
+        Valued,     //< For aggregate arguments passed by pointer.
+    };
+
+private:
     Function* m_parent;
     std::string m_name;
+    Trait m_trait;
 
-    FunctionArgument(Type* type, Function* parent, const std::string& name)
-        : Value(type), m_parent(parent), m_name(name) {}
+    FunctionArgument(Type* type, Function* parent, const std::string& name, 
+                     Trait trait)
+      : Value(type), m_parent(parent), m_name(name), m_trait(trait) {}
 
 public:
-    [[nodiscard]] static FunctionArgument* create(Type* type, 
-                                                  const std::string& name,
-                                                  Function* parent = nullptr);
+    [[nodiscard]] static FunctionArgument* create(
+        Type* type, const std::string& name, Function* parent = nullptr,
+        Trait trait = Trait::None);
 
     void set_parent(Function* function) { m_parent = function; }
     const Function* get_parent() const { return m_parent; }
@@ -45,7 +56,14 @@ public:
     const std::string& get_name() const { return m_name; }
     std::string& get_name() { return m_name; }
 
+    /// Test if this argument is named.
     bool has_name() const { return !m_name.empty(); }
+
+    void set_trait(Trait trait) { m_trait = trait; }
+    Trait get_trait() const { return m_trait; }
+    
+    /// Test if this argument has a trait.
+    bool has_trait() const { return m_trait != Trait::None; }
 
     /// Returns the index of this argument in its parent function. Fails if 
     /// this argument does not belong to a function.
@@ -189,6 +207,6 @@ public:
     void print(std::ostream& os, PrintPolicy policy) const override;
 };
 
-} // namespace spbe
+} // namespace lir
 
-#endif // SPBE_FUNCTION_H_
+#endif // LOVELACE_IR_FUNCTION_H_
