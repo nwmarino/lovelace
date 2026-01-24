@@ -322,7 +322,7 @@ MachOperand InstSelector::as_operand(const Value* value) {
     {
         return as_argument(value, arg->get_index());
     } 
-    else if (const BasicBlockArg* arg = dynamic_cast<const BasicBlockArg*>(value)) 
+    else if (const BlockArgument* arg = dynamic_cast<const BlockArgument*>(value)) 
     {
         auto it = m_args.find(arg);
         if (it != m_args.end())

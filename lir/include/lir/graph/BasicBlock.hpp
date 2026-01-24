@@ -22,14 +22,14 @@ class BasicBlock;
 class Function;
 
 /// Represents an argument to a basic block.
-class BasicBlockArg final : public Value {
+class BlockArgument final : public Value {
     BasicBlock* m_parent;
 
-    BasicBlockArg(Type* type, BasicBlock* parent) 
+    BlockArgument(Type* type, BasicBlock* parent) 
       : Value(type), m_parent(parent) {}
 
 public:
-    [[nodiscard]] static BasicBlockArg* create(Type* type, 
+    [[nodiscard]] static BlockArgument* create(Type* type, 
                                                BasicBlock* parent = nullptr);
 
     void set_parent(BasicBlock* block) { m_parent = block; }
@@ -45,7 +45,7 @@ public:
 
 class BasicBlock final {
 public:
-    using Args = std::vector<BasicBlockArg*>;
+    using Args = std::vector<BlockArgument*>;
     using Preds = std::vector<BasicBlock*>;
     using Succs = std::vector<BasicBlock*>;
 
@@ -91,12 +91,12 @@ public:
     const Args& get_args() const { return m_args; }
     Args& get_args() { return m_args; }
 
-    const BasicBlockArg* get_arg(uint32_t i) const {
+    const BlockArgument* get_arg(uint32_t i) const {
         assert(i < num_args() && "index out of bounds!");
         return m_args[i];
     }
 
-    BasicBlockArg* get_arg(uint32_t i) {
+    BlockArgument* get_arg(uint32_t i) {
         assert(i < num_args() && "index out of bounds!");
         return m_args[i];
     }
@@ -105,13 +105,13 @@ public:
     bool has_args() const { return !m_args.empty(); }
 
     /// Set the argument at position |i| to |arg|.
-    void set_arg(uint32_t i, BasicBlockArg* arg) {
+    void set_arg(uint32_t i, BlockArgument* arg) {
         assert(i < num_args() && "index out of bounds!");
         m_args[i] = arg;
     }
 
     /// Append the given |arg| to the back of this blocks' argument list.
-    void append_arg(BasicBlockArg* arg) { m_args.push_back(arg); }
+    void append_arg(BlockArgument* arg) { m_args.push_back(arg); }
 
     /// Append this basic block to the given |function|. Fails if this block
     /// already belongs to a function.

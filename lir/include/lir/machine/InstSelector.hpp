@@ -14,7 +14,7 @@
 namespace lir {
 
 class InstSelector final {
-    using ArgTable = std::unordered_map<const BasicBlockArg*, Register>;
+    using ArgTable = std::unordered_map<const BlockArgument*, Register>;
     using LocalTable = std::unordered_map<const Local*, uint32_t>;
     using RegisterTable = std::unordered_map<uint32_t, Register>;
     
@@ -70,8 +70,6 @@ class InstSelector final {
     void select_unreachable(const Instruction* inst);
     void select_load_store(const Instruction* inst);
     void select_pwalk(const Instruction* inst);
-    void select_access(const Instruction* inst);
-    void select_ap(const Instruction* inst);
     void select_string(const Instruction* inst);
     void select_comparison(const Instruction* inst);
     void select_conditional_jump(const Instruction* inst);

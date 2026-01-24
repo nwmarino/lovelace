@@ -178,7 +178,7 @@ void BasicBlock::print(std::ostream& os, PrintPolicy policy) const {
     }
 }
 
-void BasicBlockArg::print(std::ostream& os, PrintPolicy policy) const {
+void BlockArgument::print(std::ostream& os, PrintPolicy policy) const {
     os << std::format("p{}: {}", get_index(), get_type()->to_string());
 }
 
