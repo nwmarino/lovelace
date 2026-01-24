@@ -9,19 +9,26 @@ _start:
     call    __rt_init
     call    main@PLT
     movq    %rax, %rdi
-    movq    $60, %rax
+    movq    $60, %rax   # exit syscall
     syscall
-    ud2
+    ud2                 # unreachable
 
+    .text
+    .type   __rt_init, @function
 __rt_init:
 #   call    __fmt_arena_init@PLT
     ret
 
+    .text
+    .type   __rt_shutdown, @function
 __rt_shutdown:
 #   call    __fmt_arena_destroy@PLT
     ret
 
 # __mem_copy :: (*void, *void, s64) -> void
+    .text
+    .global __mem_copy
+    .type   __mem_copy, @function
 __mem_copy:
 .L0_cond:
     cmpq    $0, %rcx
@@ -36,6 +43,9 @@ __mem_copy:
     jmp     .L0_cond
 
 # __mem_set :: (*void, s8, s64) -> void
+    .text
+    .global __mem_set
+    .type   __mem_set, @function
 __mem_set:
 .L1_cond:
     cmpq    $0, %rcx
@@ -45,6 +55,38 @@ __mem_set:
     movb    %sil, (%rdi)
     decq    %rcx
     jmp     .L1_cond
+
+# __mem_zero :: (*void, s64) -> void
+    .text
+    .global __mem_zero
+    .type   __mem_zero, @function
+__mem_zero:
+.L2_cond:
+    cmpq    $0, %rcx
+    jne     .L2_body
+    ret
+.L2_body:
+    movb    $0, (%rdi)
+    decq    %rcx
+    jmp     .L2_cond
+
+# __abort :: () -> void
+    .text
+    .global __abort
+    .type   __abort, @function
+__abort:
+    movq    $62, %rax
+    movq    $0, %rdi    # pid 0
+    movq    $0, %rsi    # signal 6 (SIGABRT)
+    syscall             # kill syscall
+    call    __unreachable 
+
+# __unreachable :: () -> void
+    .text
+    .global __unreachable
+    .type   __unreachable, @function
+__unreachable:
+    ud2
 
 # exit :: (s64) -> void
     .text
