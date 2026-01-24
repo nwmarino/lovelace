@@ -178,7 +178,7 @@ void BasicBlock::print(std::ostream& os, PrintPolicy policy) const {
     }
 }
 
-void BasicBlock::Arg::print(std::ostream& os, PrintPolicy policy) const {
+void BasicBlockArg::print(std::ostream& os, PrintPolicy policy) const {
     os << std::format("p{}: {}", get_index(), get_type()->to_string());
 }
 
@@ -237,7 +237,7 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
             os << '(';
 
             for (uint32_t i = 0, e = num_args(); i < e; ++i) {
-                const lir::Function::Arg* arg = get_arg(i);
+                const lir::FunctionArgument* arg = get_arg(i);
 
                 if (arg->has_name()) {
                     arg->print(os, PrintPolicy::Def);
@@ -275,7 +275,7 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
     }
 }
 
-void Function::Arg::print(std::ostream& os, PrintPolicy policy) const {
+void FunctionArgument::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
             if (has_name()) {

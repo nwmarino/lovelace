@@ -375,7 +375,7 @@ lir::Value* LIRCodegen::codegen_numerical_comparison(const BinaryOp* expr) {
 lir::Value* LIRCodegen::codegen_logical_and(const BinaryOp* expr) {
     lir::BasicBlock* right_bb = lir::BasicBlock::create();
     lir::BasicBlock* merge_bb = lir::BasicBlock::create();
-    lir::BasicBlock::Arg* res = lir::BasicBlock::Arg::create(
+    lir::BasicBlockArg* res = lir::BasicBlockArg::create(
         lir::Type::get_i1_type(m_cfg), merge_bb);
 
     lir::Value* lhs = codegen_valued_expression(expr->get_lhs());
@@ -405,7 +405,7 @@ lir::Value* LIRCodegen::codegen_logical_and(const BinaryOp* expr) {
 lir::Value* LIRCodegen::codegen_logical_or(const BinaryOp* expr) {
     lir::BasicBlock* right_bb = lir::BasicBlock::create();
     lir::BasicBlock* merge_bb = lir::BasicBlock::create();
-    lir::BasicBlock::Arg* res = lir::BasicBlock::Arg::create(
+    lir::BasicBlockArg* res = lir::BasicBlockArg::create(
         lir::Type::get_i1_type(m_cfg), merge_bb);
 
     lir::Value* lhs = codegen_valued_expression(expr->get_lhs());

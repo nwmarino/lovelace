@@ -14,7 +14,7 @@
 namespace lir {
 
 class InstSelector final {
-    using ArgTable = std::unordered_map<const BasicBlock::Arg*, Register>;
+    using ArgTable = std::unordered_map<const BasicBlockArg*, Register>;
     using LocalTable = std::unordered_map<const Local*, uint32_t>;
     using RegisterTable = std::unordered_map<uint32_t, Register>;
     

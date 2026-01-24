@@ -1,5 +1,5 @@
-- SROA
 - Assertions
+- Carve out lexing, allowing for better parallelism
 - Print
 - Match statement
 - For statement

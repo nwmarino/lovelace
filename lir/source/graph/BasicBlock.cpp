@@ -9,20 +9,20 @@
 
 using namespace lir;
 
-BasicBlock::Arg* BasicBlock::Arg::create(Type* type, BasicBlock* parent) {
-    BasicBlock::Arg* arg = new BasicBlock::Arg(type, parent);
+BasicBlockArg* BasicBlockArg::create(Type* type, BasicBlock* parent) {
+    BasicBlockArg* arg = new BasicBlockArg(type, parent);
     if (parent)
         parent->append_arg(arg);
 
     return arg;
 }
 
-uint32_t BasicBlock::Arg::get_index() const {
+uint32_t BasicBlockArg::get_index() const {
     assert(m_parent && "argument does not belong to a block!");
 
     const BasicBlock::Args& args = m_parent->get_args();
     uint32_t i = 0;
-    for (Arg* arg : args) {
+    for (BasicBlockArg* arg : args) {
         if (arg == this)
             return i;
 
@@ -33,7 +33,7 @@ uint32_t BasicBlock::Arg::get_index() const {
 }
 
 BasicBlock::~BasicBlock() {
-    for (Arg* arg : m_args)
+    for (BasicBlockArg* arg : m_args)
         delete arg;
 
     Instruction* curr = m_head;

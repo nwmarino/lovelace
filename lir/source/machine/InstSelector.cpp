@@ -318,11 +318,11 @@ MachOperand InstSelector::as_operand(const Value* value) {
     {
         return MachOperand::create_symbol(global->get_name().c_str());
     } 
-    else if (const Function::Arg* arg = dynamic_cast<const Function::Arg*>(value)) 
+    else if (const FunctionArgument* arg = dynamic_cast<const FunctionArgument*>(value)) 
     {
         return as_argument(value, arg->get_index());
     } 
-    else if (const BasicBlock::Arg* arg = dynamic_cast<const BasicBlock::Arg*>(value)) 
+    else if (const BasicBlockArg* arg = dynamic_cast<const BasicBlockArg*>(value)) 
     {
         auto it = m_args.find(arg);
         if (it != m_args.end())
@@ -512,7 +512,7 @@ void InstSelector::select_load_store(const Instruction* inst) {
             source.set_is_use(true);
 
             // @Todo: what is the point of this...
-            if (dynamic_cast<const Function::Arg*>(inst->get_operand(0)))
+            if (dynamic_cast<const FunctionArgument*>(inst->get_operand(0)))
                 source.set_is_kill(true);
         }
     }
@@ -526,7 +526,7 @@ void InstSelector::select_load_store(const Instruction* inst) {
             source.set_is_use(true);
 
             // @Todo: what is the point of this...
-            if (dynamic_cast<const Function::Arg*>(inst->get_operand(0)))
+            if (dynamic_cast<const FunctionArgument*>(inst->get_operand(0)))
                 source.set_is_kill(true);
         } else if (source.is_symbol() || source.is_mem() || 
             source.is_stack() || source.is_constant()) {

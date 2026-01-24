@@ -48,7 +48,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         linkage = lir::Function::External;
 
     std::vector<lir::Type*> types(defn->num_params(), nullptr);
-    std::vector<lir::Function::Arg*> args(defn->num_params(), nullptr);
+    std::vector<lir::FunctionArgument*> args(defn->num_params(), nullptr);
 
     for (uint32_t i = 0; i < defn->num_params(); ++i) {
         const ParameterDefn* param = defn->get_param(i);
@@ -59,7 +59,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
             name = "";
 
         types[i] = type;
-        args[i] = lir::Function::Arg::create(type, name);
+        args[i] = lir::FunctionArgument::create(type, name);
     }
 
     lir::FunctionType* type = lir::FunctionType::get(
@@ -80,7 +80,7 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     m_builder.set_insert(entry);
 
     for (uint32_t i = 0, e = defn->num_params(); i < e; ++i) {
-        lir::Function::Arg* arg = func->get_arg(i);
+        lir::FunctionArgument* arg = func->get_arg(i);
         lir::Local* local = lir::Local::create(
             m_cfg, 
             arg->get_type(), 

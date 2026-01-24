@@ -3,8 +3,8 @@
 //  All rights reserved.
 //
 
-#ifndef LOVELACE_CODEGEN_H_
-#define LOVELACE_CODEGEN_H_
+#ifndef LOVELACE_LIR_CODEGEN_H_
+#define LOVELACE_LIR_CODEGEN_H_
 
 //
 //  This header file declares the LIRCodegen class, whom instances thereof 
@@ -166,4 +166,4 @@ private:
 
 } // namespace lace
 
-#endif // LOVELACE_CODEGEN_H_
+#endif // LOVELACE_LIR_CODEGEN_H_

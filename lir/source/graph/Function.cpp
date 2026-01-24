@@ -9,21 +9,21 @@
 
 using namespace lir;
 
-Function::Arg* Function::Arg::create(
+FunctionArgument* FunctionArgument::create(
         Type *type, const std::string &name, Function* parent) {
-    Function::Arg* arg = new Function::Arg(type, parent, name);
+    FunctionArgument* arg = new FunctionArgument(type, parent, name);
     if (parent)
         parent->append_arg(arg);
 
     return arg;
 }
 
-uint32_t Function::Arg::get_index() const {
+uint32_t FunctionArgument::get_index() const {
     assert(m_parent && "argument does not belong to a function!");
 
     const Function::Args& args = m_parent->get_args();
     uint32_t i = 0;
-    for (Arg* arg : args) {
+    for (FunctionArgument* arg : args) {
         if (arg == this)
             return i;
 
@@ -34,7 +34,7 @@ uint32_t Function::Arg::get_index() const {
 }
 
 Function::~Function() {
-    for (Arg* arg : m_args)
+    for (FunctionArgument* arg : m_args)
         delete arg;
 
     for (auto& [name, local] : m_locals)
@@ -62,7 +62,7 @@ Function* Function::create(CFG &cfg, LinkageType linkage, FunctionType *type,
     Function* function = new Function(type, &cfg, linkage, name, args);
     cfg.add_function(function);
 
-    for (Arg* arg : args) {
+    for (FunctionArgument* arg : args) {
         assert(!arg->has_parent() && "argument already belongs to a function!");
         arg->set_parent(function);
     }
@@ -76,7 +76,7 @@ void Function::detach() {
     m_parent->remove_function(this); // Updates parent pointer for us.
 }
 
-void Function::set_arg(uint32_t i, Function::Arg* arg) {
+void Function::set_arg(uint32_t i, FunctionArgument* arg) {
     assert(i < num_args() && "index out of bounds!");
     assert(!arg->has_parent() && "argument already belongs to a function!");
 
@@ -84,7 +84,7 @@ void Function::set_arg(uint32_t i, Function::Arg* arg) {
     arg->set_parent(this);
 }
 
-void Function::append_arg(Function::Arg* arg) {
+void Function::append_arg(FunctionArgument* arg) {
     assert(!arg->has_parent() && "argument already belongs to a function!");
 
     m_args.push_back(arg);

@@ -20,6 +20,39 @@
 namespace lir {
 
 class CFG;
+class Function;
+
+/// Represents an argument to a function.
+class FunctionArgument final : public Value {
+    Function* m_parent;
+    std::string m_name;
+
+    FunctionArgument(Type* type, Function* parent, const std::string& name)
+        : Value(type), m_parent(parent), m_name(name) {}
+
+public:
+    [[nodiscard]] static FunctionArgument* create(Type* type, 
+                                                  const std::string& name,
+                                                  Function* parent = nullptr);
+
+    void set_parent(Function* function) { m_parent = function; }
+    const Function* get_parent() const { return m_parent; }
+    Function* get_parent() { return m_parent; }
+    
+    bool has_parent() const { return m_parent != nullptr; }
+
+    void set_name(const std::string& name) { m_name = name; }
+    const std::string& get_name() const { return m_name; }
+    std::string& get_name() { return m_name; }
+
+    bool has_name() const { return !m_name.empty(); }
+
+    /// Returns the index of this argument in its parent function. Fails if 
+    /// this argument does not belong to a function.
+    uint32_t get_index() const;
+
+    void print(std::ostream& os, PrintPolicy policy) const override;
+};
 
 /// A function routine consisting of basic blocks.
 class Function final : public Value {
@@ -29,38 +62,7 @@ public:
         Internal = 0, External,
     };
 
-    /// Represents an argument to a function.
-    class Arg final : public Value {
-        Function* m_parent;
-        std::string m_name;
-
-        Arg(Type* type, Function* parent, const std::string& name)
-          : Value(type), m_parent(parent), m_name(name) {}
-
-    public:
-        [[nodiscard]] static Arg* create(Type* type, const std::string& name,
-                                         Function* parent = nullptr);
-
-        void set_parent(Function* function) { m_parent = function; }
-        const Function* get_parent() const { return m_parent; }
-        Function* get_parent() { return m_parent; }
-        
-        bool has_parent() const { return m_parent != nullptr; }
-
-        void set_name(const std::string& name) { m_name = name; }
-        const std::string& get_name() const { return m_name; }
-        std::string& get_name() { return m_name; }
-
-        bool has_name() const { return !m_name.empty(); }
-
-        /// Returns the index of this argument in its parent function. Fails if 
-        /// this argument does not belong to a function.
-        uint32_t get_index() const;
-
-        void print(std::ostream& os, PrintPolicy policy) const override;
-    };
-
-    using Args = std::vector<Arg*>;
+    using Args = std::vector<FunctionArgument*>;
     using Locals = std::map<std::string, Local*>;
 
 private:
@@ -116,12 +118,12 @@ public:
     const Args& get_args() const { return m_args; }
     Args& get_args() { return m_args; }
 
-    const Function::Arg* get_arg(uint32_t i) const {
+    const FunctionArgument* get_arg(uint32_t i) const {
         assert(i < num_args() && "index out of bounds!");
         return m_args[i];
     }
 
-    Function::Arg* get_arg(uint32_t i) {
+    FunctionArgument* get_arg(uint32_t i) {
         assert(i < num_args() && "index out of bounds!");
         return m_args[i];
     }
@@ -130,10 +132,10 @@ public:
     bool has_args() const { return !m_args.empty(); }
 
     /// Set the argument at position |i| to |arg|.
-    void set_arg(uint32_t i, Function::Arg* arg);
+    void set_arg(uint32_t i, FunctionArgument* arg);
 
     /// Append the given |arg| to the back of this functions' argument list.
-    void append_arg(Function::Arg* arg);
+    void append_arg(FunctionArgument* arg);
 
     const Locals& get_locals() const { return m_locals; }
     Locals& get_locals() { return m_locals; }
