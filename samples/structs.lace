@@ -4,11 +4,32 @@ Box :: struct {
     c: mut bool,
 }
 
-$[public]
+box_create :: (a: f32, b: s64, c: bool) -> Box {
+    let box: mut Box;
+    box.a = a;
+    box.b = b;
+    box.c = c;
+
+    ret box;
+}
+
+box_flip :: (box: Box) -> bool {
+    ret !box.c;
+}
+
+box_expanded :: (box: Box) -> Box {
+    let new: mut Box;
+    new.a = box.a + 1;
+    new.b = box.b + 1;
+    new.c = true;
+
+    ret new;
+}
+
+$public
 main :: () -> s64 {
-    let box: Box;
-    box.a = 1.17;
-    box.b = 42;
-    
-    ret box.b;
+    let box: mut Box = box_create(1.17, 42, false);
+    box = box_expanded(box);
+
+    ret box_flip(box);
 }

@@ -24,13 +24,23 @@ void LIRCodegen::run() {
         codegen_initial_definition(defn);
 
     for (Defn* defn : m_ast->get_loaded()) {
-        // Structs need full IR definitions, even if imported.
-        if (StructDefn* structure = dynamic_cast<StructDefn*>(defn))
-            codegen_lowered_struct(structure);
+        // Types need full IR definitions, even if imported.
+        if (TypeDefn* type = dynamic_cast<TypeDefn*>(defn))
+            codegen_lowered_definition(type);
     }
 
-    for (Defn* defn : m_ast->get_defns())
-        codegen_lowered_definition(defn);
+    for (Defn* defn : m_ast->get_defns()) {
+        // Fully define all type definitions before others i.e. functions and
+        // globals. Since proper sizes may be needed for types later on, its
+        // necessary to fill out structure fields now.
+        if (TypeDefn* type = dynamic_cast<TypeDefn*>(defn))
+            codegen_lowered_definition(type);
+    }
+
+    for (Defn* defn : m_ast->get_defns()) {
+        if (!dynamic_cast<TypeDefn*>(defn))
+            codegen_lowered_definition(defn);
+    }
 }
 
 lir::Type* LIRCodegen::to_lir_type(const QualType& type) {
@@ -99,6 +109,27 @@ lir::Type* LIRCodegen::to_lir_type(const QualType& type) {
             return lir::StructType::get(m_cfg, 
                 static_cast<const StructType*>(type.get_type())->to_string());
     }
+}
+
+lir::Function* LIRCodegen::get_intrinsic(
+        const std::string& name, lir::Type* result, 
+        const std::vector<lir::Type*>& args) {
+    lir::Function* func = m_cfg.get_function(name);
+    if (func)
+        return func;
+        
+    std::vector<lir::FunctionArgument*> arguments(args.size(), nullptr);
+
+    for (uint32_t i = 0; i < args.size(); ++i)
+        arguments[i] = lir::FunctionArgument::create(args[i], "");
+
+    return lir::Function::create(
+        m_cfg, 
+        lir::Function::External, 
+        lir::FunctionType::get(m_cfg, args, result),
+        name, 
+        arguments
+    );
 }
 
 lir::Value* LIRCodegen::inject_comparison(lir::Value* value) {

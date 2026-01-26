@@ -188,7 +188,7 @@ void log::error(const std::string& msg, const Span& span) {
     std::lock_guard<std::mutex> lock(g_mutex);
 
     if (g_out) {
-        *g_out << (g_color ? "\033[1;31mx\033[0m" : "error: ") << msg << '\n';
+        *g_out << (g_color ? "\033[1;31mx\033[0m " : "error: ") << msg << '\n';
         print_source(span);
     }
 

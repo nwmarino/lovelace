@@ -46,6 +46,9 @@ public:
     /// Returns the natural alignment of the given |type|, in bytes.
     uint32_t get_align(const Type* type) const;
 
+    /// Test if the given |type| is considered scalar for the target.
+    bool is_scalar(const Type* type) const;
+
     /// Returns the byte offset for the |i|-th element under |type|.
     uint32_t get_element_offset(const ArrayType* type, uint32_t i) const;
 

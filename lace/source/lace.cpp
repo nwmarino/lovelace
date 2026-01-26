@@ -225,7 +225,12 @@ int32_t main(int32_t argc, char** argv) {
 
     log::init();
 
-    std::vector<InputFile> files = {};
+    std::vector<InputFile> files = {
+        InputFile("/home/lovelace/lace/samples/linux.lace"),
+        InputFile("/home/lovelace/lace/samples/mem.lace"),
+        InputFile("/home/lovelace/lace/samples/string.lace"),
+        InputFile("/home/lovelace/lace/samples/test.lace"),
+    };
 
     for (int32_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];

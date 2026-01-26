@@ -641,18 +641,28 @@ void InstSelector::select_pwalk(const Instruction* inst) {
         for (const auto& dyn : dynamics) {
             MachOperand index = as_operand(dyn.index);
 
-            if (dyn.scale != 1)
+            if (index.is_reg() && index.get_subreg() != 8) {
+                emit(X64_Mnemonic::MOVSXD, X64_Size::None, { index })
+                    .add_reg(index.get_reg(), 8, true);
+
+                index.set_subreg(8);
+            }
+
+            // Skip scaling the index if the base is 1, since x * 1 = x.
+            if (dyn.scale != 1) {
                 emit(X64_Mnemonic::IMUL, X64_Size::Quad)
                     .add_imm(dyn.scale)
                     .add_operand(index);
-            
+            }
+
             emit(X64_Mnemonic::ADD, X64_Size::Quad, { index, dest });
         }
 
-        if (offset != 0)
+        if (offset != 0) {
             emit(X64_Mnemonic::ADD, X64_Size::Quad)
                 .add_imm(offset)
                 .add_operand(dest);
+        }
     }
 }
 
@@ -859,7 +869,7 @@ void InstSelector::select_call(const Instruction* inst) {
     regs.reserve(inst->num_operands() - 1); // All args, but not callee.
 
     // Move arguments to their respective ABI register, in reverse order.
-    for (int32_t i = inst->num_operands() - 2; i >= 0; --i) {
+    for (int32_t i = 0; i < inst->num_operands() - 1; ++i) {
         const Value* arg = inst->get_operand(i + 1);
         MachOperand source = as_operand(arg);
         MachOperand dest = as_argument(arg, i);
@@ -868,7 +878,7 @@ void InstSelector::select_call(const Instruction* inst) {
 
         X64_Mnemonic op = dynamic_cast<const Local*>(arg)
             ? X64_Mnemonic::LEA
-            : X64_Mnemonic::MOV;
+            : arg->get_type()->is_float_type() ? X64_Mnemonic::MOVS : X64_Mnemonic::MOV;
 
         MachInst& move = emit(op, as_size(arg->get_type()), { source, dest });
         if (!emitted_comment) {

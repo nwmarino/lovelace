@@ -25,50 +25,50 @@ __rt_shutdown:
 #   call    __fmt_arena_destroy@PLT
     ret
 
-# __mem_copy :: (*void, *void, s64) -> void
+# __copy :: (*void, *void, s64) -> void
     .text
-    .global __mem_copy
-    .type   __mem_copy, @function
-__mem_copy:
-.L0_cond:
-    cmpq    $0, %rcx
-    jne     .L0_body
+    .global __copy
+    .type   __copy, @function
+__copy:
+.__copy_cnd:
+    cmpq    $0, %rdx
+    jne     .__copy_bdy
     ret
-.L0_body:
+.__copy_bdy:
     movb    (%rsi), %al
     movb    %al, (%rdi)
     incq    %rdi
     incq    %rsi
-    decq    %rcx
-    jmp     .L0_cond
+    decq    %rdx
+    jmp     .__copy_cnd
 
-# __mem_set :: (*void, s8, s64) -> void
+# __set :: (*void, s8, s64) -> void
     .text
-    .global __mem_set
-    .type   __mem_set, @function
-__mem_set:
-.L1_cond:
-    cmpq    $0, %rcx
-    jne     .L1_body
+    .global __set
+    .type   __set, @function
+__set:
+.__set_cnd:
+    cmpq    $0, %rdx
+    jne     .__set_bdy
     ret
-.L1_body:
+.__set_bdy:
     movb    %sil, (%rdi)
-    decq    %rcx
-    jmp     .L1_cond
+    decq    %rdx
+    jmp     .__set_cnd
 
-# __mem_zero :: (*void, s64) -> void
+# __zero :: (*void, s64) -> void
     .text
-    .global __mem_zero
-    .type   __mem_zero, @function
-__mem_zero:
-.L2_cond:
-    cmpq    $0, %rcx
-    jne     .L2_body
+    .global __zero
+    .type   __zero, @function
+__zero:
+.__zero_cnd:
+    cmpq    $0, %rdx
+    jne     .__zero_bdy
     ret
-.L2_body:
+.__zero_bdy:
     movb    $0, (%rdi)
-    decq    %rcx
-    jmp     .L2_cond
+    decq    %rdx
+    jmp     .__zero_cnd
 
 # __abort :: () -> void
     .text

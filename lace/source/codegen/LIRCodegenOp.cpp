@@ -8,7 +8,6 @@
 #include "lace/tree/Type.hpp"
 #include "lir/graph/Constant.hpp"
 #include "lir/graph/Type.hpp"
-#include <iostream>
 
 using namespace lace;
 
@@ -16,11 +15,34 @@ lir::Value* LIRCodegen::codegen_assignment(const BinaryOp* expr) {
     lir::Value* lval = codegen_addressed_expression(expr->get_lhs());
     assert(lval);
 
-    lir::Value* rval = codegen_valued_expression(expr->get_rhs());
-    assert(rval);
+    lir::Type* type = to_lir_type(expr->get_rhs()->get_type());
 
-    m_builder.build_store(rval, lval);
-    return rval; // Return rhs as result of the assignment.
+    if (m_mach.is_scalar(type)) {
+        lir::Value* value = codegen_valued_expression(expr->get_rhs());
+        assert(value);
+
+        m_builder.build_store(value, lval);
+        return value; // Return rhs as result of the assignment.
+    } else {
+        lir::Value* value = codegen_addressed_expression(expr->get_rhs());
+        lir::Function* copy = get_intrinsic( 
+            "__copy", 
+            lir::VoidType::get(m_cfg), 
+            {
+                lir::PointerType::get_void_pointer(m_cfg),
+                lir::PointerType::get_void_pointer(m_cfg),
+                lir::IntegerType::get_i64_type(m_cfg)
+            }
+        );
+
+        m_builder.build_call(copy->get_type(), copy, {
+            lval,
+            value,
+            lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type))
+        });
+
+        return nullptr; // The rhs/result of the assignment shouldn't be reused.
+    }
 }
 
 lir::Value* LIRCodegen::codegen_addition(const BinaryOp* expr) {

@@ -204,6 +204,8 @@ class PointerType final : public Type {
 
 public:
     static PointerType* get(CFG& cfg, Type* pointee);
+    static PointerType* get_void_pointer(CFG& cfg);
+    static PointerType* get_i8_pointer(CFG& cfg);
 
     std::string to_string() const override { 
         return '*' + m_pointee->to_string(); 

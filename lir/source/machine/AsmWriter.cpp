@@ -433,14 +433,15 @@ void AsmWriter::emit_inst(
     if (inst.has_comment())
         os << std::format("#\t{}\n", inst.get_comment());
     
-    if (is_redundant_move(func, inst))
+    if (is_redundant_move(func, inst)) {
         os << "#RM"; // Little marking for removed instructions.
+    }
 
     // If this is a return instruction, inject necessary epilogue parts.
     // @Todo: make this optional along with prologue injection.
     if (inst.op() == X64_Mnemonic::RET) {
         os << std::format(
-            "\taddq\t${}, %rsp\n\tpopq\t%rbp\n\tretq\n", 
+            "\taddq\t${}, %rsp\n\tpopq\t%rbp\n\tret\n", 
             func.get_stack_frame().alignment());
         return;
     }
@@ -532,7 +533,7 @@ void AsmWriter::emit_constant(std::ostream& os, const Constant& constant) {
                 break;
         }
 
-        os << ' ' << integer->get_value();
+        os << '\t' << integer->get_value();
     } else if (const Float* fp = dynamic_cast<const Float*>(&constant)) {
         switch (size) {
             case 4: {

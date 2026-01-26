@@ -278,12 +278,21 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
 void FunctionArgument::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            if (has_name()) {
-                os << std::format("{}: {}", get_name(), get_type()->to_string());
-            } else {
-                os << std::format("{}", get_type()->to_string());
+            if (has_name())
+                os << std::format("{}: ", get_name());
+            
+            switch (get_trait()) {
+                case Trait::None:
+                    break;
+                case Trait::ARet:
+                    os << "aret ";
+                    break;
+                case Trait::Valued:
+                    os << "valued ";
+                    break;
             }
 
+            os << get_type()->to_string();
             break;
 
         case PrintPolicy::Use:
@@ -431,7 +440,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
 void Local::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            os << std::format("{} := {} |{}\n", 
+            os << std::format("${} := {} |{}\n", 
                 get_name(), 
                 get_allocated_type()->to_string(), 
                 get_alignment()
@@ -439,7 +448,7 @@ void Local::print(std::ostream& os, PrintPolicy policy) const {
             break;
 
         case PrintPolicy::Use:
-            os << std::format("{}: {}", get_name(), get_type()->to_string());
+            os << std::format("${}: {}", get_name(), get_type()->to_string());
             break;
     }
 }

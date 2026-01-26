@@ -25,6 +25,11 @@ lir::Value* LIRCodegen::codegen_addressed_expression(const Expr* expr) {
         case Expr::Access:
             return codegen_addressed_access(static_cast<const AccessExpr*>(expr));
 
+        case Expr::Call:
+            // Calls have the capability of returning addressed values if they
+            // return non-scalars/aggregates.
+            return codegen_function_call(static_cast<const CallExpr*>(expr));
+
         case Expr::Ref:
             return codegen_addressed_reference(static_cast<const RefExpr*>(expr));
 

@@ -148,6 +148,14 @@ PointerType* PointerType::get(CFG& cfg, Type* pointee) {
     return type;
 }
 
+PointerType* PointerType::get_void_pointer(CFG& cfg) {
+    return get(cfg, lir::VoidType::get(cfg));
+}
+
+PointerType* PointerType::get_i8_pointer(CFG& cfg) {
+    return get(cfg, lir::IntegerType::get_i8_type(cfg));
+}
+
 StructType* StructType::get(CFG& cfg, const std::string& name) {
     auto it = cfg.m_types.structs.find(name);
     if (it != cfg.m_types.structs.end())

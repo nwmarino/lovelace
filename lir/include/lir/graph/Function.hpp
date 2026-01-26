@@ -115,6 +115,10 @@ public:
     const FunctionType* get_type() const { 
         return static_cast<const FunctionType*>(m_type); 
     }
+    
+    FunctionType* get_type() { 
+        return static_cast<FunctionType*>(m_type);
+    }
 
     const Type* get_return_type() const {
         return get_type()->get_return_type();
@@ -154,6 +158,17 @@ public:
 
     /// Append the given |arg| to the back of this functions' argument list.
     void append_arg(FunctionArgument* arg);
+
+    /// Returns the argument of this function with the 'aret' trait, if one
+    /// exists, and null otherwise.
+    const FunctionArgument* get_aret() const;
+    FunctionArgument* get_aret() {
+        return const_cast<FunctionArgument*>(
+            static_cast<const Function*>(this)->get_aret());
+    }
+
+    /// Test if there is an argument in this function with the 'aret' trait.
+    bool has_aret() const;
 
     const Locals& get_locals() const { return m_locals; }
     Locals& get_locals() { return m_locals; }

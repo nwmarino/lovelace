@@ -137,7 +137,7 @@ class CallsiteAnalysis final {
                         continue;
 
                     X64_Register alloc = static_cast<X64_Register>(range.alloc.id());
-                    if ( m_function.get_machine().is_caller_saved(alloc))
+                    if (m_function.get_machine().is_caller_saved(alloc))
                         spill.push_back(alloc);
                 }
 

@@ -7,6 +7,8 @@
 #include "lace/core/Diagnostics.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Type.hpp"
+#include "lir/graph/Function.hpp"
+#include "lir/graph/Type.hpp"
 
 using namespace lace;
 
@@ -15,12 +17,15 @@ void LIRCodegen::codegen_initial_definition(const Defn* defn) {
         case Defn::Function:
             codegen_initial_function(static_cast<const FunctionDefn*>(defn));
             break;
+
         case Defn::Struct:
             codegen_initial_struct(static_cast<const StructDefn*>(defn));
             break;
+
         case Defn::Variable:
             codegen_initial_global(static_cast<const VariableDefn*>(defn));
             break;
+
         default:
             break;
     }
@@ -31,12 +36,15 @@ void LIRCodegen::codegen_lowered_definition(const Defn* defn) {
         case Defn::Function:
             codegen_lowered_function(static_cast<const FunctionDefn*>(defn));
             break;
+
         case Defn::Struct:
             codegen_lowered_struct(static_cast<const StructDefn*>(defn));
             break;
+
         case Defn::Variable:
             codegen_lowered_global(static_cast<const VariableDefn*>(defn));
             break;
+
         default:
             break;
     }
@@ -47,8 +55,31 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
     if (defn->has_rune(Rune::Public))
         linkage = lir::Function::External;
 
-    std::vector<lir::Type*> types(defn->num_params(), nullptr);
-    std::vector<lir::FunctionArgument*> args(defn->num_params(), nullptr);
+    std::vector<lir::Type*> types = {};
+    std::vector<lir::FunctionArgument*> args = {};
+
+    types.reserve(defn->num_params());
+    args.reserve(defn->num_params());
+
+    lir::Type* return_type = to_lir_type(defn->get_return_type());
+    if (!m_mach.is_scalar(return_type)) {
+        // Return type is non-scalar/aggregate, so instead we take in a pointer
+        // as the first argument with the ARET trait, and write changes to it
+        // during returns in this function.
+
+        lir::Type* type = lir::PointerType::get(m_cfg, return_type);
+        
+        types.push_back(type);
+        args.push_back(lir::FunctionArgument::create(
+            type, 
+            ".ret",
+            nullptr, 
+            lir::FunctionArgument::Trait::ARet
+        ));
+
+        // Change the return type to void now.
+        return_type = lir::VoidType::get(m_cfg);
+    }
 
     for (uint32_t i = 0; i < defn->num_params(); ++i) {
         const ParameterDefn* param = defn->get_param(i);
@@ -58,14 +89,28 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         if (name == "_")
             name = "";
 
-        types[i] = type;
-        args[i] = lir::FunctionArgument::create(type, name);
+        auto trait = lir::FunctionArgument::Trait::None;
+        if (!m_mach.is_scalar(type)) {
+            trait = lir::FunctionArgument::Trait::Valued;
+            type = lir::PointerType::get(m_cfg, type);
+        }
+
+        types.push_back(type);
+        args.push_back(lir::FunctionArgument::create(
+            type, 
+            name, 
+            nullptr, 
+            trait
+        ));
     }
 
-    lir::FunctionType* type = lir::FunctionType::get(
-        m_cfg, types, to_lir_type(defn->get_return_type()));
-
-    return lir::Function::create(m_cfg, linkage, type, defn->get_name(), args);
+    return lir::Function::create(
+        m_cfg, 
+        linkage, 
+        lir::FunctionType::get(m_cfg, types, return_type), 
+        defn->get_name(), 
+        args
+    );
 }
 
 lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
@@ -79,16 +124,44 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     lir::BasicBlock* entry = lir::BasicBlock::create({}, m_func);
     m_builder.set_insert(entry);
 
-    for (uint32_t i = 0, e = defn->num_params(); i < e; ++i) {
+    uint32_t i = 0;
+    for (const uint32_t e = func->num_args(); i < e; ++i) {
         lir::FunctionArgument* arg = func->get_arg(i);
+        lir::Type* type = arg->get_type();
+
+        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued) {
+            assert(type->is_pointer_type());
+            type = static_cast<lir::PointerType*>(type)->get_pointee();
+        }
+
         lir::Local* local = lir::Local::create(
             m_cfg, 
-            arg->get_type(), 
+            type, 
             arg->get_name(), 
-            m_mach.get_align(arg->get_type()), 
-            func);
+            m_mach.get_align(type), 
+            func
+        );
 
-        m_builder.build_store(arg, local);
+        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued) {
+            // Valued arguments need to be copied over to their 
+            lir::Function *copy = get_intrinsic(
+                "__copy",
+                lir::VoidType::get(m_cfg),
+                {
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::IntegerType::get_i64_type(m_cfg),
+                }
+            );
+
+            m_builder.build_call(copy->get_type(), copy, {
+                arg, 
+                local, 
+                lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type)) 
+            });
+        } else {
+            m_builder.build_store(arg, local);
+        }
     }
 
     codegen_statement(defn->get_body());
@@ -164,11 +237,33 @@ lir::Local* LIRCodegen::codegen_local_variable(const VariableDefn* defn) {
         m_func
     );
 
-    if (defn->has_init()) {
+    if (!defn->has_init())
+        return local;
+
+    if (m_mach.is_scalar(type)) {
         lir::Value* value = codegen_valued_expression(defn->get_init());
         assert(value);
 
         m_builder.build_store(value, local);
+    } else {
+        lir::Value* value = codegen_addressed_expression(defn->get_init());
+        assert(value);
+
+        lir::Function* copy = get_intrinsic(
+            "__copy", 
+            lir::VoidType::get(m_cfg), 
+            {
+                lir::PointerType::get_void_pointer(m_cfg),
+                lir::PointerType::get_void_pointer(m_cfg),
+                lir::IntegerType::get_i64_type(m_cfg)
+            }
+        );
+
+        m_builder.build_call(copy->get_type(), copy, {
+            local,
+            value,
+            lir::Integer::get(m_cfg, lir::Type::get_i64_type(m_cfg), m_mach.get_size(type))
+        });
     }
 
     return local;

@@ -14,9 +14,10 @@ mem_copy :: (dst: *mut void, src: *mut void, n: mut u64) -> void {
     let d: *mut char = dst;
     let s: *mut char = src;
 
-    until n == 0 {
-        d[n] = s[n];
-        n = n - 1;
+    let i: mut u64 = 0;
+    until i > n {
+        d[i] = s[i];
+        i = i + 1;
     }
 }
 

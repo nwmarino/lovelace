@@ -91,6 +91,24 @@ void Function::append_arg(FunctionArgument* arg) {
     arg->set_parent(this);
 }
 
+const FunctionArgument* Function::get_aret() const {
+    for (FunctionArgument* arg : m_args) {
+        if (arg->get_trait() == FunctionArgument::Trait::ARet)
+            return arg;
+    }
+
+    return nullptr;
+}
+
+bool Function::has_aret() const {
+    for (FunctionArgument* arg : m_args) {
+        if (arg->get_trait() == FunctionArgument::Trait::ARet)
+            return true;
+    }
+        
+    return false;
+}
+
 const Local* Function::get_local(const std::string& name) const {
     auto it = m_locals.find(name);
     if (it != m_locals.end())

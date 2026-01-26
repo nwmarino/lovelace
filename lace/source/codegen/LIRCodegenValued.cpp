@@ -91,7 +91,6 @@ lir::Value* LIRCodegen::codegen_valued_expression(const Expr* expr) {
             return codegen_valued_reference(static_cast<const RefExpr*>(expr));
         case Expr::Subscript:
             return codegen_valued_subscript(static_cast<const SubscriptExpr*>(expr));
-
         case Expr::Call:
             return codegen_function_call(static_cast<const CallExpr*>(expr));
         case Expr::Cast:
@@ -301,18 +300,66 @@ lir::Value* LIRCodegen::codegen_function_call(const CallExpr* expr) {
     lir::Value* callee = codegen_addressed_expression(expr->get_callee());
     assert(callee);
 
-    std::vector<lir::Value*> args(expr->num_args(), nullptr);
-    for (uint32_t i = 0; i < expr->num_args(); ++i) {
-        lir::Value* arg = codegen_valued_expression(expr->get_arg(i));
-        assert(arg);
-        args[i] = arg;
+    lir::Type* result = to_lir_type(expr->get_type());
+
+    std::vector<lir::Value*> args = {};
+    args.reserve(expr->num_args());
+
+    lir::Local* aret = nullptr;
+    if (!m_mach.is_scalar(result)) {
+        // The result of the call is a non-scalar/aggregate, so per our ABI
+        // we assume that we need to assume a void return, and pass in a 
+        // destination as the first argument.
+        
+        // @Todo: if the result of this call would get immediately moved to 
+        // some "place", i.e 'x = foo()' where foo returns a non-scalar, then
+        // we should keep a "place" (e.g. x) in codegen state to propogate it
+        // as the destination.
+        //
+        // For now though, just create a new local to store the result, and if
+        // the resulting aggregate is part of a move (e.g. assignment, call, 
+        // etc.) then it will be passed around as an address anyways.
+
+        aret = lir::Local::create(
+            m_cfg, 
+            result, 
+            std::to_string(m_cfg.get_def_id()), 
+            m_mach.get_align(result), 
+            m_func
+        );
+
+        // Will be a *T, where T is the type of the aggregate.
+        args.push_back(aret);
     }
 
-    return m_builder.build_call(
+    for (Expr* arg : expr->get_args()) {
+        lir::Type* type = to_lir_type(arg->get_type());
+        lir::Value* value;
+
+        if (m_mach.is_scalar(type)) {
+            value = codegen_valued_expression(arg);
+        } else {
+            // The argument is a non-scalar/aggregate, so the function will
+            // expect a "valued" pointer per our ABI. So, pass in an address
+            // instead.
+            value = codegen_addressed_expression(arg);
+        }
+
+        assert(value);
+        args.push_back(value);
+    }
+
+    lir::Value* call = m_builder.build_call(
         dynamic_cast<lir::FunctionType*>(callee->get_type()), 
         callee, 
         args
     );
+
+    if (aret) {
+        return aret;
+    } else {
+        return call; 
+    }
 }
 
 lir::Value* LIRCodegen::codegen_parentheses(const ParenExpr* expr) {
