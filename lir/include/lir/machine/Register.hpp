@@ -64,6 +64,8 @@ enum X64_Register : uint32_t {
 /// Returns the X64 register class for the given |reg|.
 RegisterClass get_register_class(X64_Register reg);
 
+const char* to_string(X64_Register reg, uint16_t subreg = 0);
+
 /// Represents a virtual or physical register.
 class Register final {
 public:

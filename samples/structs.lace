@@ -4,7 +4,13 @@ Box :: struct {
     c: mut bool,
 }
 
+foo :: (x: s64, y: s64) -> void {
+    ret;
+}
+
 box_create :: (a: f32, b: s64, c: bool) -> Box {
+    foo(1, 2);
+
     let box: mut Box;
     box.a = a;
     box.b = b;

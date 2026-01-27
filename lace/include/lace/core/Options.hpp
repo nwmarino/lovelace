@@ -37,10 +37,9 @@ struct Options final {
     bool verbose;       //< (-b) If extra notes should be logged.
     bool version;       //< (-v) If the version should be printed.
 
-    bool llvm;          //< (-LLVM) If the LLVM backend should be used.
-
-    bool print_tree;    //< (-ast) If the AST should be printed.
-    bool print_ir;      //< (-ir) If the middle-end IR should be printed.
+    bool print_tree;    //< (-dump-ast) If the AST should be printed.
+    bool print_ir;      //< (-dump-ir) If the middle-end IR should be printed.
+    bool print_mir;     //< (-dump-mir) If the machine IR should be printed.
 };
 
 } // namespace lace

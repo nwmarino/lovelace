@@ -6,6 +6,7 @@
 #include "lace/codegen/LIRCodegen.hpp"
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Stmt.hpp"
+#include "lir/graph/Function.hpp"
 #include "lir/graph/Type.hpp"
 
 using namespace lace;
@@ -171,14 +172,11 @@ void LIRCodegen::codegen_return(const RetStmt* stmt) {
             }
         );
 
-        lir::Local* aretL = m_func->get_local(".ret");
-        assert(aretL);
-
-        lir::Value* aretP = m_builder.build_load(
-            lir::PointerType::get(m_cfg, type), aretL);
+        lir::FunctionArgument* aret = m_func->get_aret();
+        assert(aret);
 
         m_builder.build_call(copy->get_type(), copy, {
-            aretP,
+            aret,
             value,
             lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type))
         });

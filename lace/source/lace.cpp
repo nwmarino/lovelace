@@ -18,8 +18,10 @@
 #include "lir/analysis/LoweringPass.hpp"
 #include "lir/machine/AsmWriter.hpp"
 #include "lir/machine/Machine.hpp"
+#include "lir/machine/Printer.hpp"
 #include "lir/machine/RegisterAnalysis.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -34,11 +36,15 @@
 #define LACE_VERSION_MINOR 0
 
 using namespace lace;
+
+using namespace std::chrono;
 using namespace std::filesystem;
 
 using Asts = std::unordered_set<AST*>;
 using DepTable = std::unordered_map<AST*, Asts>;
 using FileTable = std::unordered_map<std::string, AST*>;
+
+using Timestamp = time_point<high_resolution_clock>;
 
 struct InputFile final {
     std::string file;
@@ -50,6 +56,10 @@ struct InputFile final {
 
 /// A mapping between the absolute path of an input file and its parsed AST.
 static FileTable g_files = {};
+
+static inline Timestamp get_time() {
+    return high_resolution_clock::now();
+}
 
 /// Setup |g_files| based on the set of given |asts| and their respective
 /// input files.
@@ -146,20 +156,18 @@ void resolve_dependencies(const Options& options, const Asts& asts,
             }
 
             ast->get_loaded().push_back(symbol);
-            
-            if (options.verbose) {
-                log::note("added '" + symbol->get_name() + "' to " + ast->get_file());
-            }
         }
 
-        if (options.verbose)
-            log::note("running name analysis on: " + ast->get_file());
+        const Timestamp time_namea_start = get_time();
 
-        NameAnalysis name_analysis(options);
-        ast->accept(name_analysis);
+        NameAnalysis namea(options);
+        ast->accept(namea);
 
-        if (options.verbose)
-            log::note("finished name analysis for: " + ast->get_file());
+        if (options.verbose) {
+            duration<double> dur = get_time() - time_namea_start;
+            std::cout << std::format("{}: finished name analysis\n-- took {}\n",
+                ast->get_file(), dur);
+        }
     }
 }
 
@@ -167,16 +175,19 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
     lir::Machine mach(lir::Machine::Linux);
 
     for (AST* ast : asts) {
-        lir::CFG cfg(mach, ast->get_file());
+        Timestamp time_cgn_start = get_time();
 
-        if (options.verbose)
-            log::note("running code generation for: " + ast->get_file());
+        lir::CFG cfg(mach, ast->get_file());        
 
         LIRCodegen codegen(options, ast, cfg);
         codegen.run();
 
-        if (options.verbose)
-            log::note("finished code generation for: " + ast->get_file());
+        Timestamp time_cgn_end = get_time();
+        if (options.verbose) {
+            duration<double> dur = time_cgn_end - time_cgn_start;
+            std::cout << std::format("{}: finished code generation\n-- took {}\n", 
+                ast->get_file(), dur);
+        }
 
         if (options.print_ir) {
             std::ofstream file(ast->get_file() + ".lir");
@@ -187,13 +198,35 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
             file.close();
         }
 
+        Timestamp time_bend_start = get_time();
+
         lir::Segment seg(cfg);
 
         lir::LoweringPass lowering(cfg, seg);
         lowering.run();
 
+        if (options.print_mir) {
+            std::ofstream mir(ast->get_file() + ".mir");
+            if (!mir || !mir.is_open())
+                log::fatal("failed to open: " + ast->get_file() + ".mir");
+
+            lir::Printer printer(seg);
+            printer.run(mir);
+            mir.close();
+        }
+
         lir::RegisterAnalysis rega(seg);
         rega.run();
+
+        if (options.print_mir) {
+            std::ofstream rmir(ast->get_file() + ".rmir");
+            if (!rmir || !rmir.is_open())
+                log::fatal("failed to open: " + ast->get_file() + ".rmir");
+
+            lir::Printer printer(seg);
+            printer.run(rmir);
+            rmir.close();
+        }
 
         std::ofstream as(ast->get_file() + ".s");
         if (!as || !as.is_open())
@@ -202,6 +235,13 @@ void drive_lir_backend(const Options& options, const Asts& asts) {
         lir::AsmWriter writer(seg);
         writer.run(as);
         as.close();
+
+        Timestamp time_bend_end = get_time();
+        if (options.verbose) {
+            duration<double> dur = time_bend_end - time_bend_start;
+            std::cout << std::format("{}: finished backend\n-- took {}\n", 
+                ast->get_file(), dur);
+        }
 
         std::string assembler = "as " + ast->get_file() + ".s -o " + ast->get_file() + ".o";
         std::system(assembler.c_str());
@@ -219,17 +259,17 @@ int32_t main(int32_t argc, char** argv) {
     options.time = true;
     options.verbose = true;
     options.version = true;
-    options.llvm = false;
     options.print_tree = true;
     options.print_ir = true;
+    options.print_mir = true;
 
     log::init();
 
     std::vector<InputFile> files = {
-        InputFile("/home/lovelace/lace/samples/linux.lace"),
-        InputFile("/home/lovelace/lace/samples/mem.lace"),
-        InputFile("/home/lovelace/lace/samples/string.lace"),
-        InputFile("/home/lovelace/lace/samples/test.lace"),
+        //InputFile("/home/lovelace/lace/samples/linux.lace"),
+        //InputFile("/home/lovelace/lace/samples/mem.lace"),
+        //InputFile("/home/lovelace/lace/samples/string.lace"),
+        //InputFile("/home/lovelace/lace/samples/test.lace"),
     };
 
     for (int32_t i = 1; i < argc; ++i) {
@@ -260,6 +300,8 @@ int32_t main(int32_t argc, char** argv) {
             options.print_tree = true;
         } else if (arg == "-dump-ir") {
             options.print_ir = true;
+        } else if (arg == "-dump-mir") {
+            options.print_mir = true;
         } else if (arg == "-j") {
             if (i + 1 == argc)
                 log::fatal("expected number after -j");
@@ -288,6 +330,8 @@ int32_t main(int32_t argc, char** argv) {
 
     log::flush();
 
+    Timestamp start = get_time();
+
     if (options.multithread) {
         const uint32_t supported_threads = std::thread::hardware_concurrency(); 
 
@@ -311,44 +355,56 @@ int32_t main(int32_t argc, char** argv) {
         pool = new ThreadPool(options.threads);
         assert(pool);
 
-        if (options.verbose)
-            log::note("using " + std::to_string(options.threads) + " threads");
+        //if (options.verbose)
+        //    std::cout << std::format("using {} threads\n", options.threads);
     }
 
-    if (options.multithread) {
+    if (options.multithread && options.threads > 1) {
         assert(pool);
 
-        for (InputFile& f : files) {
+        for (InputFile &f : files) {
             pool->push([&f, options] {
-                if (options.verbose)
-                    log::note("parsing file: " + f.file);
+                Timestamp parse_start = get_time();
 
                 Parser parser(read_file(f.file), f.file);
                 f.ast = parser.parse();
 
-                if (options.verbose)
-                    log::note("finishing parsing for: " + f.file);
+                if (options.verbose) {
+                    duration<double> dur = get_time() - parse_start;
+
+                    std::stringstream ss;
+                    ss << std::format("{}: finished parsing\n-- took {}\n", 
+                        f.file, dur);
+                    
+                    std::cout << ss.str();
+                }
             });
         }
 
         pool->wait();
-    } else for (InputFile& f : files) {
-        if (options.verbose)
-            log::note("parsing file: " + f.file);
+    } else for (InputFile &f : files) {
+        Timestamp parse_start = get_time();
 
         Parser parser(read_file(f.file), f.file);
         f.ast = parser.parse();
         
-        if (options.verbose)
-            log::note("finishing parsing for: " + f.file);
+        if (options.verbose) {
+            duration<double> dur = get_time() - parse_start;
+
+            std::stringstream ss;
+            ss << std::format("{}: finished parsing\n-- took {}\n", 
+                f.file, dur);
+            
+            std::cout << ss.str();
+        }
     }
 
     log::flush();
 
     Asts asts = {};
     asts.reserve(files.size());
-    for (InputFile& file : files)
-        asts.insert(file.ast);
+    for (InputFile &f : files)
+        asts.insert(f.ast);
 
     setup_file_table(asts);
 
@@ -364,28 +420,32 @@ int32_t main(int32_t argc, char** argv) {
     //
     // @Todo: expirement if this needs the dependency ordering or not.
     for (AST* ast : asts) {
-        if (options.verbose)
-            log::note("running symbol analysis on: " + ast->get_file());
+        const Timestamp syma_start = get_time();
 
         SymbolAnalysis symbol_analysis(options);
         ast->accept(symbol_analysis);
 
-        if (options.verbose)
-            log::note("finished symbol analysis for: " + ast->get_file());
+        if (options.verbose) {
+            duration<double> dur = get_time() - syma_start;
+            std::cout << std::format("{}: finished symbol analysis\n-- took {}\n", 
+                ast->get_file(), dur);
+        }
     }
 
     log::flush();
 
     // Perform semantic analysis on each syntax tree.
     for (AST* ast : asts) {
-        if (options.verbose)
-            log::note("running semantic analysis on: " + ast->get_file());
+        const Timestamp sema_start = get_time();
 
         SemanticAnalysis semantic_analysis(options);
         ast->accept(semantic_analysis);
 
-        if (options.verbose)
-            log::note("finished semantic analysis for: " + ast->get_file());
+        if (options.verbose) {
+            duration<double> dur = get_time() - sema_start;
+            std::cout << std::format("{}: finished semantic analysis\n-- took {}\n", 
+                ast->get_file(), dur);
+        }
 
         // AST is now considered valid, so print it if needbe.
         if (options.print_tree) {
@@ -401,18 +461,18 @@ int32_t main(int32_t argc, char** argv) {
 
     log::flush();
 
-    if (options.llvm) {
-        //drive_llvm_backend(options, asts);
-    } else {
-        // Default to LIR.
-        drive_lir_backend(options, asts);
-    }
+    drive_lir_backend(options, asts);
 
     for (AST* ast : asts)
         delete ast;
 
     asts.clear();
     files.clear();
+
+    if (options.verbose) {
+        duration<double> dur = get_time() - start;
+        std::cout << std::format("Finished all compilation procedures.\n-- took {}\n", dur);
+    }
 
     return 0;
 }

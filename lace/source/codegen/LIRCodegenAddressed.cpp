@@ -9,6 +9,7 @@
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Type.hpp"
 
+#include "lir/graph/Function.hpp"
 #include "lir/graph/Type.hpp"
 
 using namespace lace;
@@ -81,9 +82,17 @@ lir::Value* LIRCodegen::codegen_addressed_reference(const RefExpr* expr) {
         case Defn::Parameter: {
             assert(m_func && "parameter reference not within a function!");
 
-            lir::Local* local = m_func->get_local(expr->get_name());
-            assert(local && "local parameter does not exist!");
-            return local;
+            lir::Type* type = to_lir_type(expr->get_type());
+            if (m_mach.is_scalar(type)) {
+                lir::Local* local = m_func->get_local(expr->get_name());
+                assert(local && "local parameter does not exist!");
+                return local;
+            } else {
+                lir::FunctionArgument* arg = m_func->get_arg(expr->get_name());
+                assert(arg);
+                assert(arg->get_trait() == lir::FunctionArgument::Trait::Valued);
+                return arg;
+            }
         }
 
         case Defn::Variable: {

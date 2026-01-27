@@ -150,6 +150,20 @@ public:
         return m_args[i];
     }
 
+    const FunctionArgument* get_arg(const std::string& name) const {
+        for (FunctionArgument* arg : m_args) {
+            if (arg->get_name() == name)
+                return arg;
+        }
+
+        return nullptr;
+    }
+
+    FunctionArgument* get_arg(const std::string& name) {
+        return const_cast<FunctionArgument*>(
+            static_cast<const Function*>(this)->get_arg(name));
+    }
+
     uint32_t num_args() const { return m_args.size(); }
     bool has_args() const { return !m_args.empty(); }
 

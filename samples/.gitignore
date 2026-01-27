@@ -1,6 +1,8 @@
 *.ast
 *.lir
 *.s
+*.mir
+*.rmir
 arrays
 casting
 enums

@@ -91,6 +91,9 @@ enum class X64_Size : uint32_t {
     Double,
 };
 
+const char* to_string(X64_Mnemonic op);
+const char* to_string(X64_Size size);
+
 /// Represents an machine instruction.
 class MachInst final {
 public:

@@ -12,6 +12,7 @@
 #include "lir/machine/Register.hpp"
 #include "lir/machine/MachLabel.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -123,11 +124,13 @@ class MachFunction final {
 
 public:
     using RegisterTable = std::unordered_map<uint32_t, VirtualRegister>;
+    using LiveIns = std::vector<X64_Register>;
 
 private:
     ConstantPool m_pool;
     StackFrame m_stack;
     RegisterTable m_regs;
+    LiveIns m_liveins;
 
     const Function* m_function;
     const Machine& m_mach;
@@ -164,6 +167,19 @@ public:
 
     const RegisterTable& get_register_table() const { return m_regs; }
     RegisterTable& get_register_table() { return m_regs; }
+
+    const LiveIns& get_liveins() const { return m_liveins; }
+    LiveIns& get_liveins() { return m_liveins; }
+
+    void add_livein(X64_Register reg) {
+        if (!has_livein(reg))
+            m_liveins.push_back(reg);
+    }
+
+    bool has_livein(X64_Register reg) const {
+        return std::find(m_liveins.begin(), m_liveins.end(), reg) 
+            != m_liveins.end();
+    }
 
     const MachLabel* get_head() const { return m_head; }
     MachLabel* get_head() { return m_head; }

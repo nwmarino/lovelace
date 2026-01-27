@@ -1,109 +1,121 @@
 //
-// Copyright (c) 2025 Nick Marino
-// All rights reserved.
+//  Copyright (c) 2025-2026 Nick Marino
+//  All rights reserved.
 //
 
-#include "spbe/machine/MachBasicBlock.hpp"
-#include "spbe/machine/MachInstruction.hpp"
-#include "spbe/machine/MachOperand.hpp"
-#include "spbe/machine/MachOperand.hpp"
-#include "spbe/machine/MachFunction.hpp"
-#include "spbe/X64/X64.hpp"
-#include "spbe/X64/X64Printer.hpp"
+#include "lir/graph/Value.hpp"
+#include "lir/machine/MachLabel.hpp"
+#include "lir/machine/MachInst.hpp"
+#include "lir/machine/MachOperand.hpp"
+#include "lir/machine/MachFunction.hpp"
+#include "lir/machine/Register.hpp"
+#include "lir/machine/Printer.hpp"
 
-using namespace spbe;
+#include <format>
 
-static const MachFunction* g_register_info = nullptr;
+using namespace lir;
 
-static void print_operand(std::ostream& os, const MachFunction& MF, 
-                          const MachOperand& MO) {
-    switch (MO.kind()) {
-    case MachOperand::MO_Register: {
-        if (MO.is_def()) {
-            if (MO.is_implicit())
-                os << "implicit-def ";
+static const MachFunction::RegisterTable *rtable = nullptr;
 
-            if (MO.is_dead())
-                os << "dead ";
-        } else if (MO.is_use()) {
-            if (MO.is_implicit())
-                os << "implicit ";
+static void print_operand(std::ostream &os, const MachFunction &func, 
+                          const MachOperand &operand) {
+    switch (operand.kind()) {
+        case MachOperand::Reg: {
+            if (operand.is_def()) {
+                if (operand.is_implicit())
+                    os << "implicit-def ";
 
-            if (MO.is_kill())
-                os << "killed ";
+                if (operand.is_dead())
+                    os << "dead ";
+            } else if (operand.is_use()) {
+                if (operand.is_implicit())
+                    os << "implicit-use ";
+
+                if (operand.is_kill())
+                    os << "killed ";
+            }
+
+            Register reg = operand.get_reg();
+            if (reg.is_virtual()) {
+                // If the register operand is virtual, then replace it with
+                // it's allocated physical register, if it exists.
+                Register alloc = rtable->at(reg.id()).alloc;
+                if (alloc != Register::NoRegister)
+                    reg = alloc;
+            }
+
+            if (reg.is_virtual()) {
+                uint32_t vreg = reg.id() - Register::VirtualBarrier;
+                os << std::format("v{}:{}", vreg, operand.get_subreg());
+            } else {
+                X64_Register mreg = static_cast<X64_Register>(reg.id());
+                os << std::format("%{}", to_string(mreg, operand.get_subreg()));
+            }
+
+            break;
         }
 
-        const FunctionRegisterInfo& regi = MF.get_register_info();
-        MachRegister reg = MO.get_reg();
-        if (reg.is_virtual()) {
-            MachRegister alloc = regi.vregs.at(reg.id()).alloc;
-            if (alloc != MachRegister::NoRegister)
-                reg = alloc;
+        case MachOperand::Memory: {
+            os << '[';
+
+            Register reg = operand.get_mem_base();
+            if (reg.is_virtual()) {
+                uint32_t vreg = reg.id() - Register::VirtualBarrier;
+                os << std::format("v{}", vreg);
+            } else {
+                X64_Register mreg = static_cast<X64_Register>(reg.id());
+                os << std::format("%{}", to_string(mreg, 8));
+            }
+
+            // Print memory displacement if it is non-zero. If it is zero, then
+            // the access appears like [rax].
+            if (operand.get_mem_disp() != 0) {
+                if (operand.get_mem_disp() > 0)
+                    os << '+'; // Use '+' to signify positive displacement.
+
+                os << operand.get_mem_disp();
+            }
+
+            os << ']';
+            break;
         }
 
-        if (reg.is_virtual()) {
-            os << 'v' << (reg.id() - MachRegister::VirtualBarrier) << 
-                ':' << MO.get_subreg();
-        } else {
-            os << "%" << x64::to_string(
-                static_cast<x64::Register>(reg.id()), MO.get_subreg());
-        }
+        case MachOperand::Stack:
+            os << "stack." << operand.get_stack();
+            break;
 
-        break;
-    }
+        case MachOperand::Immediate:
+            os << '$' << operand.get_imm();
+            break;
 
-    case MachOperand::MO_Memory: {
-        os << '[';
+        case MachOperand::Label:
+            os << std::format("bb{}", operand.get_label()->position());
+            break;
 
-        MachRegister reg = MO.get_mem_base();
-        if (reg.is_virtual()) {
-            os << 'v' << (reg.id() - MachRegister::VirtualBarrier);
-        } else {
-            os << '%' << x64::to_string(
-                static_cast<x64::Register>(reg.id()), 64);
-        }
-
-        if (MO.get_mem_disp() != 0) {
-            if (MO.get_mem_disp() > 0)
-                os << '+';
-
-            os << MO.get_mem_disp();
-        }
-
-        os << ']';
-        break;
-    }
-
-    case MachOperand::MO_StackIdx:
-        os << "stack." << MO.get_stack_index();
-        break;
-
-    case MachOperand::MO_Immediate:
-        os << '$' << MO.get_imm();
-        break;
-
-    case MachOperand::MO_BasicBlock:
-        os << "bb" << MO.get_mmb()->position();
-        break;
-
-    case MachOperand::MO_ConstantIdx:
-        os << "const." << MO.get_constant_index();
-        break;
-    
-    case MachOperand::MO_Symbol: 
-        os << MO.get_symbol();
-        break;
+        case MachOperand::Constant:
+            os << "const." << operand.get_constant();
+            break;
+        
+        case MachOperand::Symbol: 
+            os << operand.get_symbol();
+            break;
     }
 }
 
-static void print_inst(std::ostream& os, const MachFunction& MF,
-                       const MachInstruction& MI) {
-    os << "    ";
+static void print_inst(std::ostream &os, const MachFunction &func,
+                       const MachInst &inst) {
+    if (inst.has_comment())
+        os << std::format("\t; {}\n", inst.get_comment());
 
-    if (MI.num_explicit_defs() == 1) {
-        for (auto& MO : MI.operands()) {
-            if (MO.is_reg() && MO.is_explicit_def()) {
-                print_operand(os, MF, MO);
+    os << '\t';
+
+    if (inst.num_explicit_defs() > 0) {
+        // If there is an explicit definition, then we want to print it in a
+        // format of 'rxy = ...', so we print the first explicit-def first.
+
+        for (const MachOperand& operand : inst.get_operands()) {
+            if (operand.is_reg() && operand.is_explicit_def()) {
+                print_operand(os, func, operand);
                 break;
             }
         }
@@ -111,67 +123,87 @@ static void print_inst(std::ostream& os, const MachFunction& MF,
         os << " = ";
     }
 
-    os << x64::to_string(static_cast<x64::Opcode>(MI.opcode())) << " ";
+    os << std::format("{}{} ", to_string(inst.op()), to_string(inst.size()));
 
-    for (uint32_t idx = 0, e = MI.num_operands(); idx != e; ++idx) {
-        const MachOperand& mo = MI.get_operand(idx);
-        if (MI.num_explicit_defs() == 1) {
-            if (mo.is_reg() && mo.is_explicit_def())
-                continue;
-        }
+    // Print each operand of this instruction.
+    for (uint32_t i = 0, e = inst.num_operands(); i < e; ++i) {
+        const MachOperand& operand = inst.get_operand(i);
 
-        print_operand(os, MF, mo);
-        if (idx + 1 != e) {
-            const MachOperand& next = MI.get_operand(idx + 1);
-            if (!next.is_reg() || !next.is_explicit_def())
+        // Skip printing the explicit def since we already did it before the
+        // mnemonic.
+        if (operand.is_reg() && operand.is_explicit_def())
+            continue;
+
+        print_operand(os, func, operand);
+
+        // If this isn't the last operand, append a comma.
+        if (i + 1 != e) {
+            const MachOperand& next = inst.get_operand(i + 1);
+
+            // Don't append a comma if the next operand is an explicit def
+            // cause it was already printed.
+            //
+            // @Todo: reassess this control flow. it works, but is nonsensical.
+            if (!(next.is_reg() && next.is_explicit_def()))
                 os << ", ";
         }
     }
+
+    os << '\n';
 }
 
-static void print_block(std::ostream& os, const MachFunction& MF,
-                        const MachBasicBlock& MBB) {
-    os << "bb" << MBB.position() << ":\n";
+static void print_label(std::ostream &os, const MachFunction &func, 
+                        const MachLabel &label) {
+    os << std::format("bb{}:\n", label.position());
 
-    for (auto inst : MBB.insts()) {
-        print_inst(os, MF, inst);
-        os << '\n';
-    }
+    for (const MachInst& inst : label.insts())
+        print_inst(os, func, inst);
 }
 
-static void print_function(std::ostream& os, const MachFunction& MF) {
-    g_register_info = &MF.get_register_info();
+static void print_function(std::ostream &os, const MachFunction &func) {
+    rtable = &func.get_register_table();
 
-    os << MF.get_name() << ":\n";
+    os << std::format("{}:\n", func.get_name());
 
-    const FunctionStackInfo& stack = MF.get_stack_info();
-    for (uint32_t idx = 0, e = stack.num_entries(); idx != e; ++idx) {
-        const FunctionStackEntry& entry = stack.entries[idx];
-        os << "    stack." << idx << " offset: " << entry.offset << ", size: " << 
-            entry.size << ", align: " << entry.align << '\n';
+    // Print each of the entries in this function's stack frame.
+    const StackFrame &frame = func.get_stack_frame();
+    for (uint32_t i = 0, e = frame.num_entries(); i < e; ++i) {
+        const StackEntry &entry = frame.entries[i];
+        os << std::format("\tstack #{}, offset: {}, size: {}, align: {}\n", 
+            i, entry.offset, entry.size, entry.align); 
     }
 
-    const FunctionConstantPool& pool = MF.get_constant_pool();
-    for (uint32_t idx = 0, e = pool.num_entries(); idx != e; ++idx) {
-        const FunctionConstantPoolEntry& entry = pool.entries[idx];
-        os << "    const." << idx << ' ' << 
-            entry.constant->get_type()->to_string() << ' ';
-        entry.constant->print(os);
+    if (frame.num_entries() > 0)
+        os << '\n';
+
+    // Print each of the constants in this function's constant pool.
+    const ConstantPool &pool = func.get_constant_pool();
+    for (uint32_t i = 0, e = pool.num_entries(); i < e; ++i) {
+        const ConstantPoolEntry &entry = pool.entries[i];
+        os << std::format("\tconst #{}, ", 
+            i, entry.constant->get_type()->to_string());
+        entry.constant->print(os, PrintPolicy::Def);
         os << '\n';
     }
 
-    if (stack.num_entries() > 0 || pool.num_entries() > 0 )
+    // If there were stack/pool entries, then emit a new line before the 
+    // instructions for cleanliness.
+    if (pool.num_entries() > 0 )
         os << '\n';
 
-    for (auto curr = MF.front(); curr; curr = curr->next())
-        print_block(os, MF, *curr);
+    // Print each label in this function.
+    const MachLabel* curr = func.get_head();
+    while (curr) {
+        print_label(os, func, *curr);
+        curr = curr->get_next();
+    }
+
+    os << '\n';
 }
 
-void x64::X64Printer::run(std::ostream& os) const {
-    g_register_info = nullptr;
+void Printer::run(std::ostream &os) const {
+    rtable = nullptr;
 
-    for (const auto& [name, function] : m_obj.functions()) {
+    for (const auto& [name, function] : m_seg.get_functions())
         print_function(os, *function);
-        os << '\n';
-    }
 }

@@ -9,6 +9,134 @@
 
 using namespace lir;
 
+const char* lir::to_string(Mnemonic op) {
+    switch (op) {
+        case OP_ABORT:
+            return "abort";
+        case OP_AND:
+            return "and";
+        case OP_CALL:
+            return "call";
+        case OP_CMP:
+            return "cmp";
+        case OP_F2S:
+            return "f2s";
+        case OP_F2U:
+            return "f2u";
+        case OP_FADD:
+            return "fadd";
+        case OP_FDIV:
+            return "fdiv";
+        case OP_FEXT:
+            return "fext";
+        case OP_FMUL:
+            return "fmul";
+        case OP_FNEG:
+            return "fneg";
+        case OP_FSUB:
+            return "fsub";
+        case OP_FTRUNC:
+            return "ftrunc";
+        case OP_I2P:
+            return "i2p";
+        case OP_IADD:
+            return "iadd";
+        case OP_IMUL:
+            return "imul";
+        case OP_INEG:
+            return "ineg";
+        case OP_ISUB:
+            return "isub";
+        case OP_ITRUNC:
+            return "itrunc";
+        case OP_JIF:
+            return "jif";
+        case OP_JMP:
+            return "jmp";
+        case OP_LOAD:
+            return "load";
+        case OP_NOT:
+            return "not";
+        case OP_OR:
+            return "or";
+        case OP_P2I:
+            return "p2i";
+        case OP_PWALK:
+            return "pwalk";
+        case OP_REINT:
+            return "reint";
+        case OP_RET:
+            return "ret";
+        case OP_S2F:
+            return "s2f";
+        case OP_SAR:
+            return "sar";
+        case OP_SDIV:
+            return "sdiv";
+        case OP_SEXT:
+            return "sext";
+        case OP_SHL:
+            return "shl";
+        case OP_SHR:
+            return "shr";
+        case OP_SMOD:
+            return "smod";
+        case OP_STORE:
+            return "store";
+        case OP_STRING:
+            return "string";
+        case OP_U2F:
+            return "u2f";
+        case OP_UDIV:
+            return "udiv";
+        case OP_UMOD:
+            return "umod";
+        case OP_UNREACHABLE:
+            return "unreachable";
+        case OP_XOR:
+            return "xor";
+        case OP_ZEXT:
+            return "zext";
+    }
+}
+
+const char* lir::to_string(CMPPredicate pred) {
+    switch (pred) {
+        case CMP_IEQ:
+            return "ieq";
+        case CMP_INE:
+            return "ine";
+        case CMP_OEQ:
+            return "oeq";
+        case CMP_ONE:
+            return "one";
+        case CMP_SLT:
+            return "slt";
+        case CMP_SLE:
+            return "sle";
+        case CMP_SGT:
+            return "sgt";
+        case CMP_SGE:
+            return "sge";
+        case CMP_ULT:
+            return "ult";
+        case CMP_ULE:
+            return "ule";
+        case CMP_UGT:
+            return "ugt";
+        case CMP_UGE:
+            return "uge";
+        case CMP_OLT:
+            return "olt";
+        case CMP_OLE:
+            return "ole";
+        case CMP_OGT:
+            return "ogt";
+        case CMP_OGE:
+            return "oge";
+    }
+}
+
 void Instruction::detach() {
     assert(m_parent && "cannot detach a free-floating instruction!");
     m_parent->remove(this);

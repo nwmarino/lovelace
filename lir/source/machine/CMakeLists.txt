@@ -6,6 +6,7 @@ set(MACHINE_SOURCES
     MachInst.cpp
     MachLabel.cpp
     MachOperand.cpp
+    Printer.cpp
     Register.cpp
     RegisterAllocator.cpp
     RegisterAnalysis.cpp

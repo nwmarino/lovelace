@@ -83,6 +83,10 @@ enum CMPPredicate : uint16_t {
     CMP_OGE,
 };
 
+const char* to_string(Mnemonic op);
+
+const char* to_string(CMPPredicate pred);
+
 /// Descriptive information for certain operations.
 union Descriptor final {
 public:

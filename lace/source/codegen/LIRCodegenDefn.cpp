@@ -124,16 +124,16 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     lir::BasicBlock* entry = lir::BasicBlock::create({}, m_func);
     m_builder.set_insert(entry);
 
-    uint32_t i = 0;
+    uint32_t i = func->has_aret() ? 1 : 0;
     for (const uint32_t e = func->num_args(); i < e; ++i) {
         lir::FunctionArgument* arg = func->get_arg(i);
         lir::Type* type = arg->get_type();
-
-        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued) {
-            assert(type->is_pointer_type());
-            type = static_cast<lir::PointerType*>(type)->get_pointee();
+        
+        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued 
+          || arg->get_trait() == lir::FunctionArgument::Trait::ARet) {
+            continue;
         }
-
+        
         lir::Local* local = lir::Local::create(
             m_cfg, 
             type, 
@@ -142,26 +142,7 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
             func
         );
 
-        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued) {
-            // Valued arguments need to be copied over to their 
-            lir::Function *copy = get_intrinsic(
-                "__copy",
-                lir::VoidType::get(m_cfg),
-                {
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::IntegerType::get_i64_type(m_cfg),
-                }
-            );
-
-            m_builder.build_call(copy->get_type(), copy, {
-                arg, 
-                local, 
-                lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type)) 
-            });
-        } else {
-            m_builder.build_store(arg, local);
-        }
+        m_builder.build_store(arg, local);
     }
 
     codegen_statement(defn->get_body());

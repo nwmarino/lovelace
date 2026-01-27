@@ -17,23 +17,29 @@
 
 using namespace lir;
 
-/// Implementation of a linear scan over the intermediate representation to
-/// identify live ranges of named producers.
-class LinearScan final {
-    const MachFunction& m_function;
-    std::vector<LiveRange>& m_ranges;
-    uint32_t m_position = 0;
+using Ranges = std::vector<LiveRange>;
 
-    LiveRange& update_range(Register reg, RegisterClass cls, uint32_t pos) {
+/// A pass that linearly scans over the machine intermediate representation
+/// (MIR) to identify the positions/ranges in which virtual registers are live.
+class LinearScan final {
+    const MachFunction &m_func;
+    Ranges &m_ranges;
+    uint32_t m_pos = 0;
+
+    /// Update the live range for the given |reg| to now continue to |pos|. 
+    /// If a live range does not exist for the register, then create a new one 
+    /// with the given |cls|, starting at |pos|.
+    LiveRange &update_range(Register reg, RegisterClass cls, uint32_t pos) {
         // Attempt to find an existing range for |reg|.
         // @Todo: map ranges by the register they involve for faster lookup.
-        for (auto& range : m_ranges) {
-            // The range has been killed, so we never update it.
+        for (auto &range : m_ranges) {
+            // The range has been killed i.e. is no longer live, so we never 
+            // update it.
             if (range.killed)
                 continue;
 
             if (range.reg == reg) {
-                // A "live" range still exists for |reg|, so update its 
+                // A live range still exists for |reg|, so update its 
                 // endpoint and stop here.
                 range.end = pos;
                 return range;
@@ -56,20 +62,22 @@ class LinearScan final {
         return m_ranges.back();
     }
 
-    void process_inst(const MachInst& inst) {
-        // For each operand that involves a register, update its live range.
-        for (const MachOperand& op : inst.get_operands()) {
-            if (!op.is_reg() && !op.is_mem())
+    /// Process the given |inst|, determining live ranges for each of its
+    /// operands that involve registers.
+    void process_inst(const MachInst &inst) {
+        for (const MachOperand &operand : inst.get_operands()) {
+            // Only process register/memory operands.
+            if (!operand.is_reg() && !operand.is_mem())
                 continue;
 
             Register reg;
             RegisterClass cls;
 
             // Determine the register used in this operand.
-            if (op.is_reg()) {
-                reg = op.get_reg();
-            } else if (op.is_mem()) {
-                reg = op.get_mem_base();
+            if (operand.is_reg()) {
+                reg = operand.get_reg();
+            } else if (operand.is_mem()) {
+                reg = operand.get_mem_base();
             }
 
             if (reg.is_physical()) {
@@ -79,34 +87,34 @@ class LinearScan final {
                 // register class it needs to be allocated to. This is stored
                 // in the function register table created during instruction
                 // selection.
-                const MachFunction::RegisterTable& regs = m_function.get_register_table();
-                assert(regs.count(reg.id()) != 0);
-                cls = regs.at(reg.id()).cls;
+                const auto &rtable = m_func.get_register_table();
+                assert(rtable.count(reg.id()) != 0 && 
+                    "virtual register does not exist in register table!");
+                
+                cls = rtable.at(reg.id()).cls;
             }
 
-            LiveRange& range = update_range(reg, cls, m_position);
+            LiveRange &range = update_range(reg, cls, m_pos);
 
-            if (op.is_reg() && (op.is_kill() || op.is_dead())) {
-                // If the register is no longer live at this point, then it's 
-                // value is no longer used and thus the range should be killed
-                // off immediately.
-                range.end = m_position;
+            if (operand.is_reg() && (operand.is_kill() || operand.is_dead())) {
+                // If the register is no longer live at the point of this 
+                // instruction, then it should be killed off.
+                range.end = m_pos;
                 range.killed = true;
             }
         }
     }
 
 public:
-    LinearScan(const MachFunction& function, std::vector<LiveRange>& ranges)
-      : m_function(function), m_ranges(ranges) {}
+    LinearScan(const MachFunction &func, Ranges &ranges)
+      : m_func(func), m_ranges(ranges) {}
 
     void run() {
-        m_position = 0;
-        const MachLabel* curr = m_function.get_head();
+        const MachLabel *curr = m_func.get_head();
         while (curr) {
-            for (const MachInst& inst : curr->insts()) {
+            for (const MachInst &inst : curr->insts()) {
                 process_inst(inst);
-                ++m_position;
+                m_pos++;
             }
 
             curr = curr->get_next();
@@ -114,61 +122,73 @@ public:
     }
 };
 
-/// Implementation of a per-function pass that identifies the need for spills
-/// around call instructions due to ABI conventions.
+/// An analysis pass that identifies the need for caller-saved register spills
+/// around call instructions per ABI conventions.
 class CallsiteAnalysis final {
-    MachFunction& m_function;
-    const std::vector<LiveRange>& m_ranges;
-    uint32_t m_position = 0;
+    MachFunction& m_func;
+    const Ranges &m_ranges;
+    uint32_t m_pos = 0;
 
-    void process_label(MachLabel& label) {
+    void process_label(MachLabel &label) {
+        const Machine &mach = m_func.get_machine();
+
         std::vector<MachInst> insts = {};
         insts.reserve(label.size());
 
-        for (uint32_t i = 0, e = label.size(); i < e; ++m_position, ++i) {
+        // For each call instruction under this label, spill any registers 
+        // whose liveliness overlap to the stack.
+        for (uint32_t i = 0, e = label.size(); i < e; ++m_pos, ++i) {
             MachInst& inst = label.insts().at(i);
 
-            X64_Mnemonic op = inst.op();
-            if (op == X64_Mnemonic::CALL) {
-                std::vector<Register> spill = {};
-
-                for (const LiveRange& range : m_ranges) {
-                    if (!range.overlaps(m_position))
-                        continue;
-
-                    X64_Register alloc = static_cast<X64_Register>(range.alloc.id());
-                    if (m_function.get_machine().is_caller_saved(alloc))
-                        spill.push_back(alloc);
-                }
-
-                for (const Register& reg : spill) {
-                    MachOperand op = MachOperand::create_reg(reg, 8, false);
-                    insts.push_back(MachInst(
-                        X64_Mnemonic::PUSH, X64_Size::Quad, { op }));
-                }
-
+            if (inst.op() != X64_Mnemonic::CALL) {
+                // Non-calls simply get placed in their usual spots.
                 insts.push_back(inst);
+                continue;
+            }
 
-                for (const Register& reg : spill) {
-                    MachOperand op = MachOperand::create_reg(reg, 8, true);
-                    insts.push_back(MachInst(X64_Mnemonic::POP, X64_Size::Quad, { op }));
-                }
-            } else {
-                insts.push_back(inst);
+            std::vector<Register> to_spill = {};
+
+            // For each live register at this point, mark it to be spilled if 
+            // it is a caller-saved register.
+            for (const LiveRange &range : m_ranges) {
+                if (!range.overlaps(m_pos))
+                    continue;
+
+                auto alloc = static_cast<X64_Register>(range.alloc.id());
+                if (mach.is_caller_saved(alloc))
+                    to_spill.push_back(alloc);
+            }
+
+            // For each register that needs to be spilled, push it to the stack
+            // just before the call.
+            for (const Register &reg : to_spill) {
+                insts.push_back(MachInst(X64_Mnemonic::PUSH, X64_Size::Quad)
+                    .add_reg(reg, 8, false)
+                );
+            }
+
+            // Add the call instruction now.
+            insts.push_back(inst);
+
+            // For each register that was spilled, pop it back off the stack
+            // now that the call has completed.
+            for (const Register &reg : to_spill) {
+                insts.push_back(MachInst(X64_Mnemonic::POP, X64_Size::Quad)
+                    .add_reg(reg, 8, true)
+                );
             }
         }
 
+        // Replace the instructions under the label with the new list.
         label.insts() = insts;
     }
 
 public:
-    CallsiteAnalysis(MachFunction& function, 
-                     const std::vector<LiveRange>& ranges)
-      : m_function(function), m_ranges(ranges) {}
+    CallsiteAnalysis(MachFunction &func, const Ranges &ranges)
+      : m_func(func), m_ranges(ranges) {}
     
     void run() {
-        m_position = 0;
-        MachLabel* curr = m_function.get_head();
+        MachLabel *curr = m_func.get_head();
         while (curr) {
             process_label(*curr);
             curr = curr->get_next();
@@ -177,10 +197,12 @@ public:
 };
 
 void RegisterAnalysis::run() {
-    for (const auto& [name, function] : m_seg.get_functions()) {
-        std::vector<LiveRange> ranges;
+    for (const auto &[name, func] : m_seg.get_functions()) {
+        std::vector<LiveRange> ranges = {};
         
-        LinearScan linscan { *function, ranges };
+        // Run linear scan over the function, producing live ranges for each
+        // register used.
+        LinearScan linscan { *func, ranges };
         linscan.run();
 
 #ifdef LIR_MACHINE_DEBUGGING
@@ -196,19 +218,27 @@ void RegisterAnalysis::run() {
         }
 #endif // LIR_MACHINE_DEBUGGING
 
-        RegisterAllocator allocator { *function, ranges };
+        // Allocate registers over the live ranges produced by the linear scan.
+        // The allocator assigns the physical registers to the ranges 
+        // themselves.
+        RegisterAllocator allocator { *func, ranges };
         allocator.run();
 
-        MachFunction::RegisterTable& regs = function->get_register_table();
-        for (const auto& range : ranges) {
-            Register reg = range.reg;
-            if (reg.is_physical())
+        MachFunction::RegisterTable &rtable = func->get_register_table();
+        
+        // For each range, propogate the allocated register to the function
+        // register table.
+        for (const LiveRange &range : ranges) {
+            const Register reg = range.reg;
+            
+            // Skip physical registers, since their allocations are already known.
+            if (reg.is_physical()) 
                 continue;
 
-            regs[reg.id()].alloc = range.alloc;
+            rtable[reg.id()].alloc = range.alloc;
         }
 
-        CallsiteAnalysis CAN { *function, ranges };
-        CAN.run();
+        CallsiteAnalysis canal { *func, ranges };
+        canal.run();
     }
 }
