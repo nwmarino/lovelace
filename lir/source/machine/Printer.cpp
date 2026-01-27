@@ -191,6 +191,18 @@ static void print_function(std::ostream &os, const MachFunction &func) {
     if (pool.num_entries() > 0 )
         os << '\n';
 
+    const MachFunction::LiveIns &liveins = func.get_liveins();
+    os << "\tliveins: [";
+
+    for (uint32_t i = 0, e = liveins.size(); i < e; ++i) {
+        os << to_string(liveins[i], 8);
+
+        if (i + 1 != e)
+            os << ", ";
+    }
+
+    os << "]\n\n";
+
     // Print each label in this function.
     const MachLabel* curr = func.get_head();
     while (curr) {

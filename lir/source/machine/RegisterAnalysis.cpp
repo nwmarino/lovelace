@@ -137,6 +137,8 @@ class CallsiteAnalysis final {
 
         // For each call instruction under this label, spill any registers 
         // whose liveliness overlap to the stack.
+        //
+        // @Todo: spills should go before clobbered arguments moves, not after.
         for (uint32_t i = 0, e = label.size(); i < e; ++m_pos, ++i) {
             MachInst& inst = label.insts().at(i);
 

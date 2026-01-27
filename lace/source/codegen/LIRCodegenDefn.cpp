@@ -62,6 +62,8 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
     args.reserve(defn->num_params());
 
     lir::Type* return_type = to_lir_type(defn->get_return_type());
+
+    /*
     if (!m_mach.is_scalar(return_type)) {
         // Return type is non-scalar/aggregate, so instead we take in a pointer
         // as the first argument with the ARET trait, and write changes to it
@@ -80,6 +82,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         // Change the return type to void now.
         return_type = lir::VoidType::get(m_cfg);
     }
+    */
 
     for (uint32_t i = 0; i < defn->num_params(); ++i) {
         const ParameterDefn* param = defn->get_param(i);
@@ -90,10 +93,12 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
             name = "";
 
         auto trait = lir::FunctionArgument::Trait::None;
+        /*
         if (!m_mach.is_scalar(type)) {
             trait = lir::FunctionArgument::Trait::Valued;
             type = lir::PointerType::get(m_cfg, type);
         }
+        */
 
         types.push_back(type);
         args.push_back(lir::FunctionArgument::create(
@@ -129,10 +134,12 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
         lir::FunctionArgument* arg = func->get_arg(i);
         lir::Type* type = arg->get_type();
         
+        /*
         if (arg->get_trait() == lir::FunctionArgument::Trait::Valued 
           || arg->get_trait() == lir::FunctionArgument::Trait::ARet) {
             continue;
         }
+        */
         
         lir::Local* local = lir::Local::create(
             m_cfg, 
@@ -170,9 +177,13 @@ lir::Global* LIRCodegen::codegen_initial_global(const VariableDefn* defn) {
         m_cfg, 
         to_lir_type(defn->get_type()), 
         linkage, 
-        // @Todo: for now, all lowered globals should be mutable. for the case
+        // @Todo: for now, all lowered globals will be mutable. for the case
         // of arrays like [5]mut s64, where the elements are mutable, but the
         // array itself is not, we need some special semantics here.
+        //
+        // Cause if we had it as immutable, then the data would be put in 
+        // read-only, and thus it wouldn't let us mutate the elements like we
+        // should be able to.
         false, /* !node.get_type().is_mut(), */ 
         defn->get_name()
     );
@@ -227,24 +238,28 @@ lir::Local* LIRCodegen::codegen_local_variable(const VariableDefn* defn) {
 
         m_builder.build_store(value, local);
     } else {
+        m_place = local;
+
         lir::Value* value = codegen_addressed_expression(defn->get_init());
-        assert(value);
+        if (value) {
+            lir::Function* copy = get_intrinsic(
+                "__copy", 
+                lir::VoidType::get(m_cfg), 
+                {
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::IntegerType::get_i64_type(m_cfg)
+                }
+            );
 
-        lir::Function* copy = get_intrinsic(
-            "__copy", 
-            lir::VoidType::get(m_cfg), 
-            {
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::IntegerType::get_i64_type(m_cfg)
-            }
-        );
+            m_builder.build_call(copy->get_type(), copy, {
+                local,
+                value,
+                lir::Integer::get(m_cfg, lir::Type::get_i64_type(m_cfg), m_mach.get_size(type))
+            });
+        }
 
-        m_builder.build_call(copy->get_type(), copy, {
-            local,
-            value,
-            lir::Integer::get(m_cfg, lir::Type::get_i64_type(m_cfg), m_mach.get_size(type))
-        });
+        m_place = nullptr;
     }
 
     return local;

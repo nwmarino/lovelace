@@ -24,23 +24,28 @@ lir::Value* LIRCodegen::codegen_assignment(const BinaryOp* expr) {
         m_builder.build_store(value, lval);
         return value; // Return rhs as result of the assignment.
     } else {
+        m_place = lval;
+
         lir::Value* value = codegen_addressed_expression(expr->get_rhs());
-        lir::Function* copy = get_intrinsic( 
-            "__copy", 
-            lir::VoidType::get(m_cfg), 
-            {
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::IntegerType::get_i64_type(m_cfg)
-            }
-        );
+        if (value) {
+            lir::Function* copy = get_intrinsic( 
+                "__copy", 
+                lir::VoidType::get(m_cfg), 
+                {
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::PointerType::get_void_pointer(m_cfg),
+                    lir::IntegerType::get_i64_type(m_cfg)
+                }
+            );
 
-        m_builder.build_call(copy->get_type(), copy, {
-            lval,
-            value,
-            lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type))
-        });
+            m_builder.build_call(copy->get_type(), copy, {
+                lval,
+                value,
+                lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type))
+            });
+        }
 
+        m_place = nullptr;
         return nullptr; // The rhs/result of the assignment shouldn't be reused.
     }
 }

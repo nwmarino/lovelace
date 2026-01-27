@@ -300,39 +300,39 @@ lir::Value* LIRCodegen::codegen_type_cast(const CastExpr* expr) {
 }
 
 lir::Value* LIRCodegen::codegen_function_call(const CallExpr* expr) {
-    lir::Value* callee = codegen_addressed_expression(expr->get_callee());
+    lir::Value *callee = codegen_addressed_expression(expr->get_callee());
     assert(callee);
 
-    lir::Type* result = to_lir_type(expr->get_type());
+    lir::Type *result = to_lir_type(expr->get_type());
+    assert(result);
 
     std::vector<lir::Value*> args = {};
     args.reserve(expr->num_args());
 
-    lir::Local* aret_tmp = nullptr;
+    lir::Value *aret = nullptr;
     if (!m_mach.is_scalar(result)) {
         // The result of the call is a non-scalar/aggregate, so per our ABI
         // we assume a void return, and instead pass in a pointer as the first 
         // argument.
-        
-        // @Todo: if the result of this call would get immediately moved to 
-        // some "place", i.e 'x = foo()' where foo returns a non-scalar, then
-        // we should keep a "place" (e.g. x) in codegen state to propogate it
-        // as the destination.
-        //
-        // For now though, just create a new local to store the result, and if
-        // the resulting aggregate is part of a move (e.g. assignment, call, 
-        // etc.) then it will be passed around as an address anyways.
 
-        aret_tmp = lir::Local::create(
-            m_cfg, 
-            result, 
-            std::to_string(m_cfg.get_def_id()), 
-            m_mach.get_align(result), 
-            m_func
-        );
+        if (m_place) {
+            // If there was a "place" designated to store the aggregate result,
+            // then we can pass it in as the aret.
+            args.push_back(m_place);
+        } else {
+            // No "place" designated, so instead create temporary local that 
+            // will act as both the aret and result of this call.
+            aret = lir::Local::create(
+                m_cfg, 
+                result, 
+                std::to_string(m_cfg.get_def_id()), 
+                m_mach.get_align(result), 
+                m_func
+            );
 
-        // Will be a *T, where T is the type of the aggregate.
-        args.push_back(aret_tmp);
+            // Will be a *T, where T is the type of the aggregate.
+            args.push_back(aret);
+        }
     }
 
     for (Expr* arg : expr->get_args()) {
@@ -385,7 +385,13 @@ lir::Value* LIRCodegen::codegen_function_call(const CallExpr* expr) {
         args
     );
 
-    return (aret_tmp != nullptr) ? aret_tmp : call;
+    if (aret) {
+        return aret;
+    } else if (call->get_type()->is_void_type()) {
+        return nullptr;
+    } else {
+        return call;
+    }
 }
 
 lir::Value* LIRCodegen::codegen_parentheses(const ParenExpr* expr) {

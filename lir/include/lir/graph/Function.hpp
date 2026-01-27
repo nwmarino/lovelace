@@ -65,6 +65,11 @@ public:
     /// Test if this argument has a trait.
     bool has_trait() const { return m_trait != Trait::None; }
 
+    /// Test if this argument has the given |trait|.
+    bool has_trait(Trait trait) const {
+        return m_trait == trait;
+    }
+
     /// Returns the index of this argument in its parent function. Fails if 
     /// this argument does not belong to a function.
     uint32_t get_index() const;

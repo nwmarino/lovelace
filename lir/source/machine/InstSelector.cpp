@@ -868,6 +868,12 @@ void InstSelector::select_call(const Instruction* inst) {
     std::vector<Register> regs = {};
     regs.reserve(inst->num_operands() - 1); // All args, but not callee.
 
+    for (X64_Register &reg : m_func.get_liveins()) {
+        emit(X64_Mnemonic::PUSH, X64_Size::Quad)
+            .add_reg(reg, 8, false, false, true)
+            .add_comment("8-byte spill");
+    }
+
     // Move arguments to their respective ABI register, in reverse order.
     for (int32_t i = 0; i < inst->num_operands() - 1; ++i) {
         const Value* arg = inst->get_operand(i + 1);
@@ -924,6 +930,12 @@ void InstSelector::select_call(const Instruction* inst) {
         emit(op, as_size(inst->get_type()))
             .add_reg(ret_reg, sub_reg, false, false, true) // move kills return register
             .add_reg(as_register(inst), sub_reg, true);
+    }
+
+    for (X64_Register &reg : m_func.get_liveins()) {
+        emit(X64_Mnemonic::POP, X64_Size::Quad)
+            .add_reg(reg, 8, true, false)
+            .add_comment("8-byte reload");
     }
 }
 
@@ -1341,6 +1353,7 @@ void InstSelector::select_cast_f2i(const Instruction* inst) {
 
 void InstSelector::select_cast_p2i(const Instruction* inst) {
     const Value* source = inst->get_operand(0);
+    assert(m_mach.get_size(source->get_type()) == 8);
 
     X64_Mnemonic op;
     if (dynamic_cast<const Local*>(source)) {
@@ -1349,9 +1362,7 @@ void InstSelector::select_cast_p2i(const Instruction* inst) {
         op = X64_Mnemonic::MOV;
     }
 
-    // @Todo: consider what happens when the destination integer type is not
-    // 64-bit.
-
+    // Pointers in X64 are 64-bit and anything shorter is loss of info.
     emit(op, X64_Size::Quad)
         .add_operand(as_operand(source))
         .add_reg(as_register(inst), get_subregister(inst->get_type()), true)
@@ -1403,6 +1414,25 @@ void InstSelector::run() {
 
         stack.entries.push_back(entry);
         m_locals.emplace(local, stack_index++);
+    }
+
+    // For each function argument, if it has the aret/valued trait and is in a
+    // register, then it should be live throughout the function.
+    for (uint32_t i = 0; i < fn->num_args(); ++i) {
+        const FunctionArgument *arg = fn->get_arg(i);
+
+        if (arg->has_trait(FunctionArgument::Trait::ARet) 
+          || arg->has_trait(FunctionArgument::Trait::Valued)) {
+            // @Todo: This doesn't really make sense. The result could be a
+            // space on the stack, which could provide problems.
+            //
+            // For now though, if it is a register, we consider it a livein.
+            // In the future, for special arguments passed on the stack, users
+            // can just refer to the stack (maybe).
+            MachOperand operand = as_argument(arg, i);
+            if (operand.is_reg())
+                m_func.add_livein(static_cast<X64_Register>(operand.get_reg().id()));
+        }
     }
 
     MachLabel* curr = m_func.get_head();

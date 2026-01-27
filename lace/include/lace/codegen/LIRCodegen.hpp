@@ -35,6 +35,8 @@ class LIRCodegen final {
     lir::CFG& m_cfg;
     lir::Builder m_builder;
     lir::Function* m_func = nullptr;
+
+    lir::Value* m_place = nullptr;
     lir::BasicBlock* m_parent_cond = nullptr;
     lir::BasicBlock* m_parent_merge = nullptr;
 
