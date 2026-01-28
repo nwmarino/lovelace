@@ -318,9 +318,9 @@ MachOperand InstSelector::as_operand(const Value* value) {
     {
         return MachOperand::create_symbol(global->get_name().c_str());
     } 
-    else if (const FunctionArgument* arg = dynamic_cast<const FunctionArgument*>(value)) 
+    else if (const Parameter *param = dynamic_cast<const Parameter*>(value)) 
     {
-        return as_argument(value, arg->get_index());
+        return as_argument(value, param->get_index());
     } 
     else if (const BlockArgument* arg = dynamic_cast<const BlockArgument*>(value)) 
     {
@@ -508,13 +508,8 @@ void InstSelector::select_load_store(const Instruction* inst) {
         // dereference the pointer.
         source = MachOperand::create_mem(source.get_reg(), 0);
 
-        if (source.get_mem_base().is_physical()) {
+        if (source.get_mem_base().is_physical())
             source.set_is_use(true);
-
-            // @Todo: what is the point of this...
-            if (dynamic_cast<const FunctionArgument*>(inst->get_operand(0)))
-                source.set_is_kill(true);
-        }
     }
 
     X64_Mnemonic op = X64_Mnemonic::MOV;
@@ -524,10 +519,6 @@ void InstSelector::select_load_store(const Instruction* inst) {
     if (inst->op() == OP_STORE) {
         if (source.is_reg() && source.get_reg().is_physical()) {
             source.set_is_use(true);
-
-            // @Todo: what is the point of this...
-            if (dynamic_cast<const FunctionArgument*>(inst->get_operand(0)))
-                source.set_is_kill(true);
         } else if (source.is_symbol() || source.is_mem() || 
             source.is_stack() || source.is_constant()) {
             // Both the store source and destination are memory references, so
@@ -1418,8 +1409,9 @@ void InstSelector::run() {
 
     // For each function argument, if it has the aret/valued trait and is in a
     // register, then it should be live throughout the function.
-    for (uint32_t i = 0; i < fn->num_args(); ++i) {
-        const FunctionArgument *arg = fn->get_arg(i);
+    /*
+    for (uint32_t i = 0; i < fn->num_parameters(); ++i) {
+        const Parameter *param = fn->get_parameter(i);
 
         if (arg->has_trait(FunctionArgument::Trait::ARet) 
           || arg->has_trait(FunctionArgument::Trait::Valued)) {
@@ -1434,14 +1426,15 @@ void InstSelector::run() {
                 m_func.add_livein(static_cast<X64_Register>(operand.get_reg().id()));
         }
     }
+    */
 
-    MachLabel* curr = m_func.get_head();
+    MachLabel *curr = m_func.get_head();
     while (curr) {
         m_insert = curr;
-        const BasicBlock* block = curr->get_basic_block();
+        const BasicBlock *block = curr->get_basic_block();
         assert(block);
 
-        for (const Instruction* inst = block->get_head(); inst; inst = inst->get_next())
+        for (const Instruction *inst = block->get_head(); inst; inst = inst->get_next())
             select(inst);
 
         curr = curr->get_next();

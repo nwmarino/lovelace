@@ -111,24 +111,24 @@ lir::Type* LIRCodegen::to_lir_type(const QualType& type) {
     }
 }
 
-lir::Function* LIRCodegen::get_intrinsic(
-        const std::string& name, lir::Type* result, 
-        const std::vector<lir::Type*>& args) {
+lir::Function *LIRCodegen::get_intrinsic(const std::string &name, 
+                                         lir::Type* result, 
+                                         const std::vector<lir::Type*> &params) {
     lir::Function* func = m_cfg.get_function(name);
     if (func)
         return func;
         
-    std::vector<lir::FunctionArgument*> arguments(args.size(), nullptr);
+    std::vector<lir::Parameter*> parameters(params.size(), nullptr);
 
-    for (uint32_t i = 0; i < args.size(); ++i)
-        arguments[i] = lir::FunctionArgument::create(args[i], "");
+    for (uint32_t i = 0; i < params.size(); ++i)
+        parameters[i] = lir::Parameter::create(params[i]);
 
     return lir::Function::create(
         m_cfg, 
-        lir::Function::External, 
-        lir::FunctionType::get(m_cfg, args, result),
+        lir::Function::LinkageType::Public, 
+        lir::FunctionType::get(m_cfg, params, result),
         name, 
-        arguments
+        parameters
     );
 }
 

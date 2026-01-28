@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025-2026 Nick Marino
+//  Copyright (c) 2026 Nicholas Marino
 //  All rights reserved.
 //
 
@@ -9,43 +9,16 @@
 
 using namespace lir;
 
-FunctionArgument* FunctionArgument::create(
-        Type *type, const std::string &name, Function* parent, Trait trait) {
-    FunctionArgument* arg = new FunctionArgument(type, parent, name, trait);
-    if (parent)
-        parent->append_arg(arg);
-
-    return arg;
-}
-
-uint32_t FunctionArgument::get_index() const {
-    assert(m_parent && "argument does not belong to a function!");
-
-    const Function::Args& args = m_parent->get_args();
-    uint32_t i = 0;
-    for (FunctionArgument* arg : args) {
-        if (arg == this)
-            return i;
-
-        ++i;
-    }
-
-    __builtin_unreachable(); // The argument should be in the list...
-}
-
 Function::~Function() {
-    for (FunctionArgument* arg : m_args)
-        delete arg;
+    for (Parameter *param : m_params)
+        delete param;
 
-    for (auto& [name, local] : m_locals)
+    for (auto &[name, local] : m_locals)
         delete local;
 
-    m_args.clear();
-    m_locals.clear();
-
-    BasicBlock* curr = m_head;
-    while (curr != nullptr) {
-        BasicBlock* tmp = curr->get_next();
+    BasicBlock *curr = m_head;
+    while (curr) {
+        BasicBlock *tmp = curr->get_next();
 
         curr->set_prev(nullptr);
         curr->set_next(nullptr);
@@ -54,62 +27,48 @@ Function::~Function() {
         curr = tmp;
     }
 
-    m_head = m_tail = nullptr;
+    m_head = nullptr, m_tail = nullptr;
 }
 
-Function* Function::create(CFG &cfg, LinkageType linkage, FunctionType *type, 
-                           const std::string &name, const Args &args) {
-    Function* function = new Function(type, &cfg, linkage, name, args);
-    cfg.add_function(function);
+Function *Function::create(CFG &cfg, LinkageType linkage, FunctionType *type, 
+                           const std::string &name, const Params &params) {
+    Function* func = new Function(type, &cfg, linkage, name, params);
+    assert(func);
 
-    for (FunctionArgument* arg : args) {
-        assert(!arg->has_parent() && "argument already belongs to a function!");
-        arg->set_parent(function);
+    cfg.add_function(func);
+
+    // Set the parent of each parameter to the newly created function (since 
+    // the constructor doesn't propogate that info).
+    for (Parameter *param : params) {
+        assert(!param->has_parent() && 
+            "parameter already belongs to a function!");
+
+        param->set_parent(func);
     }
 
-    return function;
+    return func;
 }
 
 void Function::detach() {
     assert(m_parent && "function does not have a parent graph!");
 
-    m_parent->remove_function(this); // Updates parent pointer for us.
+    m_parent->remove_function(this); // Updates parent pointer automatically.
 }
 
-void Function::set_arg(uint32_t i, FunctionArgument* arg) {
-    assert(i < num_args() && "index out of bounds!");
-    assert(!arg->has_parent() && "argument already belongs to a function!");
+bool Function::add_parameter(Parameter *param) {
+    assert(!param->has_parent() && "parameter already belongs to a function!");
 
-    m_args[i] = arg;
-    arg->set_parent(this);
-}
-
-void Function::append_arg(FunctionArgument* arg) {
-    assert(!arg->has_parent() && "argument already belongs to a function!");
-
-    m_args.push_back(arg);
-    arg->set_parent(this);
-}
-
-const FunctionArgument* Function::get_aret() const {
-    for (FunctionArgument* arg : m_args) {
-        if (arg->get_trait() == FunctionArgument::Trait::ARet)
-            return arg;
+    if (param->is_named()) {
+        if (get_parameter(param->get_name()))
+            return false;
     }
 
-    return nullptr;
+    m_params.push_back(param);
+    param->set_parent(this);
+    return true;
 }
 
-bool Function::has_aret() const {
-    for (FunctionArgument* arg : m_args) {
-        if (arg->get_trait() == FunctionArgument::Trait::ARet)
-            return true;
-    }
-        
-    return false;
-}
-
-const Local* Function::get_local(const std::string& name) const {
+const Local *Function::get_local(const std::string &name) const {
     auto it = m_locals.find(name);
     if (it != m_locals.end())
         return it->second;
@@ -117,23 +76,28 @@ const Local* Function::get_local(const std::string& name) const {
     return nullptr;
 }
 
-void Function::add_local(Local* local) {
-    assert(!get_local(local->get_name()) &&
-        "local with same name already exists in function!");
+bool Function::add_local(Local *local) {
+    assert(!local->has_parent() && "local already belongs to a function!");
+
+    if (get_local(local->get_name()))
+        return false;
     
     m_locals.emplace(local->get_name(), local);
     local->set_parent(this);
+    return true;
 }
 
-void Function::remove_local(Local* local) {
+void Function::remove_local(Local *local) {
     assert(local && "local cannot be null!");
 
-    auto it = m_locals.find(local->get_name());
-    if (it != m_locals.end())
-        m_locals.erase(it);
+    if (local->get_parent() == this) {
+        auto it = m_locals.find(local->get_name());
+        if (it != m_locals.end())
+            m_locals.erase(it);
+    }
 }
 
-void Function::prepend(BasicBlock* block) {
+void Function::prepend(BasicBlock *block) {
     assert(block && "block cannot be null!");
     assert(!block->has_parent() && "block already belongs to a function!");
 
@@ -148,7 +112,7 @@ void Function::prepend(BasicBlock* block) {
     block->set_parent(this);
 }
 
-void Function::append(BasicBlock* block) {
+void Function::append(BasicBlock *block) {
     assert(block && "block cannot be null!");
     assert(!block->has_parent() && "block already belongs to a function!");
 
@@ -163,7 +127,7 @@ void Function::append(BasicBlock* block) {
     block->set_parent(this);
 }
 
-void Function::insert(BasicBlock* block, uint32_t i) {
+void Function::insert(BasicBlock *block, uint32_t i) {
     assert(block && "block cannot be null!");
     assert(!block->has_parent() && "block already belongs to a function!");
 
@@ -172,50 +136,62 @@ void Function::insert(BasicBlock* block, uint32_t i) {
         if (pos == i)
             return block->insert_before(curr);
 
-        ++pos;
+        pos++;
     }
 
     append(block);
 }
 
-void Function::insert(BasicBlock* block, BasicBlock* insert_after) {
+void Function::insert(BasicBlock *block, BasicBlock *insert_after) {
     assert(block && "block cannot be null!");
 
     block->insert_after(insert_after);
 }
 
-void Function::remove(BasicBlock* block) {
+void Function::remove(BasicBlock *block) {
     assert(block && "block cannot be null!");
-    assert(block->get_parent() == this && 
-        "block does not belong to this function!");
 
-    // Update the next pointer for the block before the one to remove.
-    if (block->get_prev()) {
-        block->get_prev()->set_next(block->get_next());
-    } else {
-        if (block->get_next()) {
-            // Block is at the front of the function, so update the head.
-            m_head = block->get_next();
-        } else {
-            // Block was the last in the function.
-            m_head = m_tail = nullptr;
-        }
-    }
-
-    // Update the previous pointer for the block after the one to remove.
-    if (block->get_next()) {
-        block->get_next()->set_prev(block->get_prev());
-    } else {
+    if (block->get_parent() == this) {
+        // Update the next pointer for the block before the one to remove.
         if (block->get_prev()) {
-            // Block is at the back of the function, so update the tail.
-            m_tail = block->get_prev();
+            block->get_prev()->set_next(block->get_next());
         } else {
-            // Block was the last in the function.
-            m_head = m_tail = nullptr;
+            if (block->get_next()) {
+                // Block is at the front of the function, so update the head.
+                m_head = block->get_next();
+            } else {
+                // Block was the last in the function.
+                m_head = m_tail = nullptr;
+            }
         }
+
+        // Update the previous pointer for the block after the one to remove.
+        if (block->get_next()) {
+            block->get_next()->set_prev(block->get_prev());
+        } else {
+            if (block->get_prev()) {
+                // Block is at the back of the function, so update the tail.
+                m_tail = block->get_prev();
+            } else {
+                // Block was the last in the function.
+                m_head = m_tail = nullptr;
+            }
+        }
+
+        block->set_prev(nullptr);
+        block->set_next(nullptr);
+        block->clear_parent();
+    }
+}
+
+uint32_t Function::size() const {
+    uint32_t size = 0;
+
+    const BasicBlock *curr = m_head;
+    while (curr) {
+        curr = curr->get_next();
+        size++;
     }
 
-    block->set_prev(nullptr);
-    block->set_next(nullptr);
-    block->clear_parent();
+    return size;
 }

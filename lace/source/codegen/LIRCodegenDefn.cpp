@@ -51,15 +51,15 @@ void LIRCodegen::codegen_lowered_definition(const Defn* defn) {
 }
 
 lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
-    lir::Function::LinkageType linkage = lir::Function::Internal;
+    auto linkage = lir::Function::LinkageType::Private;
     if (defn->has_rune(Rune::Public))
-        linkage = lir::Function::External;
+        linkage = lir::Function::LinkageType::Public;
 
     std::vector<lir::Type*> types = {};
-    std::vector<lir::FunctionArgument*> args = {};
+    std::vector<lir::Parameter*> params = {};
 
     types.reserve(defn->num_params());
-    args.reserve(defn->num_params());
+    params.reserve(defn->num_params());
 
     lir::Type* return_type = to_lir_type(defn->get_return_type());
 
@@ -91,8 +91,6 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         std::string name = param->get_name();
         if (name == "_")
             name = "";
-
-        auto trait = lir::FunctionArgument::Trait::None;
         /*
         if (!m_mach.is_scalar(type)) {
             trait = lir::FunctionArgument::Trait::Valued;
@@ -101,12 +99,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         */
 
         types.push_back(type);
-        args.push_back(lir::FunctionArgument::create(
-            type, 
-            name, 
-            nullptr, 
-            trait
-        ));
+        params.push_back(lir::Parameter::create(type, name));
     }
 
     return lir::Function::create(
@@ -114,7 +107,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
         linkage, 
         lir::FunctionType::get(m_cfg, types, return_type), 
         defn->get_name(), 
-        args
+        params
     );
 }
 
@@ -129,33 +122,24 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     lir::BasicBlock* entry = lir::BasicBlock::create({}, m_func);
     m_builder.set_insert(entry);
 
-    uint32_t i = func->has_aret() ? 1 : 0;
-    for (const uint32_t e = func->num_args(); i < e; ++i) {
-        lir::FunctionArgument* arg = func->get_arg(i);
-        lir::Type* type = arg->get_type();
-        
-        /*
-        if (arg->get_trait() == lir::FunctionArgument::Trait::Valued 
-          || arg->get_trait() == lir::FunctionArgument::Trait::ARet) {
-            continue;
-        }
-        */
+    for (uint32_t i = 0, e = func->num_parameters(); i < e; ++i) {
+        lir::Parameter *param = func->get_parameter(i);
+        lir::Type *type = param->get_type();
         
         lir::Local* local = lir::Local::create(
             m_cfg, 
             type, 
-            arg->get_name(), 
-            m_mach.get_align(type), 
+            param->get_name(), 
             func
         );
 
-        m_builder.build_store(arg, local);
+        m_builder.build_store(param, local);
     }
 
     codegen_statement(defn->get_body());
 
     if (!m_builder.get_insert()->terminates()) {
-        if (m_func->get_return_type()->is_void_type()) {
+        if (m_func->get_result_type()->is_void_type()) {
             m_builder.build_ret();
         } else {
             log::warn("function does not always return", 
@@ -225,42 +209,15 @@ lir::Local* LIRCodegen::codegen_local_variable(const VariableDefn* defn) {
         m_cfg, 
         type, 
         defn->get_name(), 
-        m_mach.get_align(type),
         m_func
     );
 
     if (!defn->has_init())
         return local;
 
-    if (m_mach.is_scalar(type)) {
-        lir::Value* value = codegen_valued_expression(defn->get_init());
-        assert(value);
+    lir::Value* value = codegen_valued_expression(defn->get_init());
+    assert(value);
 
-        m_builder.build_store(value, local);
-    } else {
-        m_place = local;
-
-        lir::Value* value = codegen_addressed_expression(defn->get_init());
-        if (value) {
-            lir::Function* copy = get_intrinsic(
-                "__copy", 
-                lir::VoidType::get(m_cfg), 
-                {
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::IntegerType::get_i64_type(m_cfg)
-                }
-            );
-
-            m_builder.build_call(copy->get_type(), copy, {
-                local,
-                value,
-                lir::Integer::get(m_cfg, lir::Type::get_i64_type(m_cfg), m_mach.get_size(type))
-            });
-        }
-
-        m_place = nullptr;
-    }
-
+    m_builder.build_store(value, local);
     return local;
 }

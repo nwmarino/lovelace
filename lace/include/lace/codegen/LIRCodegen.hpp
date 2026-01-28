@@ -50,8 +50,8 @@ private:
     /// Lower the given lace |type| to its LIR equivelant, where possible.
     lir::Type* to_lir_type(const QualType& type);
 
-    lir::Function* get_intrinsic(const std::string& name, lir::Type* result, 
-                                 const std::vector<lir::Type*>& args = {});
+    lir::Function *get_intrinsic(const std::string &name, lir::Type *result, 
+                                 const std::vector<lir::Type*> &params = {});
 
     /// Attempt to inject a boolean comparison unto the given |value|, such
     /// that the result is some form of comparison of a boolean type.

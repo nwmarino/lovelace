@@ -7,7 +7,6 @@
 #include "lace/tree/Defn.hpp"
 #include "lace/tree/Stmt.hpp"
 #include "lir/graph/Function.hpp"
-#include "lir/graph/Type.hpp"
 
 using namespace lace;
 
@@ -148,41 +147,11 @@ void LIRCodegen::codegen_return(const RetStmt* stmt) {
         m_builder.build_ret();
         return;
     }
-
-    lir::Type* type = to_lir_type(stmt->get_expr()->get_type());
     
-    if (m_mach.is_scalar(type)) {
-        lir::Value* value = codegen_valued_expression(stmt->get_expr());
-        assert(value);
+    lir::Value* value = codegen_valued_expression(stmt->get_expr());
+    assert(value);
 
-        m_builder.build_ret(value);
-    } else {
-        // Return type must be non-scalar/aggregate, so we write changes to the
-        // aret argument.
-        lir::Value* value = codegen_addressed_expression(stmt->get_expr());
-        assert(value);
-
-        lir::Function* copy = get_intrinsic(
-            "__copy", 
-            lir::VoidType::get(m_cfg), 
-            { 
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::PointerType::get_void_pointer(m_cfg),
-                lir::IntegerType::get_i64_type(m_cfg),
-            }
-        );
-
-        lir::FunctionArgument* aret = m_func->get_aret();
-        assert(aret);
-
-        m_builder.build_call(copy->get_type(), copy, {
-            aret,
-            value,
-            lir::Integer::get(m_cfg, lir::IntegerType::get_i64_type(m_cfg), m_mach.get_size(type))
-        });
-
-        m_builder.build_ret();
-    }
+    m_builder.build_ret(value);
 }
 
 void LIRCodegen::codegen_rune_statement(const RuneStmt* stmt) {

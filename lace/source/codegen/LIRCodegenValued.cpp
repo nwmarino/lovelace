@@ -113,15 +113,15 @@ lir::Value* LIRCodegen::codegen_valued_reference(const RefExpr* expr) {
     assert(expr->get_defn());
 
     switch (expr->get_defn()->get_kind()) {
-        case Defn::Parameter:
+        case Defn::Parameter: {
+            
+        }
+
         case Defn::Variable: {
-            lir::Value* ptr = codegen_addressed_reference(expr);
-            assert(ptr);
+            lir::Value* addr = codegen_addressed_reference(expr);
+            assert(addr);
 
-            lir::Type* type = to_lir_type(expr->get_type());
-            assert(m_mach.is_scalar(type));
-
-            return m_builder.build_load(type, ptr);
+            return m_builder.build_load(to_lir_type(expr->get_type()), addr);
         }
     
         case Defn::Variant: {
@@ -325,8 +325,7 @@ lir::Value* LIRCodegen::codegen_function_call(const CallExpr* expr) {
             aret = lir::Local::create(
                 m_cfg, 
                 result, 
-                std::to_string(m_cfg.get_def_id()), 
-                m_mach.get_align(result), 
+                std::to_string(m_cfg.get_def_id()),
                 m_func
             );
 
@@ -336,46 +335,9 @@ lir::Value* LIRCodegen::codegen_function_call(const CallExpr* expr) {
     }
 
     for (Expr* arg : expr->get_args()) {
-        lir::Type* type = to_lir_type(arg->get_type());
-        lir::Value* value;
-
-        if (m_mach.is_scalar(type)) {
-            value = codegen_valued_expression(arg);
-        } else {
-            // The argument is a non-scalar/aggregate, so the function will
-            // expect a "valued" pointer per our ABI. Since the aggregates 
-            // needs to be copied i.e. is not just a reference, we emit one 
-            // here that copies into a temporary.
-            value = codegen_addressed_expression(arg);
-
-            lir::Local* valued_tmp = lir::Local::create(
-                m_cfg,
-                type,
-                std::to_string(m_cfg.get_def_id()),
-                m_mach.get_align(type),
-                m_func
-            );
-
-            lir::Function* copy = get_intrinsic(
-                "__copy", 
-                lir::Type::get_void_type(m_cfg),
-                {
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::PointerType::get_void_pointer(m_cfg),
-                    lir::Type::get_i64_type(m_cfg)
-                }
-            );
-
-            m_builder.build_call(copy->get_type(), copy, {
-                valued_tmp,
-                value,
-                lir::Integer::get(m_cfg, lir::Type::get_i64_type(m_cfg), m_mach.get_size(type))
-            });
-
-            value = valued_tmp;
-        }
-
+        lir::Value* value = codegen_valued_expression(arg);
         assert(value);
+
         args.push_back(value);
     }
 

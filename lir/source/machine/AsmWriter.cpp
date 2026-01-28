@@ -156,7 +156,7 @@ void AsmWriter::emit_function(std::ostream& os, const MachFunction& func) {
 
     os << "\t.text\n";
 
-    if (func.get_function()->get_linkage() == Function::External)
+    if (func.get_function()->has_linkage(Function::LinkageType::Public))
         os << std::format("\t.global\t{}\n", name);
 
     os << std::format(

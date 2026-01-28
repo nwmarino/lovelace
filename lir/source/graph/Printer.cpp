@@ -55,8 +55,6 @@ void BlockArgument::print(std::ostream& os, PrintPolicy policy) const {
 }
 
 void CFG::print(std::ostream& os) const {
-    os << std::format("LIR_CONTROL_FLOW_GRAPH \"{}\"\n\n", m_filename);
-
     for (const auto& pair : m_types.structs) {
         StructType* type = pair.second;
 
@@ -98,30 +96,30 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
             os << std::format("{} :: ", get_name());
 
             switch (get_linkage()) {
-                case Function::Internal:
-                    os << "internal ";
+                case Function::LinkageType::Public:
+                    os << "public ";
                     break;
-                case Function::External:
-                    os << "external ";
+                case Function::LinkageType::Private:
+                    os << "private ";
                     break;
             }
 
             os << '(';
 
-            for (uint32_t i = 0, e = num_args(); i < e; ++i) {
-                const lir::FunctionArgument* arg = get_arg(i);
+            for (uint32_t i = 0, e = num_parameters(); i < e; ++i) {
+                const Parameter *param = get_parameter(i);
 
-                if (arg->has_name()) {
-                    arg->print(os, PrintPolicy::Def);
+                if (param->is_named()) {
+                    param->print(os, PrintPolicy::Def);
                 } else {
-                    os << std::format("{}", arg->get_type()->to_string());
+                    os << std::format("{}", param->get_type()->to_string());
                 }
 
                 if (i + 1 != e)
                     os << ", ";
             }
 
-            os << std::format(") -> {}", get_return_type()->to_string());
+            os << std::format(") -> {}", get_result_type()->to_string());
 
             if (empty()) {
                 os << ";\n";
@@ -142,33 +140,23 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
             break;
 
         case PrintPolicy::Use:
-            os << std::format("{}: {}", m_name, get_return_type()->to_string());
+            os << std::format("{}: {}", m_name, get_result_type()->to_string());
             break;
     }
 }
 
-void FunctionArgument::print(std::ostream& os, PrintPolicy policy) const {
+void Parameter::print(std::ostream &os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            if (has_name())
+            if (is_named())
                 os << std::format("{}: ", get_name());
-            
-            switch (get_trait()) {
-                case Trait::None:
-                    break;
-                case Trait::ARet:
-                    os << "aret ";
-                    break;
-                case Trait::Valued:
-                    os << "valued ";
-                    break;
-            }
-
+        
             os << get_type()->to_string();
             break;
 
         case PrintPolicy::Use:
-            assert(has_name() && "cannot use unnamed argument!");
+            assert(is_named() && "cannot use unnamed argument!");
+            
             os << std::format("{}: {}", get_name(), get_type()->to_string());
             break;
     }
@@ -210,7 +198,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def: {
             if (is_def())
-                os << std::format("${} = ", get_def());
+                os << std::format("${} := ", get_def());
             
             const Mnemonic op = m_op;
             os << to_string(op) << ' ';
@@ -295,7 +283,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
                 }
 
                 if (op == OP_LOAD)
-                    os << std::format(" |{}", desc().alignment);
+                    os << std::format(" :{}", desc().alignment);
             }
 
             break;
@@ -312,10 +300,10 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
 void Local::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            os << std::format("${} := {} |{}\n", 
+            os << std::format("${} := {} :{}\n", 
                 get_name(), 
                 get_allocated_type()->to_string(), 
-                get_alignment()
+                get_align()
             );
             break;
 

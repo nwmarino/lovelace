@@ -7,6 +7,7 @@ set(GRAPH_SOURCES
     Global.cpp
     Instruction.cpp
     Local.cpp
+    Parameter.cpp
     Printer.cpp
     Type.cpp
     Value.cpp
