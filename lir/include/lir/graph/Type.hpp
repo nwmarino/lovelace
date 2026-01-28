@@ -144,18 +144,17 @@ class FunctionType final : public Type {
 
 public:
     using Params = std::vector<Type*>;
-    using Results = std::vector<Type*>;
 
 private:
     Params m_params;
-    Results m_results;
+    Type *m_result;
 
-    FunctionType(const Params &params, const Results &results)
-      : Type(Type::Function), m_params(params), m_results(results) {}
+    FunctionType(const Params &params, Type *result)
+      : Type(Type::Function), m_params(params), m_result(result) {}
 
 public:
     [[nodiscard]] static 
-    FunctionType *get(CFG& cfg, const Params &params, const Results &results);
+    FunctionType *get(CFG& cfg, const Params &params, Type *result);
 
     std::string to_string() const override;
 
@@ -179,25 +178,12 @@ public:
         return m_params[i];
     }
 
-    const Results &get_results() const { return m_results; }
-    Results &get_results() { return m_results; }
+    /// Returns the type that results from calls to functions of this type.
+    const Type *get_result() const { return m_result; }
+    Type *get_result() { return m_result; }
 
-    /// Returns the number of result types in this function type.
-    uint32_t num_results() const { return m_results.size(); }
-
-    /// Test if this function has any result types.
-    bool has_results() const { return !m_results.empty(); }
-
-    /// Returns the |i|-th result type.
-    const Type *get_result(uint32_t i) const {
-        assert(i < num_results() && "index out of bounds!");
-        return m_results[i];
-    }
-
-    Type *get_result(uint32_t i) {
-        assert(i < num_results() && "index out of bounds!");
-        return m_results[i];
-    }
+    /// Test if functions of this type have a result.
+    bool has_result() const { return m_result != nullptr; }
 };
 
 /// Represents an integer type of a given width in the agnostic IR.

@@ -13,9 +13,13 @@ function calls/returns, and local variable definitions.
 - Add phase timing to verbose outputs.
 
 ## LIR
-- Move `BasicBlock::Arg` and `Function::Arg` out to standalone classes named
-`BlockArgument` and `FunctionArgument`, respectively.
-- Add traits to function arguments.
-- Add weak patch for non-i64 indices in pwalk instructions to sign extend into
-full x64 registers.
+- Redesigned instruction API to use separate classes per instruction type.
+- Added back the `Phi` node.
+- Added the `extract` instruction for constant index field access of aggregates.
+- Split the `pwalk` instruction into separate `access` and `index` instructions
+for addressed structure access and pointer arithmetic, respectively.
+- Move `Function::Arg` to a separate `Parameter` class.
+- Add weak patch for non-i64 indices in pointer arithmetic instructions to sign 
+extend into full x64 registers.
 - Update old machine printer pass.
+- Add multiple result types to functions.

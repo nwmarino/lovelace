@@ -1,158 +1,39 @@
 //
-//  Copyright (c) 2025-2026 Nick Marino
+//  Copyright (c) 2026 Nicholas Marino
 //  All rights reserved.
 //
 
 #include "lir/graph/BasicBlock.hpp"
 #include "lir/graph/Constant.hpp"
+#include "lir/graph/Value.hpp"
+#include <format>
 #include "lir/graph/Instruction.hpp"
 
 using namespace lir;
 
-const char* lir::to_string(Mnemonic op) {
-    switch (op) {
-        case OP_ABORT:
-            return "abort";
-        case OP_AND:
-            return "and";
-        case OP_CALL:
-            return "call";
-        case OP_CMP:
-            return "cmp";
-        case OP_F2S:
-            return "f2s";
-        case OP_F2U:
-            return "f2u";
-        case OP_FADD:
-            return "fadd";
-        case OP_FDIV:
-            return "fdiv";
-        case OP_FEXT:
-            return "fext";
-        case OP_FMUL:
-            return "fmul";
-        case OP_FNEG:
-            return "fneg";
-        case OP_FSUB:
-            return "fsub";
-        case OP_FTRUNC:
-            return "ftrunc";
-        case OP_I2P:
-            return "i2p";
-        case OP_IADD:
-            return "iadd";
-        case OP_IMUL:
-            return "imul";
-        case OP_INEG:
-            return "ineg";
-        case OP_ISUB:
-            return "isub";
-        case OP_ITRUNC:
-            return "itrunc";
-        case OP_JIF:
-            return "jif";
-        case OP_JMP:
-            return "jmp";
-        case OP_LOAD:
-            return "load";
-        case OP_NOT:
-            return "not";
-        case OP_OR:
-            return "or";
-        case OP_P2I:
-            return "p2i";
-        case OP_PWALK:
-            return "pwalk";
-        case OP_REINT:
-            return "reint";
-        case OP_RET:
-            return "ret";
-        case OP_S2F:
-            return "s2f";
-        case OP_SAR:
-            return "sar";
-        case OP_SDIV:
-            return "sdiv";
-        case OP_SEXT:
-            return "sext";
-        case OP_SHL:
-            return "shl";
-        case OP_SHR:
-            return "shr";
-        case OP_SMOD:
-            return "smod";
-        case OP_STORE:
-            return "store";
-        case OP_STRING:
-            return "string";
-        case OP_U2F:
-            return "u2f";
-        case OP_UDIV:
-            return "udiv";
-        case OP_UMOD:
-            return "umod";
-        case OP_UNREACHABLE:
-            return "unreachable";
-        case OP_XOR:
-            return "xor";
-        case OP_ZEXT:
-            return "zext";
-    }
-}
-
-const char* lir::to_string(CMPPredicate pred) {
-    switch (pred) {
-        case CMP_IEQ:
-            return "ieq";
-        case CMP_INE:
-            return "ine";
-        case CMP_OEQ:
-            return "oeq";
-        case CMP_ONE:
-            return "one";
-        case CMP_SLT:
-            return "slt";
-        case CMP_SLE:
-            return "sle";
-        case CMP_SGT:
-            return "sgt";
-        case CMP_SGE:
-            return "sge";
-        case CMP_ULT:
-            return "ult";
-        case CMP_ULE:
-            return "ule";
-        case CMP_UGT:
-            return "ugt";
-        case CMP_UGE:
-            return "uge";
-        case CMP_OLT:
-            return "olt";
-        case CMP_OLE:
-            return "ole";
-        case CMP_OGT:
-            return "ogt";
-        case CMP_OGE:
-            return "oge";
-    }
-}
+//>==---------------------------------------------------------------------------
+//                          Instruction Implementation
+//>==---------------------------------------------------------------------------
 
 void Instruction::detach() {
-    assert(m_parent && "cannot detach a free-floating instruction!");
+    assert(m_parent && "instruction does not belong to a basic block!");
+
     m_parent->remove(this);
 }
 
-void Instruction::prepend_to(BasicBlock* block) {
-    assert(block && "block cannot be null");
+void Instruction::prepend_to(BasicBlock *block) {
+    assert(block && "block cannot be null!");
+
     block->prepend(this);
 }
 
-void Instruction::append_to(BasicBlock* block) {
-    assert(block && "block cannot be null");
+void Instruction::append_to(BasicBlock *block) {
+    assert(block && "block cannot be null!");
+
     block->append(this);
 }
 
-void Instruction::insert_before(Instruction* inst) {
+void Instruction::insert_before(Instruction *inst) {
     assert(inst && "inst cannot be null!");
 
     if (inst->get_prev())
@@ -165,7 +46,7 @@ void Instruction::insert_before(Instruction* inst) {
     m_parent = inst->get_parent();
 }
 
-void Instruction::insert_after(Instruction* inst) {
+void Instruction::insert_after(Instruction *inst) {
     assert(inst && "inst cannot be null!");
 
     if (inst->get_next())
@@ -178,91 +59,428 @@ void Instruction::insert_after(Instruction* inst) {
     m_parent = inst->get_parent();
 }
 
-bool Instruction::is_terminator() const {
-    switch (op()) {
-        case OP_ABORT:
-        case OP_JIF:
-        case OP_JMP:
-        case OP_RET:
-        case OP_UNREACHABLE:
-            return true;
-        default:
-            return false;
-    }
-}
-
-bool Instruction::is_cast() const {
-    switch (op()) {
-        case OP_F2S:
-        case OP_F2U:
-        case OP_FEXT:
-        case OP_FTRUNC:
-        case OP_I2P:
-        case OP_ITRUNC:
-        case OP_P2I:
-        case OP_REINT:
-        case OP_S2F:
-        case OP_SEXT:
-        case OP_U2F:
-        case OP_ZEXT:
-            return true;
-        default:
-            return false;
-    }
-}
-
-std::vector<const Value*> Instruction::get_jump_args() const {
-    assert(op() == OP_JMP);
-
-    std::vector<const Value*> args = {};
-    args.reserve(num_operands() - 1);
-
-    for (uint32_t i = 1, e = num_operands(); i < e; ++i) // Skip label.
-        args.push_back(get_operand(i));
-
-    return args;
-}
-
-std::vector<const Value*> Instruction::get_jif_true_args() const {
-    assert(op() == OP_JIF);
-
-    std::vector<const Value*> args = {};
-
-    for (uint32_t i = 2, e = num_operands(); i < e; ++i) { // Skip condition and "true" label.
-        const Value* oper = get_operand(i);
-        if (dynamic_cast<const BlockAddress*>(oper))
-            break; // Stop at first label.
-        
-        args.push_back(oper);
-    }
-
-    return args;
-}
-
-std::vector<const Value*> Instruction::get_jif_false_args() const {
-    assert(op() == OP_JIF);
-
-    uint32_t i = 2, e = num_operands(); // i: skip condition and first label.
-    for (; i < e; ++i) {
-        if (dynamic_cast<const BlockAddress*>(get_operand(i)))
-            break; // Stop at second label.
-    }
-
-    i += 1; // move past the second label.
-
-    std::vector<const Value*> args = {};
-    for (; i < e; ++i)
-        args.push_back(get_operand(i));
-    
-    return args;
-}
-
 bool Instruction::is_trivially_dead() const {
-    return false; // @Todo: no DCE for now.
+    return false; // @Todo: Implement formally.
 
-    if (get_def() == 0 || Value::used())
+    if (!is_def() || Value::used())
         return false;
 
-    //@ Todo: not quite right.
-    return m_op != OP_CALL;
+    return !dynamic_cast<const Call*>(this);
+}
+
+//>==---------------------------------------------------------------------------
+//                          Load Implementation
+//>==---------------------------------------------------------------------------
+
+void Load::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := load ", m_def, m_type->to_string());
+        get_addr()->print(os, PrintPolicy::Use);
+        os << std::format(" :{}\n", m_align);
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Store Implementation
+//>==---------------------------------------------------------------------------
+
+void Store::print(std::ostream &os, PrintPolicy policy) const {
+    assert(policy != PrintPolicy::Use && "store does not define a value!");
+
+    if (policy == PrintPolicy::Def) {
+        os << "store ";
+        get_value()->print(os, PrintPolicy::Use);
+        os << ", ";
+        get_addr()->print(os, PrintPolicy::Use);
+        os << std::format(" :{}\n", get_align());
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Access Implementation
+//>==---------------------------------------------------------------------------
+
+void Access::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := access ", m_def);
+        get_base()->print(os, PrintPolicy::Use);
+        os << ", ";
+        get_index()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Extract Implementation
+//>==---------------------------------------------------------------------------
+
+void Extract::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := extract ", m_def);
+        get_base()->print(os, PrintPolicy::Use);
+        os << std::format(", {}\n", m_index);
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Index Implementation
+//>==---------------------------------------------------------------------------
+
+void Index::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := index ", m_def);
+        get_base()->print(os, PrintPolicy::Use);
+        os << ", ";
+        get_index()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Call Implementation
+//>==---------------------------------------------------------------------------
+
+void Call::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        assert(is_def() && "call does not define a value!");
+
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        if (is_def())
+            os << std::format("v{} := ", m_def);
+
+        os << "call ";
+        get_callee()->print(os, PrintPolicy::Use);
+        os << " (";
+
+        for (uint32_t i = 0, e = num_args(); i < e; ++i) {
+            get_arg(i)->print(os, PrintPolicy::Use);
+            if (i + 1 != e)
+                os << ", ";
+        }
+
+        os << ")\n";
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Ret Implementation
+//>==---------------------------------------------------------------------------
+
+void Ret::print(std::ostream &os, PrintPolicy policy) const {
+    assert(policy != PrintPolicy::Use && "ret does not define a value!");
+
+    if (policy == PrintPolicy::Def) {
+        os << "ret";
+
+        if (has_value()) {
+            os << ' ';
+            get_value()->print(os, PrintPolicy::Use);
+        }
+
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Jump Implementation
+//>==---------------------------------------------------------------------------
+
+void Jump::print(std::ostream &os, PrintPolicy policy) const {
+    assert(policy != PrintPolicy::Use && "jump does not define a value!");
+
+    if (policy == PrintPolicy::Def) {
+        os << std::format("jump bb{}\n", get_dest()->position());
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Brif Implementation
+//>==---------------------------------------------------------------------------
+
+const BasicBlock* Brif::get_true_dest() const {
+    if (!has_parent())
+        return nullptr;
+
+    return get_parent()->get_pred(0);
+}
+
+const BasicBlock* Brif::get_false_dest() const {
+    if (!has_parent())
+        return nullptr;
+
+    return get_parent()->get_pred(1);
+}
+
+void Brif::print(std::ostream &os, PrintPolicy policy) const {
+    assert(policy != PrintPolicy::Use && "brif does not define a value!");
+
+    if (policy == PrintPolicy::Def) {
+        os << "brif ";
+        get_cond()->print(os, PrintPolicy::Use);
+        os << std::format(" bb{} else bb{}\n", 
+            get_true_dest()->position(), get_false_dest()->position());
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Unop Implementation
+//>==---------------------------------------------------------------------------
+
+void Unop::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := ", m_def);
+
+        switch (op()) {
+            case Op::Not:
+                os << "not ";
+                break;
+            case Op::INeg:
+                os << "ineg ";
+                break;
+            case Op::FNeg:
+                os << "fneg ";
+                break;
+        }
+
+        get_value()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Binop Implementation
+//>==---------------------------------------------------------------------------
+
+void Binop::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := ", m_def);
+
+        switch (op()) {
+            case Op::IAdd:
+                os << "iadd ";
+                break;
+            case Op::FAdd:
+                os << "fadd ";
+                break;
+            case Op::ISub:
+                os << "isub ";
+                break;
+            case Op::FSub:
+                os << "fsub ";
+                break;
+            case Op::IMul:
+                os << "imul ";
+                break;
+            case Op::FMul:
+                os << "fmul ";
+                break;
+            case Op::SDiv:
+                os << "sdiv ";
+                break;
+            case Op::UDiv:
+                os << "udiv ";
+                break;
+            case Op::FDiv:
+                os << "fdiv ";
+                break;
+            case Op::SMod:
+                os << "smod ";
+                break;
+            case Op::UMod:
+                os << "umod ";
+                break;
+            case Op::And:
+                os << "and ";
+                break;
+            case Op::Or:
+                os << "or ";
+                break;
+            case Op::Xor:
+                os << "xor ";
+                break;
+            case Op::Shl:
+                os << "shl ";
+                break;
+            case Op::Shr:
+                os << "shr ";
+                break;
+            case Op::Sar:
+                os << "sar ";
+                break;
+        }
+
+        get_lhs()->print(os, PrintPolicy::Use);
+        os << ", ";
+        get_rhs()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Cast Implementation
+//>==---------------------------------------------------------------------------
+
+void Cast::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := ", m_def);
+
+        switch (kind()) {
+            case Kind::SExt:
+                os << "sext ";
+                break;
+            case Kind::ZExt:
+                os << "zext ";
+                break;
+            case Kind::FExt:
+                os << "fext ";
+                break;
+            case Kind::ITrunc:
+                os << "itrunc ";
+                break;
+            case Kind::FTrunc:
+                os << "ftrunc ";
+                break;
+            case Kind::S2F:
+                os << "s2f ";
+                break;
+            case Kind::U2F:
+                os << "u2f ";
+                break;
+            case Kind::F2S:
+                os << "f2s ";
+                break;
+            case Kind::F2U:
+                os << "f2u ";
+                break;
+            case Kind::P2I:
+                os << "p2i ";
+                break;
+            case Kind::I2P:
+                os << "i2p ";
+                break;
+            case Kind::Reint:
+                os << "reint ";
+                break;
+        }
+
+        os << std::format(" ({}) ", m_type->to_string());
+        get_value()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Cmp Implementation
+//>==---------------------------------------------------------------------------
+
+void Cmp::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := ", m_def);
+
+        switch (pred()) {
+            case Predicate::IEq:
+                os << "i== ";
+                break;
+            case Predicate::FEq:
+                os << "f== ";
+                break;
+            case Predicate::INe:
+                os << "i!= ";
+                break;
+            case Predicate::FNe:
+                os << "f!= ";
+                break;
+            case Predicate::Slt:
+                os << "s< ";
+                break;
+            case Predicate::Ult:
+                os << "u< ";
+                break;
+            case Predicate::Flt:
+                os << "f< ";
+                break;
+            case Predicate::Sle:
+                os << "s<= ";
+                break;
+            case Predicate::Ule:
+                os << "u<= ";
+                break;
+            case Predicate::Fle:
+                os << "f<= ";
+                break;
+            case Predicate::Sgt:
+                os << "s> ";
+                break;
+            case Predicate::Ugt:
+                os << "u> ";
+                break;
+            case Predicate::Fgt:
+                os << "f> ";
+                break;
+            case Predicate::Sge:
+                os << "s>= ";
+                break;
+            case Predicate::Uge:
+                os << "u>= ";
+                break;
+            case Predicate::Fge:
+                os << "f>= ";
+                break;
+        }
+
+        get_lhs()->print(os, PrintPolicy::Use);
+        os << ", ";
+        get_rhs()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
+//                          Phi Implementation
+//>==---------------------------------------------------------------------------
+
+void Phi::add_edge(Value *value, BasicBlock *pred) {
+    assert(*value->get_type() == *m_type && 
+        "incoming value does not match node type!");
+
+    add_operand(value);
+    m_preds.push_back(pred);
+}
+
+void Phi::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("v{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("v{} := phi {} ", m_def, m_type->to_string());
+
+        for (uint32_t i = 0, e = num_edges(); i < e; ++i) {
+            const Edge edge = get_edge(i);
+
+            os << '(';
+            edge.value->print(os, PrintPolicy::Use);
+            os << std::format(", bb{})", edge.pred->position());
+
+            if (i + 1 != e)
+                os << ", ";
+        }
+        
+        os << "\n";
+    }
 }

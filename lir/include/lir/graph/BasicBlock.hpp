@@ -77,7 +77,6 @@ public:
     void operator=(BasicBlock&&) noexcept = delete;
 
     void set_parent(Function* function) { m_parent = function; }
-    void clear_parent() { m_parent = nullptr; }
     const Function* get_parent() const { return m_parent; }
     Function* get_parent() { return m_parent; }
 
@@ -175,17 +174,47 @@ public:
     /// blocks in the parent function.
     uint32_t position() const;
 
-    const Preds& get_preds() const { return m_preds; }
-    Preds& get_preds() { return m_preds; }
+    /// Returns the list of blocks that are predecessors to this one.
+    const Preds &get_preds() const { return m_preds; }
+    Preds &get_preds() { return m_preds; }
 
+    /// Returns the number of blocks that are predecessors to this one.
     uint32_t num_preds() const { return m_preds.size(); }
+
+    /// Test if this block has any predecessors.
     bool has_preds() const { return !m_preds.empty(); }
 
-    const Preds& get_succs() const { return m_succs; }
-    Preds& get_succs() { return m_succs; }
+    /// Returns the |i|-th predecessor block.
+    const BasicBlock *get_pred(uint32_t i) const {
+        assert(i < num_preds() && "index out of bounds!");
+        return m_preds[i];
+    }
 
+    BasicBlock *get_pred(uint32_t i) {
+        assert(i < num_preds() && "index out of bounds!");
+        return m_preds[i];
+    }
+
+    /// Returns the list of blocks that are successors to this one.
+    const Preds &get_succs() const { return m_succs; }
+    Preds &get_succs() { return m_succs; }
+
+    /// Returns the number of blocks that are successors to this one.
     uint32_t num_succs() const { return m_succs.size(); }
+
+    /// Test if this block has any successors.
     bool has_succs() const { return !m_succs.empty(); }
+
+    /// Returns the |i|-th successor block.
+    const BasicBlock *get_succ(uint32_t i) const {
+        assert(i < num_succs() && "index out of bounds!");
+        return m_succs[i];
+    }
+
+    BasicBlock *get_succ(uint32_t i) {
+        assert(i < num_succs() && "index out of bounds!");
+        return m_succs[i];
+    }
 
     /// Test if this basic block contains a terminating instruction.
     bool terminates() const;
