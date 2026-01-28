@@ -98,7 +98,7 @@ lir::Type* LIRCodegen::to_lir_type(const QualType& type) {
                 args[i] = to_lir_type(sig->get_param(i));
 
             return lir::FunctionType::get(
-                m_cfg, args, to_lir_type(sig->get_return_type()));
+                m_cfg, args, { to_lir_type(sig->get_return_type()) });
         }
 
         case Type::Pointer:
@@ -111,9 +111,9 @@ lir::Type* LIRCodegen::to_lir_type(const QualType& type) {
     }
 }
 
-lir::Function *LIRCodegen::get_intrinsic(const std::string &name, 
-                                         lir::Type* result, 
-                                         const std::vector<lir::Type*> &params) {
+lir::Function *LIRCodegen::get_intrinsic(
+        const std::string &name, const lir::FunctionType::Params &params,
+        const lir::FunctionType::Results &results) { 
     lir::Function* func = m_cfg.get_function(name);
     if (func)
         return func;
@@ -126,7 +126,7 @@ lir::Function *LIRCodegen::get_intrinsic(const std::string &name,
     return lir::Function::create(
         m_cfg, 
         lir::Function::LinkageType::Public, 
-        lir::FunctionType::get(m_cfg, params, result),
+        lir::FunctionType::get(m_cfg, params, results),
         name, 
         parameters
     );

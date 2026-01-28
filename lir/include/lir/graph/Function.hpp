@@ -73,11 +73,8 @@ public:
         return static_cast<const FunctionType*>(m_type); 
     }
     
-    FunctionType *get_type() { return static_cast<FunctionType*>(m_type); }
-
-    /// Returns the result type of this function.
-    const Type* get_result_type() const {
-        return get_type()->get_return_type();
+    FunctionType *get_type() { 
+        return static_cast<FunctionType*>(m_type); 
     }
 
     void set_name(const std::string &name) { m_name = name; }
@@ -93,29 +90,29 @@ public:
     /// Does not free any memory allocated for this function.
     void detach();
 
-    const Params &get_parameters() const { return m_params; }
-    Params &get_parameters() { return m_params; }
+    const Params &get_params() const { return m_params; }
+    Params &get_params() { return m_params; }
 
     /// Returns the number of parameters this function has.
-    uint32_t num_parameters() const { return m_params.size(); }
+    uint32_t num_params() const { return m_params.size(); }
 
     /// Test if this function has any parameters.
-    bool has_parameters() const { return !m_params.empty(); }
+    bool has_params() const { return !m_params.empty(); }
 
     /// Returns the |i|-th parameter of this function.
-    const Parameter *get_parameter(uint32_t i) const {
-        assert(i < num_parameters() && "index out of bounds!");
+    const Parameter *get_param(uint32_t i) const {
+        assert(i < num_params() && "index out of bounds!");
         return m_params[i];
     }
 
-    Parameter *get_parameter(uint32_t i) {
-        assert(i < num_parameters() && "index out of bounds!");
+    Parameter *get_param(uint32_t i) {
+        assert(i < num_params() && "index out of bounds!");
         return m_params[i];
     }
 
     /// Returns the parameter in this function with the given |name| if it 
     /// exists, and null otherwise.
-    const Parameter *get_parameter(const std::string &name) const {
+    const Parameter *get_param(const std::string &name) const {
         for (Parameter *param : m_params) {
             if (param->get_name() == name)
                 return param;
@@ -124,9 +121,9 @@ public:
         return nullptr;
     }
 
-    Parameter *get_parameter(const std::string &name) {
+    Parameter *get_param(const std::string &name) {
         return const_cast<Parameter*>(
-            static_cast<const Function*>(this)->get_parameter(name));
+            static_cast<const Function*>(this)->get_param(name));
     }
 
     /// Append the given |param| to the back of this functions' parameter list,
@@ -134,7 +131,11 @@ public:
     ///
     /// If the parameter were to conflict name-wise with another symbol already
     /// in this function, then the call fails.
-    bool add_parameter(Parameter *param);
+    bool add_param(Parameter *param);
+
+    /// Remove the given |param| from this function. If it does not belong to
+    /// this function, then the call fails silently.
+    void remove_param(Parameter *param);
 
     const Locals &get_locals() const { return m_locals; }
     Locals &get_locals() { return m_locals; }

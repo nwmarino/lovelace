@@ -92,22 +92,16 @@ void CFG::print(std::ostream& os) const {
 
 void Function::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
-        case PrintPolicy::Def:
+        case PrintPolicy::Def: {
             os << std::format("{} :: ", get_name());
 
-            switch (get_linkage()) {
-                case Function::LinkageType::Public:
-                    os << "public ";
-                    break;
-                case Function::LinkageType::Private:
-                    os << "private ";
-                    break;
-            }
+            if (has_linkage(Function::LinkageType::Public))
+                os << "pub ";
 
             os << '(';
 
-            for (uint32_t i = 0, e = num_parameters(); i < e; ++i) {
-                const Parameter *param = get_parameter(i);
+            for (uint32_t i = 0, e = num_params(); i < e; ++i) {
+                const Parameter *param = get_param(i);
 
                 if (param->is_named()) {
                     param->print(os, PrintPolicy::Def);
@@ -119,7 +113,20 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
                     os << ", ";
             }
 
-            os << std::format(") -> {}", get_result_type()->to_string());
+            os << ")";
+
+            const FunctionType *type = get_type();
+            if (type->has_results()) {
+                os << " -> (";
+
+                for (uint32_t i = 0, e = get_type()->num_results(); i < e; ++i) {
+                    os << type->get_result(i)->to_string();
+                    if (i + 1 != e)
+                        os << ", ";
+                }
+
+                os << ")";
+            }
 
             if (empty()) {
                 os << ";\n";
@@ -138,10 +145,25 @@ void Function::print(std::ostream& os, PrintPolicy policy) const {
 
             os << "}\n";
             break;
+        }
 
-        case PrintPolicy::Use:
-            os << std::format("{}: {}", m_name, get_result_type()->to_string());
+        case PrintPolicy::Use: {
+            os << get_name();
+
+            const FunctionType *type = get_type();
+            if (type->has_results()) {
+                os << ": (";
+                for (uint32_t i = 0, e = type->num_results(); i < e; ++i) {
+                    os << type->get_result(i)->to_string();
+                    if (i + 1 != e)
+                        os << ", ";
+                }
+
+                os << ")";
+            }
+
             break;
+        }
     }
 }
 
@@ -198,7 +220,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def: {
             if (is_def())
-                os << std::format("${} := ", get_def());
+                os << std::format("v{} := ", get_def());
             
             const Mnemonic op = m_op;
             os << to_string(op) << ' ';
@@ -282,7 +304,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
                         os << ", ";
                 }
 
-                if (op == OP_LOAD)
+                if (op == OP_LOAD || op == OP_STORE)
                     os << std::format(" :{}", desc().alignment);
             }
 
@@ -292,7 +314,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
         case PrintPolicy::Use:
             assert(is_def() && "cannot print non-def instruction!");
         
-            os << std::format("${}: {}", get_def(), get_type()->to_string());
+            os << std::format("v{}: {}", get_def(), get_type()->to_string());
             break;
     }
 }
@@ -300,7 +322,7 @@ void Instruction::print(std::ostream& os, PrintPolicy policy) const {
 void Local::print(std::ostream& os, PrintPolicy policy) const {
     switch (policy) {
         case PrintPolicy::Def:
-            os << std::format("${} := {} :{}\n", 
+            os << std::format("_{} := {} :{}\n", 
                 get_name(), 
                 get_allocated_type()->to_string(), 
                 get_align()
@@ -308,7 +330,7 @@ void Local::print(std::ostream& os, PrintPolicy policy) const {
             break;
 
         case PrintPolicy::Use:
-            os << std::format("${}: {}", get_name(), get_type()->to_string());
+            os << std::format("_{}: {}", get_name(), get_type()->to_string());
             break;
     }
 }

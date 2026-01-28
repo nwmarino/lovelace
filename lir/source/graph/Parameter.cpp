@@ -14,7 +14,7 @@ Parameter *Parameter::create(Type *type, const std::string &name,
     assert(param);
     
     if (parent)
-        parent->add_parameter(param);
+        parent->add_param(param);
 
     return param;
 }
@@ -23,7 +23,7 @@ uint32_t Parameter::get_index() const {
     assert(has_parent() && "parameter does not belong to a function!");
 
     uint32_t i = 0;
-    for (const Parameter *param : get_parent()->get_parameters()) {
+    for (const Parameter *param : get_parent()->get_params()) {
         if (param == this)
             return i;
 

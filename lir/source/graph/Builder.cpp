@@ -157,10 +157,11 @@ Instruction* Builder::build_call(FunctionType* type, Value* callee,
     for (Value* arg : args)
         operands.push_back(arg);
 
+    // @Todo: figure out what to do with multiple function result values.
     return insert(
         OP_CALL,
-        type->is_void_return() ? 0 : m_cfg.get_def_id(),
-        type->get_return_type(),
+        type->has_results() ? m_cfg.get_def_id() : 0,
+        type->get_result(0),
         operands);
 }
 

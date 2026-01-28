@@ -105,7 +105,7 @@ lir::Function* LIRCodegen::codegen_initial_function(const FunctionDefn* defn) {
     return lir::Function::create(
         m_cfg, 
         linkage, 
-        lir::FunctionType::get(m_cfg, types, return_type), 
+        lir::FunctionType::get(m_cfg, types, { return_type }), 
         defn->get_name(), 
         params
     );
@@ -122,8 +122,8 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     lir::BasicBlock* entry = lir::BasicBlock::create({}, m_func);
     m_builder.set_insert(entry);
 
-    for (uint32_t i = 0, e = func->num_parameters(); i < e; ++i) {
-        lir::Parameter *param = func->get_parameter(i);
+    for (uint32_t i = 0, e = func->num_params(); i < e; ++i) {
+        lir::Parameter *param = func->get_param(i);
         lir::Type *type = param->get_type();
         
         lir::Local* local = lir::Local::create(
@@ -139,7 +139,7 @@ lir::Function* LIRCodegen::codegen_lowered_function(const FunctionDefn* defn) {
     codegen_statement(defn->get_body());
 
     if (!m_builder.get_insert()->terminates()) {
-        if (m_func->get_result_type()->is_void_type()) {
+        if (!m_func->get_type()->has_results()) {
             m_builder.build_ret();
         } else {
             log::warn("function does not always return", 

@@ -143,34 +143,61 @@ class FunctionType final : public Type {
     friend class CFG;
 
 public:
-    using Args = std::vector<Type*>;
+    using Params = std::vector<Type*>;
+    using Results = std::vector<Type*>;
 
 private:
-    Args m_args;
-    Type* m_ret;
+    Params m_params;
+    Results m_results;
 
-    FunctionType(const Args& args, Type* ret)
-      : Type(Type::Function), m_args(args), m_ret(ret) {}
+    FunctionType(const Params &params, const Results &results)
+      : Type(Type::Function), m_params(params), m_results(results) {}
 
 public:
-    static FunctionType* get(CFG& cfg, const Args& args, Type* ret);
+    [[nodiscard]] static 
+    FunctionType *get(CFG& cfg, const Params &params, const Results &results);
 
     std::string to_string() const override;
 
-    const Args& args() const { return m_args; }
+    const Params &get_params() const { return m_params; }
+    Params &get_params() { return m_params; }
 
-    Type* get_arg(uint32_t i) const {
-        assert(i <- num_args() && "index out of bounds!");
-        return m_args[i];
+    /// Returns the number of parameter types in this function type.
+    uint32_t num_params() const { return m_params.size(); }
+
+    /// Test if this function type has any parameter types.
+    bool has_params() const { return !m_params.empty(); }
+
+    /// Returns the |i|-th parameter type.
+    const Type *get_param(uint32_t i) const {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
     }
 
-    uint32_t num_args() const { return m_args.size(); }
-    bool has_args() const { return !m_args.empty(); }
+    Type *get_param(uint32_t i) {
+        assert(i < num_params() && "index out of bounds!");
+        return m_params[i];
+    }
 
-    Type* get_return_type() const { return m_ret; }
+    const Results &get_results() const { return m_results; }
+    Results &get_results() { return m_results; }
 
-    /// Test if this function type returns the void type, i.e. has no return.
-    bool is_void_return() const { return m_ret->is_void_type(); }
+    /// Returns the number of result types in this function type.
+    uint32_t num_results() const { return m_results.size(); }
+
+    /// Test if this function has any result types.
+    bool has_results() const { return !m_results.empty(); }
+
+    /// Returns the |i|-th result type.
+    const Type *get_result(uint32_t i) const {
+        assert(i < num_results() && "index out of bounds!");
+        return m_results[i];
+    }
+
+    Type *get_result(uint32_t i) {
+        assert(i < num_results() && "index out of bounds!");
+        return m_results[i];
+    }
 };
 
 /// Represents an integer type of a given width in the agnostic IR.

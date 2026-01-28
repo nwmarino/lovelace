@@ -7,6 +7,8 @@
 #include "lir/graph/CFG.hpp"
 #include "lir/graph/Function.hpp"
 
+#include <algorithm>
+
 using namespace lir;
 
 Function::~Function() {
@@ -55,17 +57,29 @@ void Function::detach() {
     m_parent->remove_function(this); // Updates parent pointer automatically.
 }
 
-bool Function::add_parameter(Parameter *param) {
+bool Function::add_param(Parameter *param) {
     assert(!param->has_parent() && "parameter already belongs to a function!");
 
     if (param->is_named()) {
-        if (get_parameter(param->get_name()))
+        if (get_param(param->get_name()))
             return false;
     }
 
     m_params.push_back(param);
     param->set_parent(this);
     return true;
+}
+
+void Function::remove_param(Parameter *param) {
+    assert(param && "parameter cannot be null!");
+
+    if (param->get_parent() == this) {
+        auto it = std::find(m_params.begin(), m_params.end(), param);
+        if (it == m_params.end())
+            return;
+
+        m_params.erase(it);
+    }
 }
 
 const Local *Function::get_local(const std::string &name) const {

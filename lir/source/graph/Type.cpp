@@ -83,25 +83,33 @@ std::string FloatType::to_string() const {
     assert(false && "incompatible bit width!");
 }
 
-FunctionType* FunctionType::get(CFG& cfg, const Args& args, Type* ret) {
-    FunctionType* type = new FunctionType(args, ret);
+FunctionType *FunctionType::get(CFG &cfg, const Params &params, 
+                                const Results &results) {
+    FunctionType *type = new FunctionType(params, results);
+    assert(type);
+
     cfg.m_types.functions.push_back(type);
     return type;
 }
 
 std::string FunctionType::to_string() const {
     std::string str = "(";
-    for (uint32_t idx = 0, e = m_args.size(); idx != e; ++idx) {
-        str += m_args[idx]->to_string();
-        if (idx + 1 != e)
+    
+    for (uint32_t i = 0, e = num_params(); i < e; ++i) {
+        str += m_params[i]->to_string();
+        if (i + 1 != e)
             str += ", ";
     }
 
-    str += ')';
-    if (m_ret)
-        str += " -> " + m_ret->to_string();
+    str += ") -> (";
 
-    return str;
+    for (uint32_t i = 0, e = num_results(); i < e; ++i) {
+        str += m_results[i]->to_string();
+        if (i + 1 != e)
+            str += ", ";
+    }
+
+    return str + ')';
 }
 
 static IntegerType* get(CFG& cfg, uint32_t width) {
