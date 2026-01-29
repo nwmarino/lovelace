@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
@@ -27,11 +27,11 @@ public:
 
     ~Parameter() = default;
 
-    Parameter(const Parameter &) = delete;
-    void operator=(const Parameter &) = delete;
+    Parameter(const Parameter&) = delete;
+    void operator=(const Parameter&) = delete;
 
-    Parameter(Parameter &&) noexcept = delete;
-    void operator=(Parameter &&) noexcept = delete;
+    Parameter(Parameter&&) noexcept = delete;
+    void operator=(Parameter&&) noexcept = delete;
 
     void set_parent(Function *function) { m_parent = function; }
     const Function *get_parent() const { return m_parent; }

@@ -1,13 +1,15 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
 #include "lir/graph/BasicBlock.hpp"
 #include "lir/graph/CFG.hpp"
+#include "lir/graph/Value.hpp"
 #include "lir/graph/Function.hpp"
 
 #include <algorithm>
+#include <format>
 
 using namespace lir;
 
@@ -194,7 +196,7 @@ void Function::remove(BasicBlock *block) {
 
         block->set_prev(nullptr);
         block->set_next(nullptr);
-        block->clear_parent();
+        block->set_parent(nullptr);
     }
 }
 
@@ -208,4 +210,60 @@ uint32_t Function::size() const {
     }
 
     return size;
+}
+
+void Function::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << m_name;
+
+        const FunctionType *type = get_type();
+        if (type->has_result())
+            os << std::format(": {}", type->get_result()->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("{} :: ", m_name);
+
+        if (has_linkage(Function::LinkageType::Public))
+            os << "pub ";
+
+        os << '(';
+
+        for (uint32_t i = 0, e = num_params(); i < e; ++i) {
+            const Parameter *param = get_param(i);
+
+            if (param->is_named()) {
+                param->print(os, PrintPolicy::Def);
+            } else {
+                os << std::format("{}", param->get_type()->to_string());
+            }
+
+            if (i + 1 != e)
+                os << ", ";
+        }
+
+        os << ")";
+
+        const FunctionType *type = get_type();
+        if (type->has_result())
+            os << std::format(" -> {}", type->get_result()->to_string());
+
+        if (empty()) {
+            os << ";\n";
+            return;
+        } else {
+            os << " {\n";
+        }
+
+        for (const auto &pair : get_locals()) {
+            os << '\t';
+            pair.second->print(os, PrintPolicy::Def);
+        }
+
+        const BasicBlock *curr = get_head();
+        while (curr) {
+            curr->print(os, PrintPolicy::Def);
+            curr = curr->get_next();
+        }
+
+        os << "}\n";
+    }
 }

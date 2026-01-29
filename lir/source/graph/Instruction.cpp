@@ -1,13 +1,14 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
 #include "lir/graph/BasicBlock.hpp"
 #include "lir/graph/Constant.hpp"
 #include "lir/graph/Value.hpp"
-#include <format>
 #include "lir/graph/Instruction.hpp"
+
+#include <format>
 
 using namespace lir;
 
@@ -69,16 +70,30 @@ bool Instruction::is_trivially_dead() const {
 }
 
 //>==---------------------------------------------------------------------------
+//                          Const Implementation
+//>==---------------------------------------------------------------------------
+
+void Const::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("%{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("%{} := const ", m_def);
+        get_value()->print(os, PrintPolicy::Use);
+        os << '\n';
+    }
+}
+
+//>==---------------------------------------------------------------------------
 //                          Load Implementation
 //>==---------------------------------------------------------------------------
 
 void Load::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := load ", m_def, m_type->to_string());
+        os << std::format("%{} := load ", m_def);
         get_addr()->print(os, PrintPolicy::Use);
-        os << std::format(" :{}\n", m_align);
+        os << std::format(" [{}]\n", m_align);
     }
 }
 
@@ -94,7 +109,7 @@ void Store::print(std::ostream &os, PrintPolicy policy) const {
         get_value()->print(os, PrintPolicy::Use);
         os << ", ";
         get_addr()->print(os, PrintPolicy::Use);
-        os << std::format(" :{}\n", get_align());
+        os << std::format(" [{}]\n", get_align());
     }
 }
 
@@ -104,9 +119,9 @@ void Store::print(std::ostream &os, PrintPolicy policy) const {
 
 void Access::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := access ", m_def);
+        os << std::format("%{} := access ", m_def);
         get_base()->print(os, PrintPolicy::Use);
         os << ", ";
         get_index()->print(os, PrintPolicy::Use);
@@ -120,23 +135,23 @@ void Access::print(std::ostream &os, PrintPolicy policy) const {
 
 void Extract::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := extract ", m_def);
+        os << std::format("%{} := extract ", m_def);
         get_base()->print(os, PrintPolicy::Use);
         os << std::format(", {}\n", m_index);
     }
 }
 
 //>==---------------------------------------------------------------------------
-//                          Index Implementation
+//                          Offptr Implementation
 //>==---------------------------------------------------------------------------
 
-void Index::print(std::ostream &os, PrintPolicy policy) const {
+void Offptr::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := index ", m_def);
+        os << std::format("%{} := offptr ", m_def);
         get_base()->print(os, PrintPolicy::Use);
         os << ", ";
         get_index()->print(os, PrintPolicy::Use);
@@ -152,10 +167,10 @@ void Call::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
         assert(is_def() && "call does not define a value!");
 
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
         if (is_def())
-            os << std::format("v{} := ", m_def);
+            os << std::format("%{} := ", m_def);
 
         os << "call ";
         get_callee()->print(os, PrintPolicy::Use);
@@ -232,14 +247,47 @@ void Brif::print(std::ostream &os, PrintPolicy policy) const {
 }
 
 //>==---------------------------------------------------------------------------
+//                          Phi Implementation
+//>==---------------------------------------------------------------------------
+
+void Phi::add_edge(Value *value, BasicBlock *pred) {
+    assert(*value->get_type() == *m_type && 
+        "incoming value does not match node type!");
+
+    add_operand(value);
+    m_preds.push_back(pred);
+}
+
+void Phi::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        os << std::format("%{}: {}", m_def, m_type->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        os << std::format("%{} := phi {} ", m_def, m_type->to_string());
+
+        for (uint32_t i = 0, e = num_edges(); i < e; ++i) {
+            const Edge edge = get_edge(i);
+
+            os << '(';
+            edge.value->print(os, PrintPolicy::Use);
+            os << std::format(", bb{})", edge.pred->position());
+
+            if (i + 1 != e)
+                os << ", ";
+        }
+        
+        os << "\n";
+    }
+}
+
+//>==---------------------------------------------------------------------------
 //                          Unop Implementation
 //>==---------------------------------------------------------------------------
 
 void Unop::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := ", m_def);
+        os << std::format("%{} := ", m_def);
 
         switch (op()) {
             case Op::Not:
@@ -264,9 +312,9 @@ void Unop::print(std::ostream &os, PrintPolicy policy) const {
 
 void Binop::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := ", m_def);
+        os << std::format("%{} := ", m_def);
 
         switch (op()) {
             case Op::IAdd:
@@ -335,9 +383,9 @@ void Binop::print(std::ostream &os, PrintPolicy policy) const {
 
 void Cast::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := ", m_def);
+        os << std::format("%{} := ", m_def);
 
         switch (kind()) {
             case Kind::SExt:
@@ -390,9 +438,9 @@ void Cast::print(std::ostream &os, PrintPolicy policy) const {
 
 void Cmp::print(std::ostream &os, PrintPolicy policy) const {
     if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
+        os << std::format("%{}: {}", m_def, m_type->to_string());
     } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := ", m_def);
+        os << std::format("%{} := ", m_def);
 
         switch (pred()) {
             case Predicate::IEq:
@@ -449,38 +497,5 @@ void Cmp::print(std::ostream &os, PrintPolicy policy) const {
         os << ", ";
         get_rhs()->print(os, PrintPolicy::Use);
         os << '\n';
-    }
-}
-
-//>==---------------------------------------------------------------------------
-//                          Phi Implementation
-//>==---------------------------------------------------------------------------
-
-void Phi::add_edge(Value *value, BasicBlock *pred) {
-    assert(*value->get_type() == *m_type && 
-        "incoming value does not match node type!");
-
-    add_operand(value);
-    m_preds.push_back(pred);
-}
-
-void Phi::print(std::ostream &os, PrintPolicy policy) const {
-    if (policy == PrintPolicy::Use) {
-        os << std::format("v{}: {}", m_def, m_type->to_string());
-    } else if (policy == PrintPolicy::Def) {
-        os << std::format("v{} := phi {} ", m_def, m_type->to_string());
-
-        for (uint32_t i = 0, e = num_edges(); i < e; ++i) {
-            const Edge edge = get_edge(i);
-
-            os << '(';
-            edge.value->print(os, PrintPolicy::Use);
-            os << std::format(", bb{})", edge.pred->position());
-
-            if (i + 1 != e)
-                os << ", ";
-        }
-        
-        os << "\n";
     }
 }

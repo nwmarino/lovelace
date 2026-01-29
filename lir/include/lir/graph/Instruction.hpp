@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
@@ -32,8 +32,8 @@ protected:
 public:
     virtual ~Instruction() = default;
 
-    Instruction(const Instruction &) = delete;
-    void operator=(const Instruction &) = delete;
+    Instruction(const Instruction&) = delete;
+    void operator=(const Instruction&) = delete;
 
     Instruction(Instruction&&) noexcept = delete;
     void operator=(Instruction&&) noexcept = delete;
@@ -107,6 +107,32 @@ public:
     virtual void print(std::ostream &os, PrintPolicy policy) const override;
 };
 
+/// A const instruction yields a constant value as an SSA value.
+class Const final : public Instruction {
+    friend class Builder;
+
+private:
+    uint32_t m_def;
+
+    Const(Type *type, BasicBlock *parent, uint32_t def, Constant *value)
+      : Instruction(type, parent, { value }), m_def(def) {}
+
+public:
+    /// Returns the SSA value this instruction defines.
+    uint32_t def() const { return m_def; }
+
+    /// Returns the constant that this instruction uses.
+    const Constant *get_value() const { 
+        return static_cast<const Constant*>(get_operand(0));
+    }
+    
+    Constant *get_value() { 
+        return static_cast<Constant*>(get_operand(0)); 
+    }
+
+    void print(std::ostream &os, PrintPolicy policy) const override;
+};
+
 /// A load instruction produces a value by reading from a given address.
 class Load final : public Instruction {
     friend class Builder;
@@ -114,17 +140,16 @@ class Load final : public Instruction {
     uint32_t m_def;
     uint32_t m_align;
 
-    Load(Type *type, BasicBlock *parent, uint32_t def, Value *addr, 
-         uint32_t align)
-      : Instruction(type, parent, { addr }), m_def(def), m_align(align) {}
+    Load(Type *type, BasicBlock *parent, uint32_t def, Value *ptr, uint32_t align)
+      : Instruction(type, parent, { ptr }), m_def(def), m_align(align) {}
 
 public:
     /// Returns the SSA value this instruction defines.
     uint32_t def() const { return m_def; }
 
     /// Returns the address that this load uses.
-    const Value *get_addr() const { return get_operand(1); }
-    Value *get_addr() { return get_operand(1); }
+    const Value *get_addr() const { return get_operand(0); }
+    Value *get_addr() { return get_operand(0); }
 
     /// Returns the alignment of this load.
     uint32_t get_align() const { return m_align; }
@@ -138,8 +163,8 @@ class Store final : public Instruction {
 
     uint32_t m_align;
 
-    Store(BasicBlock *parent, Value *value, Value *addr, uint32_t align)
-      : Instruction(nullptr, parent, { value, addr }), m_align(align) {}
+    Store(BasicBlock *parent, Value *value, Value *ptr, uint32_t align)
+      : Instruction(nullptr, parent, { value, ptr }), m_align(align) {}
 
 public:
     /// Returns the value that this store uses.
@@ -163,9 +188,9 @@ class Access final : public Instruction {
 
     uint32_t m_def;
 
-    Access(Type *type, BasicBlock *parent, uint32_t def, Value *base, 
+    Access(Type *type, BasicBlock *parent, uint32_t def, Value *ptr, 
            Value *index)
-      : Instruction(type, parent, { base, index }), m_def(def) {}
+      : Instruction(type, parent, { ptr, index }), m_def(def) {}
 
 public:
     /// Returns the SSA value this instruction defines.
@@ -208,26 +233,26 @@ public:
     void print(std::ostream &os, PrintPolicy policy) const override;
 };
 
-/// An index instruction performs pointer arithmetic on a base pointer by a
-/// lone, numeric index.
-class Index final : public Instruction {
+/// An offptr instruction performs pointer arithmetic by adding an offset 
+/// to a base pointer based on a numeric index.
+class Offptr final : public Instruction {
     friend class Builder;
 
     uint32_t m_def;
 
-    Index(Type *type, BasicBlock *parent, uint32_t def, Value *base, 
+    Offptr(Type *type, BasicBlock *parent, uint32_t def, Value *ptr, 
           Value *index)
-      : Instruction(type, parent, { base, index }), m_def(def) {}
+      : Instruction(type, parent, { ptr, index }), m_def(def) {}
 
 public:
     /// Returns the SSA value this instruction defines.
     uint32_t def() const { return m_def; }
 
-    /// Returns the base structure value of this index.
+    /// Returns the base structure value of this instruction.
     const Value *get_base() const { return get_operand(0); }
     Value *get_base() { return get_operand(0); }
 
-    /// Returns the index of this index.
+    /// Returns the index of this instruction.
     const Value *get_index() const { return get_operand(1); }
     Value *get_index() { return get_operand(1); }
 
@@ -357,6 +382,64 @@ public:
     void print(std::ostream &os, PrintPolicy policy) const override;
 };
 
+/// A phi node receives values incoming from various predecessor blocks to
+/// define a new value based on control flow.
+class Phi final : public Instruction {
+    friend class Builder;
+
+public:
+    using Preds = std::vector<BasicBlock*>;
+
+    /// Represents an edge to a phi node.
+    struct Edge final {
+        const Value *value;
+        const BasicBlock *pred;
+    };
+
+private:
+    uint32_t m_def;
+    Preds m_preds = {};
+
+    Phi(Type *type, BasicBlock *parent, uint32_t def)
+      : Instruction(type, parent), m_def(def) {}
+
+public:
+    /// Returns the SSA value this node defines.
+    uint32_t def() const { return m_def; }
+
+    /// Returns the predecessor blocks of this node.
+    const Preds &get_preds() const { return m_preds; }
+    Preds &get_preds() { return m_preds; }
+
+    /// Returns the |i|-th predecessor block of this node.
+    const BasicBlock *get_pred(uint32_t i) const {
+        assert(i < num_operands() && "index out of bounds!");
+        return m_preds[i];
+    }
+
+    BasicBlock *get_pred(uint32_t i) {
+        assert(i < num_operands() && "index out of bounds!");
+        return m_preds[i];
+    }
+
+    /// Returns the number of edges to this node.
+    inline uint32_t num_edges() const { return num_operands(); }
+
+    /// Returns the |i|-th edge to this node.
+    Edge get_edge(uint32_t i) const {
+        assert(i < num_operands() && "index out of bounds!");
+        return Edge {
+            get_operand(i),
+            get_pred(i),
+        };
+    }
+
+    /// Adds the given |value| as an incoming edge from the basic block |pred|.
+    void add_edge(Value *value, BasicBlock *pred);
+
+    void print(std::ostream &os, PrintPolicy policy) const override;
+};
+
 /// A unop instruction defines a new value by performing an operation on a 
 /// lone operand.
 class Unop final : public Instruction {
@@ -397,11 +480,8 @@ class Binop final : public Instruction {
 public:
     /// The different kinds of binary operators.
     enum class Op : uint8_t {
-        IAdd, FAdd,
-        ISub, FSub,
-        IMul, FMul,
-        SDiv, UDiv, FDiv,
-        SMod, UMod,
+        IAdd, ISub, IMul, SDiv, UDiv, SMod, UMod,
+        FAdd, FSub, FMul, FDiv,
         And, Or, Xor,
         Shl, Shr, Sar,
     };
@@ -504,64 +584,6 @@ public:
     /// Returns the right-side operand of this comparison.
     const Value *get_rhs() const { return get_operand(1); }
     Value *get_rhs() { return get_operand(1); }
-
-    void print(std::ostream &os, PrintPolicy policy) const override;
-};
-
-/// A phi node receives values incoming from various predecessor blocks to
-/// define a new value based on control flow.
-class Phi final : public Instruction {
-    friend class Builder;
-
-public:
-    using Preds = std::vector<BasicBlock*>;
-
-    /// Represents an edge to a phi node.
-    struct Edge final {
-        const Value *value;
-        const BasicBlock *pred;
-    };
-
-private:
-    uint32_t m_def;
-    Preds m_preds = {};
-
-    Phi(Type *type, BasicBlock *parent, uint32_t def)
-      : Instruction(type, parent), m_def(def) {}
-
-public:
-    /// Returns the SSA value this node defines.
-    uint32_t def() const { return m_def; }
-
-    /// Returns the predecessor blocks of this node.
-    const Preds &get_preds() const { return m_preds; }
-    Preds &get_preds() { return m_preds; }
-
-    /// Returns the |i|-th predecessor block of this node.
-    const BasicBlock *get_pred(uint32_t i) const {
-        assert(i < num_operands() && "index out of bounds!");
-        return m_preds[i];
-    }
-
-    BasicBlock *get_pred(uint32_t i) {
-        assert(i < num_operands() && "index out of bounds!");
-        return m_preds[i];
-    }
-
-    /// Returns the number of edges to this node.
-    inline uint32_t num_edges() const { return num_operands(); }
-
-    /// Returns the |i|-th edge to this node.
-    Edge get_edge(uint32_t i) const {
-        assert(i < num_operands() && "index out of bounds!");
-        return Edge {
-            get_operand(i),
-            get_pred(i),
-        };
-    }
-
-    /// Adds the given |value| as an incoming edge from the basic block |pred|.
-    void add_edge(Value *value, BasicBlock *pred);
 
     void print(std::ostream &os, PrintPolicy policy) const override;
 };

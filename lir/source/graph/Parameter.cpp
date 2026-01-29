@@ -1,10 +1,13 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
 #include "lir/graph/Function.hpp"
+#include "lir/graph/Value.hpp"
 #include "lir/graph/Parameter.hpp"
+
+#include <format>
 
 using namespace lir;
 
@@ -31,4 +34,17 @@ uint32_t Parameter::get_index() const {
     }
 
     assert(false && "parameter is missing from parent function!");
+}
+
+void Parameter::print(std::ostream &os, PrintPolicy policy) const {
+    if (policy == PrintPolicy::Use) {
+        assert(is_named() && "cannot use unnamed argument!");
+            
+        os << std::format("{}: {}", get_name(), get_type()->to_string());
+    } else if (policy == PrintPolicy::Def) {
+        if (is_named())
+            os << std::format("{}: ", get_name());
+    
+        os << get_type()->to_string();
+    }
 }

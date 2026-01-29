@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025-2026 Nick Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
@@ -29,6 +29,7 @@ public:
     using Params = std::vector<Parameter*>;
     using Locals = std::map<std::string, Local*>;
 
+    /// The different kinds of linkage a function can have.
     enum class LinkageType : uint8_t {
         Public,
         Private,

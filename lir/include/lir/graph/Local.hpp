@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2026 Nicholas Marino
+//  Copyright (c) 2025-2026 Nicholas Marino
 //  All rights reserved.
 //
 
@@ -45,11 +45,12 @@ public:
     const std::string &get_name() const { return m_name; }
     std::string &get_name() { return m_name; }
 
-    const Type* get_allocated_type() const { 
+    /// Returns the type that this local is allocated for.
+    const Type *get_allocated_type() const { 
         return static_cast<PointerType*>(m_type)->get_pointee(); 
     }
 
-    Type* get_allocated_type() { 
+    Type *get_allocated_type() { 
         return static_cast<PointerType*>(m_type)->get_pointee();
     }
 
